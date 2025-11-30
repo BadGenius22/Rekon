@@ -1,5 +1,6 @@
 import { POLYMARKET_CONFIG } from "@rekon/config";
 import type { PolymarketMarket } from "./types";
+import { getBuilderApiHeaders, getClobApiHeaders } from "./headers";
 
 /**
  * Polymarket API Client
@@ -60,9 +61,7 @@ export async function fetchPolymarketMarkets(
   }`;
 
   const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: getClobApiHeaders(),
   });
 
   if (!response.ok) {
@@ -84,9 +83,7 @@ export async function fetchPolymarketMarketById(
   const url = `${BUILDER_API_URL}/markets/${marketId}`;
 
   const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: getClobApiHeaders(),
   });
 
   if (response.status === 404) {
@@ -124,9 +121,7 @@ export async function fetchPolymarketCondition(
   const url = `${CLOB_API_URL}/conditions/${conditionId}`;
 
   const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: getClobApiHeaders(),
   });
 
   if (response.status === 404) {
@@ -152,9 +147,7 @@ export async function fetchPolymarketOrderBook(
   const url = `${CLOB_API_URL}/book?token_id=${tokenId}`;
 
   const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: getClobApiHeaders(),
   });
 
   if (!response.ok) {
@@ -178,9 +171,7 @@ export async function fetchPolymarketTrades(
   const url = `${CLOB_API_URL}/trades?token_id=${tokenId}&limit=${limit}`;
 
   const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: getClobApiHeaders(),
   });
 
   if (!response.ok) {
@@ -200,9 +191,7 @@ export async function fetchPolymarketPrice(tokenId: string): Promise<unknown> {
   const url = `${CLOB_API_URL}/price?token_id=${tokenId}`;
 
   const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: getClobApiHeaders(),
   });
 
   if (!response.ok) {
@@ -225,9 +214,7 @@ export async function fetchPolymarketPrices(
   const url = `${CLOB_API_URL}/prices?token_ids=${tokenIdsParam}`;
 
   const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: getClobApiHeaders(),
   });
 
   if (!response.ok) {

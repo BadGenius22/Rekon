@@ -16,6 +16,15 @@ export const POLYMARKET_CONFIG = {
   builderApiUrl:
     process.env.POLYMARKET_BUILDER_API_URL ||
     "https://api.builder.polymarket.com",
+  // Builder API Key (optional, but recommended for higher rate limits)
+  builderApiKey: process.env.POLYMARKET_BUILDER_API_KEY || undefined,
+  // Builder Attribution (for order attribution to your builder account)
+  // Optional: Only needed if you want to attribute orders to your builder account
+  // Get these from your builder profile: https://polymarket.com/settings/api
+  // builderId: Your builder address (wallet address) - found in builder profile
+  // builderName: Your builder name/display name
+  builderId: process.env.POLYMARKET_BUILDER_ID || undefined,
+  builderName: process.env.POLYMARKET_BUILDER_NAME || undefined,
   // Data API - User data, holdings, on-chain activities
   dataApiUrl:
     process.env.POLYMARKET_DATA_API_URL || "https://data-api.polymarket.com",

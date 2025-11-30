@@ -30,3 +30,19 @@ export {
   fetchPolymarketPrices,
   type FetchMarketsParams,
 } from "./client";
+
+// Export header utilities
+export {
+  getBuilderApiHeaders,
+  getClobApiHeaders,
+  getDataApiHeaders,
+} from "./headers";
+
+// Export Builder Program API functions
+export {
+  fetchBuilderLeaderboard,
+  fetchBuilderVolume,
+  fetchMyBuilderStats,
+  type BuilderLeaderboardEntry,
+  type BuilderVolumeData,
+} from "./builder";
