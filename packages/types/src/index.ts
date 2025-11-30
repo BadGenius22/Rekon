@@ -182,3 +182,6 @@ export * from "./session";
 
 // Trade placement types
 export * from "./trade";
+
+// Fill types
+export * from "./fill";

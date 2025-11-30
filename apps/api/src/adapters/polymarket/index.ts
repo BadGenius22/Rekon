@@ -74,3 +74,6 @@ export {
   type BuilderApiKeyCreds,
   type RemoteBuilderConfig,
 } from "./builder-signing";
+
+// Export fills functions
+export { fetchUserFills } from "./fills";
