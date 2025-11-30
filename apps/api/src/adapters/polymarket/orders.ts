@@ -120,8 +120,25 @@ function mapTimeInForceToOrderType(
 /**
  * Converts ClobClient response to ClobOrderResponse format.
  */
+/**
+ * ClobClient response shape (varies by ClobClient version)
+ */
+interface ClobClientResponseShape {
+  order_id?: string;
+  id?: string;
+  status?: string;
+  token_id?: string;
+  tokenID?: string;
+  side?: "BUY" | "SELL" | number;
+  price?: string | number;
+  size?: string | number;
+  filled?: string | number;
+  timestamp?: string;
+  expiration?: string;
+}
+
 function convertClobClientResponseToClobResponse(
-  clobResponse: any,
+  clobResponse: ClobClientResponseShape,
   originalRequest: ClobOrderRequest
 ): ClobOrderResponse {
   return {
@@ -131,7 +148,7 @@ function convertClobClientResponseToClobResponse(
     side: originalRequest.side,
     price: originalRequest.price,
     size: originalRequest.size,
-    filled: clobResponse.filled || "0",
+    filled: String(clobResponse.filled || "0"),
     timestamp: clobResponse.timestamp || new Date().toISOString(),
     expiration: originalRequest.expiration,
   };
@@ -171,24 +188,49 @@ export async function getClobOrder(
     }
 
     // Convert ClobClient order to our format
-    // ClobClient returns OpenOrder type, access properties safely
-    const orderAny = order as any;
+    // ClobClient returns OpenOrder type, but properties may vary
+    // Using type assertion with proper interface
+    interface ClobOrderShape {
+      order_id?: string;
+      id?: string;
+      status?: string;
+      token_id?: string;
+      tokenID?: string;
+      side?: "BUY" | "SELL" | number;
+      price?: string | number;
+      size?: string | number;
+      filled?: string | number;
+      timestamp?: string;
+      expiration?: string;
+    }
+
+    const orderAny = order as ClobOrderShape;
+    
+    // Determine side - handle both string and numeric values
+    // Polymarket uses: "BUY" (string) or 0 (number) for buy, "SELL" (string) or 1 (number) for sell
+    let side: "BUY" | "SELL";
+    const sideValue = orderAny.side;
+    if (sideValue === "BUY" || sideValue === 0) {
+      side = "BUY";
+    } else {
+      side = "SELL";
+    }
+    
     return {
       order_id: orderAny.order_id || orderAny.id || orderId,
       status: mapClobClientStatusToStatus(orderAny.status),
       token_id: orderAny.token_id || orderAny.tokenID || "",
-      side: (orderAny.side === "BUY" || orderAny.side === Side.BUY
-        ? "BUY"
-        : "SELL") as "BUY" | "SELL",
+      side,
       price: String(orderAny.price || "0"),
       size: String(orderAny.size || "0"),
       filled: String(orderAny.filled || "0"),
       timestamp: orderAny.timestamp || new Date().toISOString(),
       expiration: orderAny.expiration,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Handle 404 or other errors
-    if (error?.status === 404 || error?.message?.includes("not found")) {
+    const errorObj = error as { status?: number; message?: string };
+    if (errorObj?.status === 404 || errorObj?.message?.includes("not found")) {
       return null;
     }
     throw error;

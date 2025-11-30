@@ -101,14 +101,22 @@ export async function getBatchOrderStatusController(c: Context) {
   const results = await getBatchOrderStatus(body.orderIds);
 
   // Convert Map to object
-  const statusMap: Record<string, any> = {};
+  interface OrderStatusSummary {
+    status: string;
+    filled: number;
+    remaining: number;
+    price: number;
+    updatedAt: string;
+  }
+
+  const statusMap: Record<string, OrderStatusSummary | null> = {};
   for (const [orderId, order] of results.entries()) {
     if (order) {
       statusMap[orderId] = {
         status: order.status,
         filled: order.filled,
         remaining: order.amount - order.filled,
-        price: order.price,
+        price: order.price ?? 0,
         updatedAt: order.updatedAt,
       };
     } else {

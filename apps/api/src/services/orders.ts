@@ -140,7 +140,7 @@ export async function placeOrder(
  */
 export async function getOrderStatus(orderId: string): Promise<Order | null> {
   // Check cache first
-  const cached = orderConfirmationCacheService.get<Order>(orderId);
+  const cached = orderConfirmationCacheService.get(orderId);
   if (cached) {
     return cached;
   }

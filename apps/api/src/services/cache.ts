@@ -1,4 +1,5 @@
 import { LRUCache } from "lru-cache";
+import type { Market, OrderBook, Trade, OHLCV, Order } from "@rekon/types";
 
 /**
  * Cache Service
@@ -19,35 +20,35 @@ const CACHE_CONFIG = {
   ttl: 1000 * 60 * 15, // Default TTL: 15 minutes (fallback)
 } as const;
 
-// Create separate caches for different data types
-const marketsListCache = new LRUCache<string, any>({
+// Create separate caches for different data types with proper typing
+const marketsListCache = new LRUCache<string, Market[]>({
   max: 100,
   ttl: 1000 * 8, // 8 seconds for markets list
 });
 
-const marketCache = new LRUCache<string, any>({
+const marketCache = new LRUCache<string, Market>({
   max: 500,
   ttl: 1000 * 3, // 3 seconds for single market
 });
 
-const orderBookCache = new LRUCache<string, any>({
+const orderBookCache = new LRUCache<string, OrderBook>({
   max: 500,
   ttl: 1000 * 2, // 2 seconds for order book
 });
 
-const tradesCache = new LRUCache<string, any>({
+const tradesCache = new LRUCache<string, Trade[]>({
   max: 500,
-  ttl: 1000 * 1.5, // 1.5 seconds for trades
+  ttl: 1000 * 2, // 2 seconds for trades
 });
 
-const chartCache = new LRUCache<string, any>({
+const chartCache = new LRUCache<string, OHLCV[]>({
   max: 500,
   ttl: 1000 * 5, // 5 seconds for chart data
 });
 
-const orderConfirmationCache = new LRUCache<string, any>({
+const orderConfirmationCache = new LRUCache<string, Order>({
   max: 1000,
-  ttl: 1000 * 30, // 30 seconds for order confirmations (short TTL since orders are stateful)
+  ttl: 1000 * 30, // 30 seconds for order confirmations
 });
 
 /**
@@ -68,27 +69,33 @@ function generateCacheKey(
  * Markets List Cache
  */
 export const marketsListCacheService = {
-  get: <T>(params: Record<string, unknown>): T | undefined => {
-    const key = generateCacheKey("markets:list", params);
-    return marketsListCache.get(key) as T | undefined;
+  get: (key: string): Market[] | undefined => {
+    return marketsListCache.get(key);
   },
 
-  set: <T>(params: Record<string, unknown>, data: T): void => {
-    const key = generateCacheKey("markets:list", params);
+  set: (key: string, data: Market[]): void => {
     marketsListCache.set(key, data);
+  },
+
+  generateKey: (params: Record<string, unknown>): string => {
+    return generateCacheKey("markets:list", params);
   },
 };
 
 /**
- * Single Market Cache
+ * Market Cache
  */
 export const marketCacheService = {
-  get: <T>(marketId: string): T | undefined => {
-    return marketCache.get(`market:${marketId}`) as T | undefined;
+  get: (key: string): Market | undefined => {
+    return marketCache.get(key);
   },
 
-  set: <T>(marketId: string, data: T): void => {
-    marketCache.set(`market:${marketId}`, data);
+  set: (key: string, data: Market): void => {
+    marketCache.set(key, data);
+  },
+
+  generateKey: (id: string): string => {
+    return `market:${id}`;
   },
 };
 
@@ -96,12 +103,16 @@ export const marketCacheService = {
  * Order Book Cache
  */
 export const orderBookCacheService = {
-  get: <T>(tokenId: string): T | undefined => {
-    return orderBookCache.get(`orderbook:${tokenId}`) as T | undefined;
+  get: (key: string): OrderBook | undefined => {
+    return orderBookCache.get(key);
   },
 
-  set: <T>(tokenId: string, data: T): void => {
-    orderBookCache.set(`orderbook:${tokenId}`, data);
+  set: (key: string, data: OrderBook): void => {
+    orderBookCache.set(key, data);
+  },
+
+  generateKey: (tokenId: string): string => {
+    return `orderbook:${tokenId}`;
   },
 };
 
@@ -109,14 +120,16 @@ export const orderBookCacheService = {
  * Trades Cache
  */
 export const tradesCacheService = {
-  get: <T>(tokenId: string, limit?: number): T | undefined => {
-    const key = limit ? `trades:${tokenId}:${limit}` : `trades:${tokenId}`;
-    return tradesCache.get(key) as T | undefined;
+  get: (key: string): Trade[] | undefined => {
+    return tradesCache.get(key);
   },
 
-  set: <T>(tokenId: string, data: T, limit?: number): void => {
-    const key = limit ? `trades:${tokenId}:${limit}` : `trades:${tokenId}`;
+  set: (key: string, data: Trade[]): void => {
     tradesCache.set(key, data);
+  },
+
+  generateKey: (tokenId: string, limit?: number): string => {
+    return generateCacheKey("trades", { tokenId, limit: limit || 100 });
   },
 };
 
@@ -124,31 +137,35 @@ export const tradesCacheService = {
  * Chart Cache
  */
 export const chartCacheService = {
-  get: <T>(key: string): T | undefined => {
-    return chartCache.get(key) as T | undefined;
+  get: (key: string): OHLCV[] | undefined => {
+    return chartCache.get(key);
   },
 
-  set: <T>(key: string, data: T): void => {
+  set: (key: string, data: OHLCV[]): void => {
     chartCache.set(key, data);
+  },
+
+  generateKey: (tokenId: string, timeframe: string): string => {
+    return generateCacheKey("chart", { tokenId, timeframe });
   },
 };
 
-/**
- * Clear all caches (useful for testing or manual invalidation).
- */
 /**
  * Order Confirmation Cache
  */
 export const orderConfirmationCacheService = {
-  get: <T>(orderId: string): T | undefined => {
-    return orderConfirmationCache.get(orderId) as T | undefined;
+  get: (orderId: string): Order | undefined => {
+    return orderConfirmationCache.get(orderId);
   },
 
-  set: <T>(orderId: string, data: T): void => {
+  set: (orderId: string, data: Order): void => {
     orderConfirmationCache.set(orderId, data);
   },
 };
 
+/**
+ * Clears all caches.
+ */
 export function clearAllCaches(): void {
   marketsListCache.clear();
   marketCache.clear();
@@ -159,7 +176,7 @@ export function clearAllCaches(): void {
 }
 
 /**
- * Get cache statistics (useful for monitoring).
+ * Gets cache statistics for monitoring.
  */
 export function getCacheStats() {
   return {

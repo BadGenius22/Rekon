@@ -8,7 +8,7 @@ import { tradesCacheService } from "./cache";
 
 /**
  * Trades Service
- * 
+ *
  * Provides trade history for markets.
  */
 
@@ -26,7 +26,7 @@ export async function getTradesByMarketId(
   params: GetTradesParams = {}
 ): Promise<Trade[]> {
   const market = await getMarketById(marketId);
-  
+
   if (!market) {
     return [];
   }
@@ -40,17 +40,22 @@ export async function getTradesByMarketId(
   const limit = params.limit || 100;
 
   // Check cache first
-  const cached = tradesCacheService.get<Trade[]>(tokenId, limit);
+  const cacheKey = tradesCacheService.generateKey(tokenId, limit);
+  const cached = tradesCacheService.get(cacheKey);
   if (cached) {
     return cached;
   }
 
   // Fetch from API
   const rawTrades = await fetchPolymarketTrades(tokenId, limit);
-  const trades = mapPolymarketTrades(rawTrades, marketId, market.outcomes[0]?.name);
+  const trades = mapPolymarketTrades(
+    rawTrades,
+    marketId,
+    market.outcomes[0]?.name
+  );
 
   // Cache the result
-  tradesCacheService.set(tokenId, trades, limit);
+  tradesCacheService.set(cacheKey, trades);
 
   return trades;
 }
@@ -68,7 +73,8 @@ export async function getTradesByTokenId(
   const limit = params.limit || 100;
 
   // Check cache first
-  const cached = tradesCacheService.get<Trade[]>(tokenId, limit);
+  const cacheKey = tradesCacheService.generateKey(tokenId, limit);
+  const cached = tradesCacheService.get(cacheKey);
   if (cached) {
     return cached;
   }
@@ -78,8 +84,7 @@ export async function getTradesByTokenId(
   const trades = mapPolymarketTrades(rawTrades, marketId, outcome);
 
   // Cache the result
-  tradesCacheService.set(tokenId, trades, limit);
+  tradesCacheService.set(cacheKey, trades);
 
   return trades;
 }
-

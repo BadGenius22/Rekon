@@ -7,7 +7,7 @@ import { NotFound } from "../utils/http-errors";
  * Order Status Service
  *
  * Handles order status polling and tracking.
- * 
+ *
  * Features:
  * - Poll CLOB for order status
  * - Cache order status (reduce API calls)
@@ -29,7 +29,7 @@ export async function getOrderStatus(
 ): Promise<Order | null> {
   // Check cache first
   if (useCache) {
-    const cached = orderConfirmationCacheService.get<Order>(orderId);
+    const cached = orderConfirmationCacheService.get(orderId);
     if (cached) {
       return cached;
     }
@@ -182,4 +182,3 @@ export async function getBatchOrderStatus(
 
   return results;
 }
-

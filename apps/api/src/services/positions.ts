@@ -167,10 +167,28 @@ async function calculatePositionFromFills(
 /**
  * Fetches current price for a token.
  */
+/**
+ * Price response from Polymarket API
+ */
+interface PolymarketPriceResponse {
+  price?: string | number;
+  last_price?: string | number;
+  [key: string]: unknown;
+}
+
 async function fetchCurrentPrice(tokenId: string): Promise<number> {
   try {
-    const priceData = await fetchPolymarketPrice(tokenId);
-    const price = (priceData as any)?.price || (priceData as any)?.last_price || 0;
+    const priceData = (await fetchPolymarketPrice(tokenId)) as
+      | PolymarketPriceResponse
+      | null
+      | undefined;
+
+    if (!priceData) {
+      return 0;
+    }
+
+    const price =
+      priceData.price ?? priceData.last_price ?? 0;
     return parseFloat(String(price));
   } catch {
     return 0;

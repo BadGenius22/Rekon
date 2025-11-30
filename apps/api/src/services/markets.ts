@@ -50,7 +50,7 @@ export async function getMarkets(
   params.offset ??= 0;
 
   // Check cache first
-  const cacheKey = {
+  const cacheKey = marketsListCacheService.generateKey({
     category: params.category,
     active: params.active,
     closed: params.closed,
@@ -58,8 +58,8 @@ export async function getMarkets(
     limit: params.limit,
     offset: params.offset,
     esportsOnly: params.esportsOnly,
-  };
-  const cached = marketsListCacheService.get<Market[]>(cacheKey);
+  });
+  const cached = marketsListCacheService.get(cacheKey);
   if (cached) {
     return cached;
   }
@@ -89,7 +89,7 @@ export async function getMarkets(
  */
 export async function getMarketById(marketId: string): Promise<Market | null> {
   // Check cache first
-  const cached = marketCacheService.get<Market>(marketId);
+    const cached = marketCacheService.get(marketId);
   if (cached) {
     return cached;
   }
