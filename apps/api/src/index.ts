@@ -56,6 +56,7 @@ import { marketsRoutes } from "./routes/markets";
 import { orderbookRoutes } from "./routes/orderbook";
 import { tradesRoutes } from "./routes/trades";
 import { chartRoutes } from "./routes/chart";
+import { ordersRoutes } from "./routes/orders";
 
 // Apply rate limiting to all API routes that call Polymarket
 // Rate limiter is applied to each route group
@@ -63,11 +64,13 @@ app.use("/markets/*", polymarketRateLimiter);
 app.use("/orderbook/*", polymarketRateLimiter);
 app.use("/trades/*", polymarketRateLimiter);
 app.use("/chart/*", polymarketRateLimiter);
+app.use("/orders/*", polymarketRateLimiter); // Order placement also needs rate limiting
 
 app.route("/markets", marketsRoutes);
 app.route("/orderbook", orderbookRoutes);
 app.route("/trades", tradesRoutes);
 app.route("/chart", chartRoutes);
+app.route("/orders", ordersRoutes);
 
 const port = Number(process.env.PORT) || 3001;
 

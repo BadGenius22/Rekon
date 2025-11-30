@@ -46,3 +46,13 @@ export {
   type BuilderLeaderboardEntry,
   type BuilderVolumeData,
 } from "./builder";
+
+// Export order placement functions
+export {
+  placeClobOrder,
+  getClobOrder,
+  convertOrderToClobRequest,
+  convertClobResponseToOrder,
+  type ClobOrderRequest,
+  type ClobOrderResponse,
+} from "./orders";

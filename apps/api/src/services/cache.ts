@@ -45,6 +45,11 @@ const chartCache = new LRUCache<string, any>({
   ttl: 1000 * 5, // 5 seconds for chart data
 });
 
+const orderConfirmationCache = new LRUCache<string, any>({
+  max: 1000,
+  ttl: 1000 * 30, // 30 seconds for order confirmations (short TTL since orders are stateful)
+});
+
 /**
  * Generates a cache key from parameters.
  */
@@ -131,12 +136,26 @@ export const chartCacheService = {
 /**
  * Clear all caches (useful for testing or manual invalidation).
  */
+/**
+ * Order Confirmation Cache
+ */
+export const orderConfirmationCacheService = {
+  get: <T>(orderId: string): T | undefined => {
+    return orderConfirmationCache.get(orderId) as T | undefined;
+  },
+
+  set: <T>(orderId: string, data: T): void => {
+    orderConfirmationCache.set(orderId, data);
+  },
+};
+
 export function clearAllCaches(): void {
   marketsListCache.clear();
   marketCache.clear();
   orderBookCache.clear();
   tradesCache.clear();
   chartCache.clear();
+  orderConfirmationCache.clear();
 }
 
 /**
@@ -163,6 +182,10 @@ export function getCacheStats() {
     chart: {
       size: chartCache.size,
       calculatedSize: chartCache.calculatedSize,
+    },
+    orderConfirmation: {
+      size: orderConfirmationCache.size,
+      calculatedSize: orderConfirmationCache.calculatedSize,
     },
   };
 }

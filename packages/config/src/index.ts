@@ -18,6 +18,14 @@ export const POLYMARKET_CONFIG = {
     "https://api.builder.polymarket.com",
   // Builder API Key (optional, but recommended for higher rate limits)
   builderApiKey: process.env.POLYMARKET_BUILDER_API_KEY || undefined,
+  // Builder API Credentials (for order attribution signing)
+  // Required for order placement with builder attribution
+  // Get from: https://polymarket.com/settings/api
+  builderApiKeyCreds: {
+    key: process.env.POLYMARKET_BUILDER_API_KEY || undefined,
+    secret: process.env.POLYMARKET_BUILDER_SECRET || undefined,
+    passphrase: process.env.POLYMARKET_BUILDER_PASSPHRASE || undefined,
+  },
   // Builder Attribution (for order attribution to your builder account)
   // Optional: Only needed if you want to attribute orders to your builder account
   // Get these from your builder profile: https://polymarket.com/settings/api
