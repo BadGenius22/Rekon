@@ -188,3 +188,6 @@ export * from "./fill";
 
 // Simulation types
 export * from "./simulation";
+
+// Watchlist types
+export * from "./watchlist";
