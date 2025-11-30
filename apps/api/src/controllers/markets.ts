@@ -9,7 +9,6 @@ import {
   getMarketsByCategory,
   type GetMarketsParams,
 } from "../services/markets";
-import { getOrderBookByMarketId } from "../services/orderbook";
 import { getTradesByMarketId } from "../services/trades";
 import { getChartData } from "../services/chart";
 
@@ -173,26 +172,6 @@ export async function getMarketsByCategoryController(c: Context) {
 
   const markets = await getMarketsByCategory(category, params);
   return c.json(markets);
-}
-
-/**
- * GET /api/markets/:id/orderbook
- * Get order book for a market.
- */
-export async function getMarketOrderBookController(c: Context) {
-  const { id } = c.req.param();
-
-  if (!id) {
-    return c.json({ error: "Market ID is required" }, 400);
-  }
-
-  const orderBook = await getOrderBookByMarketId(id);
-
-  if (!orderBook) {
-    return c.json({ error: "Order book not found" }, 404);
-  }
-
-  return c.json(orderBook);
 }
 
 /**

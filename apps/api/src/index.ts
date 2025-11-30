@@ -52,7 +52,9 @@ app.get("/health", (c) => {
 
 // API routes
 import { marketsRoutes } from "./routes/markets";
+import { orderbookRoutes } from "./routes/orderbook";
 app.route("/markets", marketsRoutes);
+app.route("/orderbook", orderbookRoutes);
 
 const port = Number(process.env.PORT) || 3001;
 
