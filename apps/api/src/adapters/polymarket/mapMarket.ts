@@ -1,4 +1,5 @@
 import type { Market, MarketOutcome } from "@rekon/types";
+import slugify from "@sindresorhus/slugify";
 import type { PolymarketMarket } from "./types";
 
 /**
@@ -87,10 +88,14 @@ export function mapPolymarketMarket(pmMarket: PolymarketMarket): Market {
   // Determine trading paused state
   const tradingPaused = !pmMarket.acceptingOrders || !pmMarket.active;
 
+  // Generate slug from question if not provided
+  // Slugs are used for SEO, URLs, and caching keys
+  const slug = pmMarket.slug || slugify(pmMarket.question);
+
   return {
     id: pmMarket.id,
     question: pmMarket.question,
-    slug: pmMarket.slug,
+    slug,
     conditionId: pmMarket.conditionId,
     resolutionSource: pmMarket.resolutionSource,
     endDate,
