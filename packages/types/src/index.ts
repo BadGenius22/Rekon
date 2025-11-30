@@ -194,3 +194,6 @@ export * from "./watchlist";
 
 // Alert types
 export * from "./alert";
+
+// Market full types
+export * from "./market-full";

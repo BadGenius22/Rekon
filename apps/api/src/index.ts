@@ -56,6 +56,7 @@ app.get("/health", (c) => {
 import { sessionMiddleware } from "./middleware/session";
 app.use("/markets/*", sessionMiddleware);
 app.use("/orderbook/*", sessionMiddleware);
+app.use("/market/*", sessionMiddleware);
 app.use("/trades/*", sessionMiddleware);
 app.use("/chart/*", sessionMiddleware);
 app.use("/orders/*", sessionMiddleware);
@@ -72,6 +73,7 @@ app.use("/alerts/*", sessionMiddleware);
 // API routes (with rate limiting to protect Polymarket API)
 import { marketsRoutes } from "./routes/markets";
 import { orderbookRoutes } from "./routes/orderbook";
+import { marketFullRoutes } from "./routes/market-full";
 import { tradesRoutes } from "./routes/trades";
 import { chartRoutes } from "./routes/chart";
 import { ordersRoutes } from "./routes/orders";
@@ -89,6 +91,7 @@ import { alertsRoutes } from "./routes/alerts";
 // Rate limiter is applied to each route group
 app.use("/markets/*", polymarketRateLimiter);
 app.use("/orderbook/*", polymarketRateLimiter);
+app.use("/market/*", polymarketRateLimiter);
 app.use("/trades/*", polymarketRateLimiter);
 app.use("/chart/*", polymarketRateLimiter);
 app.use("/orders/*", polymarketRateLimiter); // Order placement also needs rate limiting
@@ -97,6 +100,7 @@ app.use("/simulate/*", polymarketRateLimiter); // Simulation also needs rate lim
 
 app.route("/markets", marketsRoutes);
 app.route("/orderbook", orderbookRoutes);
+app.route("/market", marketFullRoutes);
 app.route("/trades", tradesRoutes);
 app.route("/chart", chartRoutes);
 app.route("/orders", ordersRoutes);
