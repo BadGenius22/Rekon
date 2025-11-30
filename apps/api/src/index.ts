@@ -64,6 +64,7 @@ app.use("/trade/*", sessionMiddleware);
 app.use("/portfolio/*", sessionMiddleware);
 app.use("/positions/*", sessionMiddleware);
 app.use("/fills/*", sessionMiddleware);
+app.use("/simulate/*", sessionMiddleware);
 // Webhooks don't use session middleware (called by external services)
 
 // API routes (with rate limiting to protect Polymarket API)
@@ -78,6 +79,7 @@ import { webhooksRoutes } from "./routes/webhooks";
 import { portfolioRoutes } from "./routes/portfolio";
 import { positionsRoutes } from "./routes/positions";
 import { fillsRoutes } from "./routes/fills";
+import { simulationRoutes } from "./routes/simulation";
 
 // Apply rate limiting to all API routes that call Polymarket
 // Rate limiter is applied to each route group
@@ -87,6 +89,7 @@ app.use("/trades/*", polymarketRateLimiter);
 app.use("/chart/*", polymarketRateLimiter);
 app.use("/orders/*", polymarketRateLimiter); // Order placement also needs rate limiting
 app.use("/trade/*", polymarketRateLimiter); // Trade placement also needs rate limiting
+app.use("/simulate/*", polymarketRateLimiter); // Simulation also needs rate limiting
 
 app.route("/markets", marketsRoutes);
 app.route("/orderbook", orderbookRoutes);
@@ -99,6 +102,7 @@ app.route("/webhooks", webhooksRoutes);
 app.route("/portfolio", portfolioRoutes);
 app.route("/positions", positionsRoutes);
 app.route("/fills", fillsRoutes);
+app.route("/simulate", simulationRoutes);
 
 const port = Number(process.env.PORT) || 3001;
 

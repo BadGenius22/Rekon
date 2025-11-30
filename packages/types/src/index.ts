@@ -185,3 +185,6 @@ export * from "./trade";
 
 // Fill types
 export * from "./fill";
+
+// Simulation types
+export * from "./simulation";
