@@ -4,6 +4,7 @@ import {
   mapPolymarketTrades,
 } from "../adapters/polymarket";
 import { getMarketById } from "./markets";
+import { tradesCacheService } from "./cache";
 
 /**
  * Trades Service
@@ -18,6 +19,7 @@ export interface GetTradesParams {
 /**
  * Gets trades for a market by market ID.
  * Fetches trades for the first outcome token (Yes outcome typically).
+ * Uses cache to reduce API calls (1.5 second TTL).
  */
 export async function getTradesByMarketId(
   marketId: string,
@@ -36,12 +38,26 @@ export async function getTradesByMarketId(
   }
 
   const limit = params.limit || 100;
+
+  // Check cache first
+  const cached = tradesCacheService.get<Trade[]>(tokenId, limit);
+  if (cached) {
+    return cached;
+  }
+
+  // Fetch from API
   const rawTrades = await fetchPolymarketTrades(tokenId, limit);
-  return mapPolymarketTrades(rawTrades, marketId, market.outcomes[0]?.name);
+  const trades = mapPolymarketTrades(rawTrades, marketId, market.outcomes[0]?.name);
+
+  // Cache the result
+  tradesCacheService.set(tokenId, trades, limit);
+
+  return trades;
 }
 
 /**
  * Gets trades for a specific outcome token.
+ * Uses cache to reduce API calls (1.5 second TTL).
  */
 export async function getTradesByTokenId(
   tokenId: string,
@@ -50,7 +66,20 @@ export async function getTradesByTokenId(
   params: GetTradesParams = {}
 ): Promise<Trade[]> {
   const limit = params.limit || 100;
+
+  // Check cache first
+  const cached = tradesCacheService.get<Trade[]>(tokenId, limit);
+  if (cached) {
+    return cached;
+  }
+
+  // Fetch from API
   const rawTrades = await fetchPolymarketTrades(tokenId, limit);
-  return mapPolymarketTrades(rawTrades, marketId, outcome);
+  const trades = mapPolymarketTrades(rawTrades, marketId, outcome);
+
+  // Cache the result
+  tradesCacheService.set(tokenId, trades, limit);
+
+  return trades;
 }
 

@@ -6,6 +6,7 @@ import {
   mapPolymarketMarket,
   type FetchMarketsParams,
 } from "../adapters/polymarket";
+import { marketsListCacheService, marketCacheService } from "./cache";
 
 /**
  * Markets Service
@@ -35,10 +36,27 @@ export interface GetMarketsParams extends FetchMarketsParams {
 /**
  * Fetches multiple markets from Polymarket and returns normalized Market[].
  * Applies business logic: filtering, enrichment, and derived fields.
+ * Uses cache to reduce API calls (8 second TTL).
  */
 export async function getMarkets(
   params: GetMarketsParams = {}
 ): Promise<Market[]> {
+  // Check cache first
+  const cacheKey = {
+    category: params.category,
+    active: params.active,
+    closed: params.closed,
+    featured: params.featured,
+    limit: params.limit,
+    offset: params.offset,
+    esportsOnly: params.esportsOnly,
+  };
+  const cached = marketsListCacheService.get<Market[]>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  // Fetch from API
   const rawMarkets = await fetchPolymarketMarkets(params);
   let markets = rawMarkets.map(mapPolymarketMarket);
 
@@ -50,20 +68,36 @@ export async function getMarkets(
   // Enrich with derived fields
   markets = markets.map(enrichMarket);
 
+  // Cache the result
+  marketsListCacheService.set(cacheKey, markets);
+
   return markets;
 }
 
 /**
  * Fetches a single market by ID and returns normalized Market.
  * Returns null if market not found.
+ * Uses cache to reduce API calls (3 second TTL).
  */
 export async function getMarketById(marketId: string): Promise<Market | null> {
+  // Check cache first
+  const cached = marketCacheService.get<Market>(marketId);
+  if (cached) {
+    return cached;
+  }
+
+  // Fetch from API
   const rawMarket = await fetchPolymarketMarketById(marketId);
   if (!rawMarket) {
     return null;
   }
   const market = mapPolymarketMarket(rawMarket);
-  return enrichMarket(market);
+  const enriched = enrichMarket(market);
+
+  // Cache the result
+  marketCacheService.set(marketId, enriched);
+
+  return enriched;
 }
 
 /**
