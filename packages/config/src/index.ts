@@ -44,6 +44,13 @@ export const POLYMARKET_CONFIG = {
   rtdsUrl:
     process.env.POLYMARKET_RTDS_URL || "wss://ws-live-data.polymarket.com",
   chainId: process.env.POLYMARKET_CHAIN_ID || "137", // Polygon
+  // CLOB Client Configuration
+  // Wallet private key for signing orders (required for ClobClient)
+  walletPrivateKey: process.env.POLYMARKET_WALLET_PRIVATE_KEY || undefined,
+  // Funder address (Polymarket Profile Address where USDC is sent)
+  funderAddress: process.env.POLYMARKET_FUNDER_ADDRESS || undefined,
+  // Signature type: 0 = Browser Wallet, 1 = Magic/Email Login
+  signatureType: (process.env.POLYMARKET_SIGNATURE_TYPE || "1") as "0" | "1",
   // Rate limits (per 10 seconds)
   // Based on Polymarket's documented rate limits:
   // - CLOB General: 5,000 requests / 10s

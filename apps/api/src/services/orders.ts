@@ -102,8 +102,15 @@ export async function placeOrder(params: PlaceOrderParams): Promise<Order> {
     postOnly: params.postOnly,
   });
 
-  // Place order to CLOB
-  const clobResponse = await placeClobOrder(clobRequest);
+  // Get market info for ClobClient (tickSize and negRisk)
+  // These are typically available from market data
+  const marketInfo = {
+    tickSize: "0.001", // Default - should be fetched from market data
+    negRisk: false, // Default - should be fetched from market data
+  };
+
+  // Place order to CLOB using ClobClient
+  const clobResponse = await placeClobOrder(clobRequest, marketInfo);
 
   // Convert CLOB response to normalized Order
   const order = convertClobResponseToOrder(

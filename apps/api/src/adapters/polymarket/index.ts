@@ -56,3 +56,21 @@ export {
   type ClobOrderRequest,
   type ClobOrderResponse,
 } from "./orders";
+
+// Export CLOB client factory
+export { getClobClient, resetClobClient } from "./clob-client";
+
+// Export user order placement functions
+export { postUserSignedOrder, type UserSignedOrder } from "./user-orders";
+
+// Export builder signing utilities
+export {
+  getBuilderCredentials,
+  getRemoteBuilderConfig,
+  createBuilderConfig,
+  isBuilderSigningAvailable,
+  getRemoteSigningServerUrl,
+  getRemoteSigningServerToken,
+  type BuilderApiKeyCreds,
+  type RemoteBuilderConfig,
+} from "./builder-signing";

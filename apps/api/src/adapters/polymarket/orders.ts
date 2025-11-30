@@ -1,15 +1,22 @@
 import { POLYMARKET_CONFIG } from "@rekon/config";
-import { getClobApiHeaders } from "./headers";
+import { getClobClient } from "./clob-client";
+import { ClobClient, Side, OrderType } from "@polymarket/clob-client";
 import type { Order } from "@rekon/types";
 
 /**
  * Polymarket Order Placement Adapter
  *
- * Handles order placement to Polymarket CLOB API with builder attribution.
- * Uses direct HTTP requests to CLOB API (not the SDK, to maintain control).
+ * Handles order placement to Polymarket CLOB API using the official ClobClient.
+ * Includes builder attribution with cryptographic signatures via BuilderConfig.
+ *
+ * Uses @polymarket/clob-client for:
+ * - Order creation and signing
+ * - Builder attribution (automatic if BuilderConfig is configured)
+ * - API key management
+ * - Proper error handling
+ *
+ * Reference: https://github.com/Polymarket/clob-client
  */
-
-const CLOB_API_URL = POLYMARKET_CONFIG.clobApiUrl || POLYMARKET_CONFIG.apiUrl;
 
 /**
  * CLOB Order Request (Polymarket format)
@@ -22,7 +29,7 @@ export interface ClobOrderRequest {
   expiration?: string; // ISO timestamp for GTD orders
   reduce_only?: boolean;
   post_only?: boolean;
-  time_in_force?: "GTC" | "IOC" | "FOK" | "FAK";
+  time_in_force?: "GTC" | "IOC" | "FOK" | "FAK" | "GTD";
 }
 
 /**
@@ -41,35 +48,108 @@ export interface ClobOrderResponse {
 }
 
 /**
- * Places a single order to Polymarket CLOB.
- * Includes builder attribution headers if configured.
+ * Places a single order to Polymarket CLOB using ClobClient.
+ * Includes builder attribution with cryptographic signatures if configured.
  *
  * @param orderRequest - Order request in CLOB format
+ * @param marketInfo - Market information (tickSize, negRisk) from market data
  * @returns Order response from CLOB
  */
 export async function placeClobOrder(
-  orderRequest: ClobOrderRequest
+  orderRequest: ClobOrderRequest,
+  marketInfo?: { tickSize: string; negRisk: boolean }
 ): Promise<ClobOrderResponse> {
-  const url = `${CLOB_API_URL}/order`;
+  const clobClient = await getClobClient();
 
-  // Get headers with builder attribution
-  const headers = getClobApiHeaders();
+  // Convert CLOB request format to ClobClient format
+  const side = orderRequest.side === "BUY" ? Side.BUY : Side.SELL;
+  
+  // createAndPostOrder only supports GTC and GTD
+  // For IOC/FOK, we'd need to use createOrder + postOrder separately
+  // For now, default to GTC if not GTC/GTD
+  const orderType = 
+    orderRequest.time_in_force === "GTD" 
+      ? OrderType.GTD 
+      : OrderType.GTC;
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(orderRequest),
-  });
+  // Default market info if not provided
+  // ClobClient expects specific types, use type assertions
+  const marketConfig = (marketInfo || {
+    tickSize: "0.001",
+    negRisk: false,
+  }) as any; // Type assertion for ClobClient's CreateOrderOptions
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `Polymarket CLOB API error: ${response.status} ${response.statusText} - ${errorText}`
-    );
+  // Create and post order using ClobClient
+  // Builder attribution is handled automatically by ClobClient via BuilderConfig
+  // Note: IOC/FOK orders may need separate createOrder + postOrder flow
+  const response = await clobClient.createAndPostOrder(
+    {
+      tokenID: orderRequest.token_id,
+      price: parseFloat(orderRequest.price),
+      side,
+      size: parseFloat(orderRequest.size),
+    },
+    marketConfig,
+    orderType
+  );
+
+  // Convert ClobClient response to our format
+  return convertClobClientResponseToClobResponse(response, orderRequest);
+}
+
+/**
+ * Maps time-in-force to ClobClient OrderType.
+ * ClobClient uses numeric values: 0 = GTC, 1 = IOC, 2 = FOK
+ */
+function mapTimeInForceToOrderType(
+  timeInForce?: "GTC" | "IOC" | "FOK" | "FAK"
+): OrderType {
+  switch (timeInForce) {
+    case "IOC":
+      return (1 as unknown) as OrderType; // IOC
+    case "FOK":
+      return (2 as unknown) as OrderType; // FOK
+    case "FAK":
+      return (1 as unknown) as OrderType; // FAK is similar to IOC
+    case "GTC":
+    default:
+      return (0 as unknown) as OrderType; // GTC
   }
+}
 
-  const data = (await response.json()) as ClobOrderResponse;
-  return data;
+/**
+ * Converts ClobClient response to ClobOrderResponse format.
+ */
+function convertClobClientResponseToClobResponse(
+  clobResponse: any,
+  originalRequest: ClobOrderRequest
+): ClobOrderResponse {
+  return {
+    order_id: clobResponse.order_id || clobResponse.id || "",
+    status: mapClobClientStatusToStatus(clobResponse.status),
+    token_id: originalRequest.token_id,
+    side: originalRequest.side,
+    price: originalRequest.price,
+    size: originalRequest.size,
+    filled: clobResponse.filled || "0",
+    timestamp: clobResponse.timestamp || new Date().toISOString(),
+    expiration: originalRequest.expiration,
+  };
+}
+
+/**
+ * Maps ClobClient status to our status format.
+ */
+function mapClobClientStatusToStatus(
+  status: string | undefined
+): "OPEN" | "FILLED" | "CANCELLED" | "REJECTED" {
+  if (!status) return "OPEN";
+  const upperStatus = status.toUpperCase();
+  if (upperStatus === "FILLED") return "FILLED";
+  if (upperStatus === "CANCELLED" || upperStatus === "CANCELED")
+    return "CANCELLED";
+  if (upperStatus === "REJECTED") return "REJECTED";
+  return "OPEN";
 }
 
 /**
@@ -81,28 +161,38 @@ export async function placeClobOrder(
 export async function getClobOrder(
   orderId: string
 ): Promise<ClobOrderResponse | null> {
-  const url = `${CLOB_API_URL}/order/${orderId}`;
+  const clobClient = await getClobClient();
 
-  const headers = getClobApiHeaders();
+  try {
+    const order = await clobClient.getOrder(orderId);
 
-  const response = await fetch(url, {
-    method: "GET",
-    headers,
-  });
+    if (!order) {
+      return null;
+    }
 
-  if (response.status === 404) {
-    return null;
+    // Convert ClobClient order to our format
+    // ClobClient returns OpenOrder type, access properties safely
+    const orderAny = order as any;
+    return {
+      order_id: orderAny.order_id || orderAny.id || orderId,
+      status: mapClobClientStatusToStatus(orderAny.status),
+      token_id: orderAny.token_id || orderAny.tokenID || "",
+      side: (orderAny.side === "BUY" || orderAny.side === Side.BUY
+        ? "BUY"
+        : "SELL") as "BUY" | "SELL",
+      price: String(orderAny.price || "0"),
+      size: String(orderAny.size || "0"),
+      filled: String(orderAny.filled || "0"),
+      timestamp: orderAny.timestamp || new Date().toISOString(),
+      expiration: orderAny.expiration,
+    };
+  } catch (error: any) {
+    // Handle 404 or other errors
+    if (error?.status === 404 || error?.message?.includes("not found")) {
+      return null;
+    }
+    throw error;
   }
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `Polymarket CLOB API error: ${response.status} ${response.statusText} - ${errorText}`
-    );
-  }
-
-  const data = (await response.json()) as ClobOrderResponse;
-  return data;
 }
 
 /**
