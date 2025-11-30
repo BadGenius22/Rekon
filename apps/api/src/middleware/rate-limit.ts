@@ -5,11 +5,14 @@ import { POLYMARKET_CONFIG } from "@rekon/config";
  * Rate Limiting Middleware
  *
  * Protects against Polymarket API bans by limiting requests.
- * Based on Polymarket's rate limits:
- * - General: 5,000 requests per 10 seconds
- * - Data API: 200 requests per 10 seconds
  *
- * We use conservative limits (150/10s) to stay well below the threshold.
+ * Based on Polymarket's documented rate limits for endpoints we use:
+ * - CLOB /prices: 80 requests / 10s (MOST RESTRICTIVE)
+ * - CLOB /book: 200 requests / 10s
+ * - CLOB /trades: 150 requests / 10s
+ * - CLOB /price: 200 requests / 10s
+ *
+ * We use 70 requests / 10s to stay well below the most restrictive endpoint.
  */
 
 export const polymarketRateLimiter = rateLimiter({

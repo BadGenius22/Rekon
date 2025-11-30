@@ -7,18 +7,40 @@ export const API_CONFIG = {
 
 // Polymarket Configuration
 export const POLYMARKET_CONFIG = {
+  // CLOB REST API - Used for all CLOB REST endpoints
+  clobApiUrl:
+    process.env.POLYMARKET_CLOB_API_URL || "https://clob.polymarket.com",
+  // Legacy alias (for backward compatibility)
   apiUrl: process.env.POLYMARKET_API_URL || "https://clob.polymarket.com",
+  // Builder API - Used for markets data
   builderApiUrl:
     process.env.POLYMARKET_BUILDER_API_URL ||
     "https://api.builder.polymarket.com",
+  // Data API - User data, holdings, on-chain activities
+  dataApiUrl:
+    process.env.POLYMARKET_DATA_API_URL || "https://data-api.polymarket.com",
+  // WebSocket CLOB - Real-time CLOB subscriptions
+  wssClobUrl:
+    process.env.POLYMARKET_WSS_CLOB_URL ||
+    "wss://ws-subscriptions-clob.polymarket.com/ws",
+  // Real Time Data Socket (RTDS) - Crypto prices, comments, real-time data
+  rtdsUrl:
+    process.env.POLYMARKET_RTDS_URL || "wss://ws-live-data.polymarket.com",
   chainId: process.env.POLYMARKET_CHAIN_ID || "137", // Polygon
   // Rate limits (per 10 seconds)
-  // General: 5,000 requests per 10s
-  // Data API: 200 requests per 10s
-  // We use conservative limits to avoid bans
+  // Based on Polymarket's documented rate limits:
+  // - CLOB General: 5,000 requests / 10s
+  // - CLOB /book: 200 requests / 10s
+  // - CLOB /prices: 80 requests / 10s (MOST RESTRICTIVE for our usage)
+  // - CLOB Ledger /data/trades: 150 requests / 10s
+  // - Data API General: 200 requests / 10s
+  // - Data API /trades: 75 requests / 10s
+  //
+  // We use 70 requests / 10s to stay well below the most restrictive endpoint
+  // we use (CLOB /prices at 80/10s). This ensures we never hit rate limits.
   rateLimit: {
     windowMs: 10 * 1000, // 10 seconds
-    maxRequests: 150, // Conservative: 150 requests per 10s (below 200 limit)
+    maxRequests: 70, // Conservative: 70 requests per 10s (below 80 limit for /prices)
   },
 } as const;
 

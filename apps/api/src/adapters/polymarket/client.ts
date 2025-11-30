@@ -16,7 +16,7 @@ import type { PolymarketMarket } from "./types";
  */
 
 const BUILDER_API_URL = POLYMARKET_CONFIG.builderApiUrl;
-const CLOB_API_URL = POLYMARKET_CONFIG.apiUrl;
+const CLOB_API_URL = POLYMARKET_CONFIG.clobApiUrl || POLYMARKET_CONFIG.apiUrl;
 
 export interface FetchMarketsParams {
   category?: string;
