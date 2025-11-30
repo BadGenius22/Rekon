@@ -1,8 +1,39 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { HTTPException } from "hono/http-exception";
 
 const app = new Hono();
+
+// Global error handler
+app.onError((err, c) => {
+  console.error("API Error:", err);
+
+  // Handle HTTPException (thrown for expected errors)
+  if (err instanceof HTTPException) {
+    return err.getResponse();
+  }
+
+  // Handle Zod validation errors
+  if (err.name === "ZodError") {
+    return c.json(
+      {
+        error: "Validation error",
+        details: (err as { issues?: unknown }).issues,
+      },
+      400
+    );
+  }
+
+  // Handle unexpected errors
+  return c.json(
+    {
+      error: "Internal server error",
+      message: process.env.NODE_ENV === "development" ? err.message : undefined,
+    },
+    500
+  );
+});
 
 // Middleware
 app.use("*", logger());

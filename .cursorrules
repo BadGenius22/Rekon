@@ -104,6 +104,18 @@ Backend conventions:
 - Adapters = external dependency wrappers.
 - utils = pure helper functions.
 
+Error Handling:
+
+- NEVER use try-catch blocks in controllers.
+- Use Hono's global error handler (app.onError) instead.
+- Let errors bubble up from services/adapters to the global handler.
+- Global error handler should handle:
+  - HTTPException (expected errors with status codes)
+  - ZodError (validation errors → 400)
+  - Unexpected errors (→ 500 with logging)
+- Controllers should focus on business logic, not error handling.
+- Only use try-catch for specific local cleanup operations (e.g., finally blocks).
+
 Polymarket Logic:
 
 - Must ALWAYS live in /apps/api/src/adapters/polymarket.

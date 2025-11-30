@@ -200,9 +200,16 @@ export async function getMarketTradesController(c: Context) {
     return c.json({ error: "Market ID is required" }, 400);
   }
 
+  // Zod errors will be caught by global error handler
   const query = z
     .object({
-      limit: z.string().transform((val) => parseInt(val, 10)).optional(),
+      limit: z
+        .string()
+        .transform((val) => parseInt(val, 10))
+        .refine((val) => !isNaN(val) && val > 0 && val <= 1000, {
+          message: "Limit must be between 1 and 1000",
+        })
+        .optional(),
     })
     .parse(c.req.query());
 
