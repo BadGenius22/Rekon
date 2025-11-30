@@ -179,3 +179,6 @@ export type WebSocketMessage =
 
 // Session types
 export * from "./session";
+
+// Trade placement types
+export * from "./trade";
