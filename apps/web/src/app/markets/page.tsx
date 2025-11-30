@@ -2,16 +2,28 @@ import type { Market } from "@rekon/types";
 import { API_CONFIG } from "@rekon/config";
 import { formatPrice, formatVolume, formatPercentage } from "@rekon/utils";
 
-async function getMarkets(): Promise<Market[]> {
-  const response = await fetch(`${API_CONFIG.baseUrl}/markets`, {
-    next: { revalidate: 60 }, // Revalidate every 60 seconds
-  });
+// Use ISR (Incremental Static Regeneration) for better performance
+// Revalidates every 10 seconds - good balance between freshness and performance
+// For real-time updates, use WebSocket or client-side polling (future enhancement)
+export const revalidate = 10; // Revalidate every 10 seconds
 
-  if (!response.ok) {
+async function getMarkets(): Promise<Market[]> {
+  try {
+    const response = await fetch(`${API_CONFIG.baseUrl}/markets`, {
+      next: { revalidate: 10 }, // ISR: Cache for 10 seconds, then revalidate
+    });
+
+    if (!response.ok) {
+      console.warn(`Failed to fetch markets: ${response.status}`);
+      return [];
+    }
+
+    return response.json();
+  } catch (error) {
+    // Handle connection errors gracefully (e.g., during build or API down)
+    console.warn("Failed to fetch markets:", error);
     return [];
   }
-
-  return response.json();
 }
 
 export default async function MarketsPage() {
