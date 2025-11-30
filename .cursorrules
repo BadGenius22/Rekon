@@ -1,0 +1,281 @@
+# ======================================================
+
+# REKON.GG — Cursor Rules (Final, Folder-Aware Version)
+
+# ======================================================
+
+# These rules apply to ALL code produced inside this repo.
+
+# ======================================================
+
+# 1. MONOREPO STRUCTURE (DO NOT BREAK)
+
+# ======================================================
+
+The repository structure is fixed and must ALWAYS remain:
+
+rekon/
+├── apps/
+│ ├── web/ # Next.js 16 frontend
+│ └── api/ # Hono backend
+├── packages/
+│ ├── types/ # Shared types and domain models
+│ ├── utils/ # Helper functions, PnL calc, formatting
+│ ├── config/ # Runtime constants, env, settings
+│ └── ui/ # shadcn/ui-based design system
+├── turbo.json
+├── pnpm-workspace.yaml
+├── tsconfig.json
+└── package.json
+
+RULES:
+
+- Never modify folder layout unless asked.
+- Never create new top-level folders.
+- All new code MUST live under /apps or /packages.
+- Imports must follow alias style:
+  @rekon/types
+  @rekon/utils
+  @rekon/config
+  @rekon/ui
+
+# ======================================================
+
+# 2. FRONTEND RULES (Next.js 16 in /apps/web)
+
+# ======================================================
+
+- Must use **App Router** (already in /src/app).
+- Use **Server Components** by default.
+- Use **Client Components** ONLY when necessary:
+  - charts
+  - websockets
+  - interactive inputs
+  - animations
+
+Frontend structure must be:
+
+apps/web/src/
+app/ -> routes
+components/ -> generic UI components
+modules/ -> market, trade, portfolio, esports modules
+hooks/
+lib/
+styles/
+providers/
+
+Use:
+
+- shadcn/ui for UI primitives
+- Tailwind CSS
+- TypeScript strict mode
+- No inline complex logic; push it into modules.
+
+Prohibition:
+
+- No Redux / Zustand / Jotai unless explicitly allowed.
+- No mixing backend logic inside frontend.
+- No long unstructured components.
+
+# ======================================================
+
+# 3. BACKEND RULES (Hono API in /apps/api)
+
+# ======================================================
+
+Backend must remain minimal, typed, and modular.
+
+apps/api/src/
+index.ts
+routes/
+controllers/
+services/
+adapters/ -> Polymarket & external APIs
+db/
+utils/
+types/
+
+Backend conventions:
+
+- Use Hono.
+- Use Zod for ALL validation.
+- Controllers = routing logic only.
+- Services = business logic.
+- Adapters = external dependency wrappers.
+- utils = pure helper functions.
+
+Polymarket Logic:
+
+- Must ALWAYS live in /apps/api/src/adapters/polymarket.
+- Never call Polymarket directly from frontend.
+
+# ======================================================
+
+# 4. DOMAIN RULES (Prediction Market Trading Terminal)
+
+# ======================================================
+
+This project is a **Pro Trading Terminal for Esports Prediction Markets**.
+
+Domain logic MUST be separated into modules in either:
+
+- /packages/types
+- /packages/utils
+- /packages/config
+- /apps/api/services
+
+Core Rekon domain modules:
+MarketModule
+OrderModule
+PriceFeedModule
+PortfolioModule
+PnLModule
+ChartModule
+EsportsFeedModule
+UserPositionModule
+
+Rules:
+
+- Domain logic must be deterministic and testable.
+- No UI logic inside domain modules.
+- No API calls inside domain modules.
+
+# ======================================================
+
+# 5. PACKAGES RULES
+
+# ======================================================
+
+/packages/types
+
+- Define all shared TypeScript interfaces, enums, models.
+- Ensure strict typing for:
+  Market
+  Outcome
+  Order
+  Trade
+  Position
+  PnL
+  EsportsEvent
+
+/packages/utils
+
+- All formatting (dates, numbers)
+- PnL calculator
+- ROI functions
+- Lightweight chart data transform
+- Pure utilities only (no side effects)
+
+/packages/config
+
+- All runtime constants
+- Polymarket endpoints
+- Esports feeds
+- Trading thresholds, precision, rounding
+
+/packages/ui
+
+- Reusable UI components
+- Re-exports of shadcn/ui
+- Tailwind utilities
+
+# ======================================================
+
+# 6. POLYMARKET BUILDER INTEGRATION
+
+# ======================================================
+
+ALL Polymarket logic belongs under:
+
+apps/api/src/adapters/polymarket/
+
+This includes:
+
+- order placement
+- order cancellation
+- fetching markets
+- fetching orderbooks
+- user positions
+- liquidity snapshots
+
+Rules:
+
+- Never leak raw Polymarket response shapes to frontend.
+- Always map external types → @rekon/types models.
+- Must support plugging in additional venues later.
+
+# ======================================================
+
+# 7. CODING STANDARDS & NAMING
+
+# ======================================================
+
+- Use TypeScript strict mode.
+- Use named exports everywhere.
+- Never use default exports.
+- Use async/await, avoid .then chains.
+- Avoid any `any` type.
+- Use PascalCase for components & domain models.
+- Use camelCase for functions & variables.
+- Use kebab-case for filenames.
+
+Comments:
+
+- Only comment non-obvious logic.
+- Do not generate excessive comment blocks.
+
+# ======================================================
+
+# 8. WEBSOCKETS & REAL-TIME LOGIC
+
+# ======================================================
+
+Rules:
+
+- All live market data must use websocket subscriptions.
+- Implement websocket abstraction in /packages/utils/ws/.
+- Frontend should consume data via:
+  usePriceFeed()
+  useMarketFeed()
+  etc.
+- No direct websocket logic inside React components.
+
+# ======================================================
+
+# 9. OUTPUT RULES FOR CURSOR
+
+# ======================================================
+
+Whenever code is generated:
+
+- Always produce COMPLETE files.
+- Always place files in correct folder.
+- Never create empty or placeholder files.
+- Never break imports or structure.
+- Never mix frontend and backend code.
+- Always follow design choices above.
+
+# ======================================================
+
+# 10. VISUAL STYLE (ESPORTS TERMINAL)
+
+# ======================================================
+
+UI should always reflect:
+
+- dark mode
+- neon accents (blue/purple/cyan)
+- terminal-like grid layout
+- dense but readable charts
+- pro-trading feel
+
+Charts:
+
+- Use Lightweight-Charts or Recharts.
+- No huge libraries. Keep fast & lightweight.
+
+# ======================================================
+
+# END OF RULES
+
+# ======================================================

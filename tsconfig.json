@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "checkJs": false,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "incremental": true,
+    "paths": {
+      "@rekon/ui": ["./packages/ui/src"],
+      "@rekon/utils": ["./packages/utils/src"],
+      "@rekon/types": ["./packages/types/src"],
+      "@rekon/config": ["./packages/config/src"]
+    }
+  },
+  "exclude": ["node_modules", "dist", ".next", "build"]
+}
+
