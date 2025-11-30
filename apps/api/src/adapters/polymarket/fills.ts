@@ -59,35 +59,26 @@ export async function fetchUserFills(
 
   // ClobClient has methods to fetch user fills
   // The exact method depends on ClobClient API
-  // For now, we'll use a generic approach
-  try {
-    // Try to get fills using ClobClient
-    // Note: This is a placeholder - actual implementation depends on ClobClient API
-    // Using type assertion because ClobClient API may not have getFills typed
-    const clobClientAny = clobClient as unknown as {
-      getFills?: (params: {
-        user: string;
-        limit: number;
-        offset: number;
-      }) => Promise<PolymarketFill[]>;
-    };
+  // Try ClobClient first, fallback to direct API if not available
+  const clobClientAny = clobClient as unknown as {
+    getFills?: (params: {
+      user: string;
+      limit: number;
+      offset: number;
+    }) => Promise<PolymarketFill[]>;
+  };
 
-    if (clobClientAny.getFills) {
-      const fills = await clobClientAny.getFills({
-        user: userAddress,
-        limit,
-        offset,
-      });
+  // Try ClobClient method if available
+  if (clobClientAny.getFills) {
+    const fillsResult = await clobClientAny.getFills({
+      user: userAddress,
+      limit,
+      offset,
+    }).catch(() => null); // If ClobClient method fails, fallback to API
 
-      if (!fills || !Array.isArray(fills)) {
-        return [];
-      }
-
-      return fills.map((fill) => mapClobFillToFill(fill));
+    if (fillsResult && Array.isArray(fillsResult)) {
+      return fillsResult.map((fill) => mapClobFillToFill(fill));
     }
-  } catch (error) {
-    // If ClobClient doesn't have getFills, try direct API call
-    // Error is intentionally ignored - fallback to API call
   }
 
   // Fallback to direct API call

@@ -177,22 +177,19 @@ interface PolymarketPriceResponse {
 }
 
 async function fetchCurrentPrice(tokenId: string): Promise<number> {
-  try {
-    const priceData = (await fetchPolymarketPrice(tokenId)) as
-      | PolymarketPriceResponse
-      | null
-      | undefined;
+  // Non-critical operation: price fetch failure returns safe default
+  // Use catch on promise chain instead of try-catch block
+  const priceData = (await fetchPolymarketPrice(tokenId).catch(() => null)) as
+    | PolymarketPriceResponse
+    | null
+    | undefined;
 
-    if (!priceData) {
-      return 0;
-    }
-
-    const price =
-      priceData.price ?? priceData.last_price ?? 0;
-    return parseFloat(String(price));
-  } catch {
+  if (!priceData) {
     return 0;
   }
+
+  const price = priceData.price ?? priceData.last_price ?? 0;
+  return parseFloat(String(price));
 }
 
 /**

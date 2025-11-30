@@ -180,61 +180,53 @@ export async function getClobOrder(
 ): Promise<ClobOrderResponse | null> {
   const clobClient = await getClobClient();
 
-  try {
-    const order = await clobClient.getOrder(orderId);
+  // Let errors bubble up - service layer will handle 404s
+  const order = await clobClient.getOrder(orderId);
 
-    if (!order) {
-      return null;
-    }
-
-    // Convert ClobClient order to our format
-    // ClobClient returns OpenOrder type, but properties may vary
-    // Using type assertion with proper interface
-    interface ClobOrderShape {
-      order_id?: string;
-      id?: string;
-      status?: string;
-      token_id?: string;
-      tokenID?: string;
-      side?: "BUY" | "SELL" | number;
-      price?: string | number;
-      size?: string | number;
-      filled?: string | number;
-      timestamp?: string;
-      expiration?: string;
-    }
-
-    const orderAny = order as ClobOrderShape;
-    
-    // Determine side - handle both string and numeric values
-    // Polymarket uses: "BUY" (string) or 0 (number) for buy, "SELL" (string) or 1 (number) for sell
-    let side: "BUY" | "SELL";
-    const sideValue = orderAny.side;
-    if (sideValue === "BUY" || sideValue === 0) {
-      side = "BUY";
-    } else {
-      side = "SELL";
-    }
-    
-    return {
-      order_id: orderAny.order_id || orderAny.id || orderId,
-      status: mapClobClientStatusToStatus(orderAny.status),
-      token_id: orderAny.token_id || orderAny.tokenID || "",
-      side,
-      price: String(orderAny.price || "0"),
-      size: String(orderAny.size || "0"),
-      filled: String(orderAny.filled || "0"),
-      timestamp: orderAny.timestamp || new Date().toISOString(),
-      expiration: orderAny.expiration,
-    };
-  } catch (error: unknown) {
-    // Handle 404 or other errors
-    const errorObj = error as { status?: number; message?: string };
-    if (errorObj?.status === 404 || errorObj?.message?.includes("not found")) {
-      return null;
-    }
-    throw error;
+  if (!order) {
+    return null;
   }
+
+  // Convert ClobClient order to our format
+  // ClobClient returns OpenOrder type, but properties may vary
+  // Using type assertion with proper interface
+  interface ClobOrderShape {
+    order_id?: string;
+    id?: string;
+    status?: string;
+    token_id?: string;
+    tokenID?: string;
+    side?: "BUY" | "SELL" | number;
+    price?: string | number;
+    size?: string | number;
+    filled?: string | number;
+    timestamp?: string;
+    expiration?: string;
+  }
+
+  const orderAny = order as ClobOrderShape;
+  
+  // Determine side - handle both string and numeric values
+  // Polymarket uses: "BUY" (string) or 0 (number) for buy, "SELL" (string) or 1 (number) for sell
+  let side: "BUY" | "SELL";
+  const sideValue = orderAny.side;
+  if (sideValue === "BUY" || sideValue === 0) {
+    side = "BUY";
+  } else {
+    side = "SELL";
+  }
+  
+  return {
+    order_id: orderAny.order_id || orderAny.id || orderId,
+    status: mapClobClientStatusToStatus(orderAny.status),
+    token_id: orderAny.token_id || orderAny.tokenID || "",
+    side,
+    price: String(orderAny.price || "0"),
+    size: String(orderAny.size || "0"),
+    filled: String(orderAny.filled || "0"),
+    timestamp: orderAny.timestamp || new Date().toISOString(),
+    expiration: orderAny.expiration,
+  };
 }
 
 /**

@@ -1,7 +1,9 @@
-import { getClobOrder } from "../adapters/polymarket/orders";
+import {
+  getClobOrder,
+  type ClobOrderResponse,
+} from "../adapters/polymarket/orders";
 import { orderConfirmationCacheService } from "./cache";
 import type { Order } from "@rekon/types";
-import { NotFound } from "../utils/http-errors";
 
 /**
  * Order Status Service
@@ -23,6 +25,25 @@ import { NotFound } from "../utils/http-errors";
  * @param useCache - Whether to use cache (default: true)
  * @returns Order status or null if not found
  */
+/**
+ * Checks if an error is a "not found" error (404).
+ */
+function isNotFoundError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  const errorObj = error as {
+    status?: number;
+    statusCode?: number;
+    message?: string;
+  };
+  return (
+    errorObj.status === 404 ||
+    errorObj.statusCode === 404 ||
+    errorObj.message?.toLowerCase().includes("not found") === true
+  );
+}
+
 export async function getOrderStatus(
   orderId: string,
   useCache: boolean = true
@@ -35,8 +56,22 @@ export async function getOrderStatus(
     }
   }
 
-  // Fetch from CLOB
-  const clobResponse = await getClobOrder(orderId);
+  // Fetch from CLOB - handle 404s gracefully
+  let clobResponse: ClobOrderResponse | null = null;
+
+  // Check if ClobClient throws errors for not found orders
+  // If it does, catch and return null; otherwise let errors bubble
+  const clobOrderResult = await getClobOrder(orderId).catch(
+    (error: unknown) => {
+      if (isNotFoundError(error)) {
+        return null; // Order not found - return null
+      }
+      throw error; // Re-throw other errors
+    }
+  );
+
+  clobResponse = clobOrderResult;
+
   if (!clobResponse) {
     return null;
   }
