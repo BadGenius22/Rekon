@@ -66,6 +66,7 @@ app.use("/positions/*", sessionMiddleware);
 app.use("/fills/*", sessionMiddleware);
 app.use("/simulate/*", sessionMiddleware);
 app.use("/watchlist/*", sessionMiddleware);
+app.use("/alerts/*", sessionMiddleware);
 // Webhooks don't use session middleware (called by external services)
 
 // API routes (with rate limiting to protect Polymarket API)
@@ -82,6 +83,7 @@ import { positionsRoutes } from "./routes/positions";
 import { fillsRoutes } from "./routes/fills";
 import { simulationRoutes } from "./routes/simulation";
 import { watchlistRoutes } from "./routes/watchlist";
+import { alertsRoutes } from "./routes/alerts";
 
 // Apply rate limiting to all API routes that call Polymarket
 // Rate limiter is applied to each route group
@@ -106,6 +108,7 @@ app.route("/positions", positionsRoutes);
 app.route("/fills", fillsRoutes);
 app.route("/simulate", simulationRoutes);
 app.route("/watchlist", watchlistRoutes);
+app.route("/alerts", alertsRoutes);
 
 const port = Number(process.env.PORT) || 3001;
 

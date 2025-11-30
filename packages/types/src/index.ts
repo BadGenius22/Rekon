@@ -191,3 +191,6 @@ export * from "./simulation";
 
 // Watchlist types
 export * from "./watchlist";
+
+// Alert types
+export * from "./alert";
