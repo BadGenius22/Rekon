@@ -3,20 +3,47 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { HTTPException } from "hono/http-exception";
 import { polymarketRateLimiter } from "./middleware/rate-limit";
+import { initSentry, captureError, trackFailedRequest } from "./utils/sentry";
+
+// Initialize Sentry for error tracking
+initSentry();
 
 const app = new Hono();
 
 // Global error handler
 app.onError((err, c) => {
+  const statusCode = err instanceof HTTPException ? err.status : 500;
+  const path = c.req.path;
+  const method = c.req.method;
+
+  // Log error
   console.error("API Error:", err);
+
+  // Track failed request
+  // Use type assertion to access sessionId from context
+  const sessionId = (c.get("sessionId" as never) as string | undefined) || undefined;
+  trackFailedRequest(path, method, statusCode, err, {
+    sessionId,
+  });
 
   // Handle HTTPException (thrown for expected errors)
   if (err instanceof HTTPException) {
+    // Don't capture 4xx errors to Sentry (expected client errors)
+    if (statusCode >= 500) {
+      captureError(err, {
+        tags: {
+          error_type: "http_exception",
+          http_status: statusCode.toString(),
+        },
+        level: "error",
+      });
+    }
     return err.getResponse();
   }
 
   // Handle Zod validation errors
   if (err.name === "ZodError") {
+    // Validation errors are expected, don't send to Sentry
     return c.json(
       {
         error: "Validation error",
@@ -25,6 +52,24 @@ app.onError((err, c) => {
       400
     );
   }
+
+  // Handle unexpected errors - capture to Sentry
+  captureError(err, {
+    tags: {
+      error_type: "unexpected_error",
+      path,
+      method,
+    },
+    extra: {
+      path,
+      method,
+      url: c.req.url,
+    },
+    level: "error",
+    user: sessionId
+      ? { sessionId }
+      : undefined,
+  });
 
   // Handle unexpected errors
   return c.json(

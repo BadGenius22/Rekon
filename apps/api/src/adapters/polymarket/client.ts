@@ -1,6 +1,7 @@
 import { POLYMARKET_CONFIG } from "@rekon/config";
 import type { PolymarketMarket } from "./types";
 import { getBuilderApiHeaders, getClobApiHeaders } from "./headers";
+import { trackPolymarketApiFailure } from "../../utils/sentry";
 
 /**
  * Polymarket API Client
@@ -65,9 +66,14 @@ export async function fetchPolymarketMarkets(
   });
 
   if (!response.ok) {
-    throw new Error(
+    const error = new Error(
       `Polymarket API error: ${response.status} ${response.statusText}`
     );
+    
+    // Track Polymarket API failure
+    trackPolymarketApiFailure(url, response.status, error);
+    
+    throw error;
   }
 
   const data = await response.json();
@@ -129,9 +135,14 @@ export async function fetchPolymarketCondition(
   }
 
   if (!response.ok) {
-    throw new Error(
+    const error = new Error(
       `Polymarket API error: ${response.status} ${response.statusText}`
     );
+    
+    // Track Polymarket API failure
+    trackPolymarketApiFailure(url, response.status, error);
+    
+    throw error;
   }
 
   return response.json();
@@ -151,9 +162,14 @@ export async function fetchPolymarketOrderBook(
   });
 
   if (!response.ok) {
-    throw new Error(
+    const error = new Error(
       `Polymarket API error: ${response.status} ${response.statusText}`
     );
+    
+    // Track Polymarket API failure
+    trackPolymarketApiFailure(url, response.status, error);
+    
+    throw error;
   }
 
   return response.json();
@@ -175,9 +191,14 @@ export async function fetchPolymarketTrades(
   });
 
   if (!response.ok) {
-    throw new Error(
+    const error = new Error(
       `Polymarket API error: ${response.status} ${response.statusText}`
     );
+    
+    // Track Polymarket API failure
+    trackPolymarketApiFailure(url, response.status, error);
+    
+    throw error;
   }
 
   return response.json();
@@ -195,9 +216,14 @@ export async function fetchPolymarketPrice(tokenId: string): Promise<unknown> {
   });
 
   if (!response.ok) {
-    throw new Error(
+    const error = new Error(
       `Polymarket API error: ${response.status} ${response.statusText}`
     );
+    
+    // Track Polymarket API failure
+    trackPolymarketApiFailure(url, response.status, error);
+    
+    throw error;
   }
 
   return response.json();
@@ -218,9 +244,14 @@ export async function fetchPolymarketPrices(
   });
 
   if (!response.ok) {
-    throw new Error(
+    const error = new Error(
       `Polymarket API error: ${response.status} ${response.statusText}`
     );
+    
+    // Track Polymarket API failure
+    trackPolymarketApiFailure(url, response.status, error);
+    
+    throw error;
   }
 
   return response.json();

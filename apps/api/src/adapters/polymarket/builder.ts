@@ -1,5 +1,6 @@
 import { POLYMARKET_CONFIG } from "@rekon/config";
 import { getDataApiHeaders } from "./headers";
+import { trackPolymarketApiFailure } from "../../utils/sentry";
 
 /**
  * Builder Program API Client
@@ -49,9 +50,14 @@ export async function fetchBuilderLeaderboard(
   });
 
   if (!response.ok) {
-    throw new Error(
+    const error = new Error(
       `Polymarket Builder API error: ${response.status} ${response.statusText}`
     );
+    
+    // Track Polymarket API failure
+    trackPolymarketApiFailure(url, response.status, error);
+    
+    throw error;
   }
 
   const data = await response.json();
@@ -92,9 +98,14 @@ export async function fetchBuilderVolume(
   });
 
   if (!response.ok) {
-    throw new Error(
+    const error = new Error(
       `Polymarket Builder API error: ${response.status} ${response.statusText}`
     );
+    
+    // Track Polymarket API failure
+    trackPolymarketApiFailure(url, response.status, error);
+    
+    throw error;
   }
 
   const data = await response.json();

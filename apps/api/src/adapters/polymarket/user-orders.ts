@@ -2,6 +2,7 @@ import { POLYMARKET_CONFIG } from "@rekon/config";
 import { ClobClient } from "@polymarket/clob-client";
 import { createBuilderConfig } from "./builder-signing";
 import type { Order } from "@rekon/types";
+import { trackPolymarketApiFailure } from "../../utils/sentry";
 
 /**
  * User Order Placement Adapter
@@ -100,9 +101,19 @@ async function postOrderViaRemoteSigning(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(
+    const error = new Error(
       `Builder signing server error: ${response.status} ${response.statusText} - ${errorText}`
     );
+    
+    // Track builder signing server failure
+    trackPolymarketApiFailure(
+      `${signingServerUrl}/sign`,
+      response.status,
+      error,
+      { requestId: "builder-signing" }
+    );
+    
+    throw error;
   }
 
   const signedPayload = (await response.json()) as {
@@ -181,9 +192,18 @@ async function postOrderWithLocalSigning(
 
   if (!clobResponse.ok) {
     const errorText = await clobResponse.text();
-    throw new Error(
+    const error = new Error(
       `Polymarket CLOB API error: ${clobResponse.status} ${clobResponse.statusText} - ${errorText}`
     );
+    
+    // Track Polymarket API failure
+    trackPolymarketApiFailure(
+      `${POLYMARKET_CONFIG.clobApiUrl}/order`,
+      clobResponse.status,
+      error
+    );
+    
+    throw error;
   }
 
   return await clobResponse.json();

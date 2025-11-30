@@ -18,6 +18,7 @@
     "@rekon/config": "workspace:*",
     "@rekon/types": "workspace:*",
     "@rekon/utils": "workspace:*",
+    "@sentry/node": "^10.27.0",
     "@sindresorhus/slugify": "^3.0.0",
     "ethers": "^6.15.0",
     "hono": "^4.6.0",

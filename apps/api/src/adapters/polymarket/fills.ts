@@ -1,6 +1,7 @@
 import { POLYMARKET_CONFIG } from "@rekon/config";
 import { getClobClient } from "./clob-client";
 import type { Fill } from "@rekon/types";
+import { trackPolymarketApiFailure } from "../../utils/sentry";
 
 /**
  * Raw Polymarket Fill Response
@@ -108,9 +109,15 @@ async function fetchFillsFromApi(
     if (response.status === 404) {
       return []; // No fills found
     }
-    throw new Error(
+    
+    const error = new Error(
       `Polymarket API error: ${response.status} ${response.statusText}`
     );
+    
+    // Track Polymarket API failure
+    trackPolymarketApiFailure(url, response.status, error);
+    
+    throw error;
   }
 
   const data = (await response.json()) as
