@@ -53,8 +53,12 @@ app.get("/health", (c) => {
 // API routes
 import { marketsRoutes } from "./routes/markets";
 import { orderbookRoutes } from "./routes/orderbook";
+import { tradesRoutes } from "./routes/trades";
+import { chartRoutes } from "./routes/chart";
 app.route("/markets", marketsRoutes);
 app.route("/orderbook", orderbookRoutes);
+app.route("/trades", tradesRoutes);
+app.route("/chart", chartRoutes);
 
 const port = Number(process.env.PORT) || 3001;
 

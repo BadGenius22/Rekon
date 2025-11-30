@@ -1,5 +1,10 @@
 import type { ChartData, OHLCV } from "@rekon/types";
+import {
+  fetchPolymarketTrades,
+  mapPolymarketTrades,
+} from "../adapters/polymarket";
 import { getTradesByMarketId } from "./trades";
+import { chartCacheService } from "./cache";
 
 /**
  * Chart Service
@@ -37,6 +42,45 @@ export async function getChartData(
     timeframe,
     data: candles,
   };
+}
+
+/**
+ * Gets OHLCV chart data for a specific outcome token.
+ * Fetches trades directly from Polymarket and aggregates into candles.
+ * Uses cache to reduce API calls (5 second TTL).
+ */
+export async function getOHLCVByTokenId(
+  tokenId: string,
+  timeframe: Timeframe = "15m"
+): Promise<ChartData | null> {
+  // Check cache first
+  const cacheKey = `${tokenId}:${timeframe}`;
+  const cached = chartCacheService.get<ChartData>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  // Fetch trades from API (need enough data for chart)
+  const rawTrades = await fetchPolymarketTrades(tokenId, 1000);
+  const trades = mapPolymarketTrades(rawTrades);
+
+  if (trades.length === 0) {
+    return null;
+  }
+
+  // Convert trades to OHLCV candles
+  const candles = aggregateTradesToOHLCV(trades, timeframe);
+
+  const chartData: ChartData = {
+    marketId: "", // Not available from tokenId alone
+    timeframe,
+    data: candles,
+  };
+
+  // Cache the result
+  chartCacheService.set(cacheKey, chartData);
+
+  return chartData;
 }
 
 /**
