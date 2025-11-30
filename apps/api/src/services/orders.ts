@@ -9,6 +9,7 @@ import {
 import { getMarketById } from "./markets";
 import { orderConfirmationCacheService } from "./cache";
 import { BadRequest, NotFound } from "../utils/http-errors";
+import type { UserSession } from "@rekon/types";
 
 /**
  * Order Service
@@ -38,11 +39,16 @@ export interface PlaceOrderParams {
 /**
  * Places an order to Polymarket CLOB.
  * Includes builder attribution headers if configured.
+ * Associates order with user session for attribution.
  *
  * @param params - Order parameters
+ * @param session - User session (for attribution)
  * @returns Placed order
  */
-export async function placeOrder(params: PlaceOrderParams): Promise<Order> {
+export async function placeOrder(
+  params: PlaceOrderParams,
+  session?: UserSession | null
+): Promise<Order> {
   // Validate order parameters
   if (params.type === "limit" && !params.price) {
     throw BadRequest("Price is required for limit orders");

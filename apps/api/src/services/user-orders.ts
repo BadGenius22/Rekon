@@ -1,4 +1,4 @@
-import type { Order } from "@rekon/types";
+import type { Order, UserSession } from "@rekon/types";
 import {
   postUserSignedOrder,
   type UserSignedOrder,
@@ -17,12 +17,15 @@ import { BadRequest } from "../utils/http-errors";
  * Posts a user-signed order to Polymarket.
  * The order is already signed by the user's wallet on the frontend.
  * Backend adds builder attribution and forwards to Polymarket.
+ * Associates order with user session for attribution.
  *
  * @param signedOrder - Order signed by user's wallet
+ * @param session - User session (for attribution)
  * @returns Placed order
  */
 export async function postUserOrder(
-  signedOrder: UserSignedOrder
+  signedOrder: UserSignedOrder,
+  session?: UserSession | null
 ): Promise<Order> {
   // Validate required fields
   if (!signedOrder.order) {

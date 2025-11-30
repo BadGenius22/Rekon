@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import { z } from "zod";
 import { placeOrder, getOrderStatus } from "../services/orders";
+import { getSessionFromContext } from "../middleware/session";
 import { BadRequest } from "../utils/http-errors";
 
 /**
@@ -69,12 +70,16 @@ const PlaceOrderSchema = z
 /**
  * POST /orders
  * Places a new order to Polymarket CLOB.
+ * Uses builder's wallet (for builder-only orders).
  */
 export async function placeOrderController(c: Context) {
   const body = await c.req.json();
   const validated = PlaceOrderSchema.parse(body);
 
-  const order = await placeOrder(validated);
+  // Get session for attribution (optional for builder orders)
+  const session = getSessionFromContext(c);
+
+  const order = await placeOrder(validated, session);
 
   return c.json(order, 201);
 }

@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import { z } from "zod";
 import { postUserOrder } from "../services/user-orders";
+import { getSessionFromContext } from "../middleware/session";
 import { BadRequest } from "../utils/http-errors";
 
 /**
@@ -51,7 +52,10 @@ export async function postUserOrderController(c: Context) {
       : undefined,
   };
 
-  const order = await postUserOrder(signedOrder);
+  // Get session for attribution
+  const session = getSessionFromContext(c);
+
+  const order = await postUserOrder(signedOrder, session);
 
   return c.json(order, 201);
 }

@@ -46,10 +46,20 @@ app.use(
   })
 );
 
-// Health check (no rate limiting)
+// Health check (no rate limiting, no session)
 app.get("/health", (c) => {
   return c.json({ status: "ok", service: "rekon-api" });
 });
+
+// Apply session middleware to all API routes (except health)
+// This ensures every request has a session for attribution
+import { sessionMiddleware } from "./middleware/session";
+app.use("/markets/*", sessionMiddleware);
+app.use("/orderbook/*", sessionMiddleware);
+app.use("/trades/*", sessionMiddleware);
+app.use("/chart/*", sessionMiddleware);
+app.use("/orders/*", sessionMiddleware);
+app.use("/sessions/*", sessionMiddleware);
 
 // API routes (with rate limiting to protect Polymarket API)
 import { marketsRoutes } from "./routes/markets";
@@ -57,6 +67,7 @@ import { orderbookRoutes } from "./routes/orderbook";
 import { tradesRoutes } from "./routes/trades";
 import { chartRoutes } from "./routes/chart";
 import { ordersRoutes } from "./routes/orders";
+import { sessionsRoutes } from "./routes/sessions";
 
 // Apply rate limiting to all API routes that call Polymarket
 // Rate limiter is applied to each route group
@@ -71,6 +82,7 @@ app.route("/orderbook", orderbookRoutes);
 app.route("/trades", tradesRoutes);
 app.route("/chart", chartRoutes);
 app.route("/orders", ordersRoutes);
+app.route("/sessions", sessionsRoutes);
 
 const port = Number(process.env.PORT) || 3001;
 

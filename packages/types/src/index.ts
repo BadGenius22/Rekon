@@ -176,3 +176,6 @@ export type WebSocketMessage =
   | { type: "orderbook"; marketId: string; orderbook: OrderBook }
   | { type: "order"; order: Order }
   | { type: "position"; position: Position };
+
+// Session types
+export * from "./session";
