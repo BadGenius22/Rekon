@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { HTTPException } from "hono/http-exception";
+import { polymarketRateLimiter } from "./middleware/rate-limit";
 
 const app = new Hono();
 
@@ -45,16 +46,24 @@ app.use(
   })
 );
 
-// Health check
+// Health check (no rate limiting)
 app.get("/health", (c) => {
   return c.json({ status: "ok", service: "rekon-api" });
 });
 
-// API routes
+// API routes (with rate limiting to protect Polymarket API)
 import { marketsRoutes } from "./routes/markets";
 import { orderbookRoutes } from "./routes/orderbook";
 import { tradesRoutes } from "./routes/trades";
 import { chartRoutes } from "./routes/chart";
+
+// Apply rate limiting to all API routes that call Polymarket
+// Rate limiter is applied to each route group
+app.use("/markets/*", polymarketRateLimiter);
+app.use("/orderbook/*", polymarketRateLimiter);
+app.use("/trades/*", polymarketRateLimiter);
+app.use("/chart/*", polymarketRateLimiter);
+
 app.route("/markets", marketsRoutes);
 app.route("/orderbook", orderbookRoutes);
 app.route("/trades", tradesRoutes);

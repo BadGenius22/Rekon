@@ -8,8 +8,18 @@ export const API_CONFIG = {
 // Polymarket Configuration
 export const POLYMARKET_CONFIG = {
   apiUrl: process.env.POLYMARKET_API_URL || "https://clob.polymarket.com",
-  builderApiUrl: process.env.POLYMARKET_BUILDER_API_URL || "https://api.builder.polymarket.com",
+  builderApiUrl:
+    process.env.POLYMARKET_BUILDER_API_URL ||
+    "https://api.builder.polymarket.com",
   chainId: process.env.POLYMARKET_CHAIN_ID || "137", // Polygon
+  // Rate limits (per 10 seconds)
+  // General: 5,000 requests per 10s
+  // Data API: 200 requests per 10s
+  // We use conservative limits to avoid bans
+  rateLimit: {
+    windowMs: 10 * 1000, // 10 seconds
+    maxRequests: 150, // Conservative: 150 requests per 10s (below 200 limit)
+  },
 } as const;
 
 // Trading Configuration
@@ -35,4 +45,3 @@ export const UI_CONFIG = {
   orderBookDepth: 20,
   tradesFeedLimit: 100,
 } as const;
-

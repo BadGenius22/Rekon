@@ -35,6 +35,9 @@ importers:
       hono:
         specifier: ^4.6.0
         version: 4.10.7
+      hono-rate-limiter:
+        specifier: ^0.4.2
+        version: 0.4.2(hono@4.10.7)
       lru-cache:
         specifier: ^11.2.2
         version: 11.2.2
@@ -124,6 +127,9 @@ importers:
 
   packages/config:
     devDependencies:
+      '@types/node':
+        specifier: ^22.19.1
+        version: 22.19.1
       typescript:
         specifier: ^5.6.0
         version: 5.9.3
@@ -1462,6 +1468,11 @@ packages:
 
   hermes-parser@0.25.1:
     resolution: {integrity: sha512-6pEjquH3rqaI6cYAXYPcz9MS4rY6R4ngRgrgfDshRptUZIc3lw0MCIJIGDj9++mfySOuPTHB4nrSW99BCvOPIA==}
+
+  hono-rate-limiter@0.4.2:
+    resolution: {integrity: sha512-AAtFqgADyrmbDijcRTT/HJfwqfvhalya2Zo+MgfdrMPas3zSMD8SU03cv+ZsYwRU1swv7zgVt0shwN059yzhjw==}
+    peerDependencies:
+      hono: ^4.1.1
 
   hono@4.10.7:
     resolution: {integrity: sha512-icXIITfw/07Q88nLSkB9aiUrd8rYzSweK681Kjo/TSggaGbOX4RRyxxm71v+3PC8C/j+4rlxGeoTRxQDkaJkUw==}
@@ -3663,6 +3674,10 @@ snapshots:
   hermes-parser@0.25.1:
     dependencies:
       hermes-estree: 0.25.1
+
+  hono-rate-limiter@0.4.2(hono@4.10.7):
+    dependencies:
+      hono: 4.10.7
 
   hono@4.10.7: {}
 
