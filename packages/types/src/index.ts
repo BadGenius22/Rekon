@@ -67,7 +67,7 @@ export type OrderType =
   | "trailing"
   | "iceberg";
 
-export type TimeInForce = "GTC" | "IOC" | "FOK" | "GTD";
+export type TimeInForce = "GTC" | "IOC" | "FOK" | "FAK" | "GTD";
 
 export interface Order {
   id: string;
@@ -84,7 +84,7 @@ export interface Order {
   // Advanced order features
   reduceOnly?: boolean; // Only reduce position, never increase
   postOnly?: boolean; // Maker-only order (post to order book, don't take)
-  timeInForce?: TimeInForce; // GTC (Good Till Cancel), IOC (Immediate Or Cancel), FOK (Fill Or Kill), GTD (Good Till Date)
+  timeInForce?: TimeInForce; // GTC (Good Till Cancel), IOC (Immediate Or Cancel), FOK (Fill Or Kill), FAK (Fill And Kill), GTD (Good Till Date)
   expireTime?: string; // Required for GTD (Good Till Date)
   // Iceberg order specific
   visibleSize?: number; // For iceberg orders: visible portion of the order
