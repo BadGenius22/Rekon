@@ -12,10 +12,7 @@ import {
 } from "../services/sessions";
 import { getSessionFromContext } from "../middleware/session";
 import { BadRequest, NotFound } from "../utils/http-errors";
-import type {
-  CreateSessionRequest,
-  TradingPreferences,
-} from "@rekon/types";
+import type { CreateSessionRequest, TradingPreferences } from "@rekon/types";
 
 /**
  * Session Controllers
@@ -30,7 +27,7 @@ import type {
 export async function createSessionController(c: Context) {
   const body = (await c.req.json().catch(() => ({}))) as CreateSessionRequest;
 
-  const session = createSession({
+  const session = await createSession({
     fingerprintId: body.fingerprintId,
     userAgent: c.req.header("User-Agent"),
     attribution: body.attribution,
@@ -70,7 +67,7 @@ export async function getCurrentSessionController(c: Context) {
  */
 export async function getSessionController(c: Context) {
   const sessionId = z.string().min(1).parse(c.req.param("id"));
-  const session = getSession(sessionId);
+  const session = await getSession(sessionId);
 
   if (!session) {
     return c.json({ error: "Session not found" }, 404);
@@ -95,7 +92,7 @@ export async function refreshSessionController(c: Context) {
     return c.json({ error: "Session not found" }, 404);
   }
 
-  const refreshed = refreshSession(session.sessionId);
+  const refreshed = await refreshSession(session.sessionId);
 
   if (!refreshed) {
     return c.json({ error: "Failed to refresh session" }, 500);
@@ -163,7 +160,10 @@ export async function updatePreferencesController(c: Context) {
 
   const preferences = PreferencesSchema.parse(await c.req.json());
 
-  const updated = updateTradingPreferences(session.sessionId, preferences);
+  const updated = await updateTradingPreferences(
+    session.sessionId,
+    preferences
+  );
 
   if (!updated) {
     return c.json({ error: "Failed to update preferences" }, 500);
@@ -185,7 +185,7 @@ export async function deleteSessionController(c: Context) {
     return c.json({ error: "Session not found" }, 404);
   }
 
-  deleteSession(session.sessionId);
+  await deleteSession(session.sessionId);
 
   return c.json({ message: "Session deleted" });
 }
@@ -198,4 +198,3 @@ export async function getSessionStatsController(c: Context) {
   const stats = getSessionStats();
   return c.json(stats);
 }
-

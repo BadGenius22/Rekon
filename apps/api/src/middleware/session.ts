@@ -42,7 +42,7 @@ export async function sessionMiddleware(c: Context, next: Next) {
   let session: UserSession | null = null;
 
   if (sessionId) {
-    session = getSession(sessionId);
+    session = await getSession(sessionId);
   }
 
   // Create new session if not found or expired
@@ -52,7 +52,7 @@ export async function sessionMiddleware(c: Context, next: Next) {
     const userAgent = c.req.header("User-Agent") || undefined;
 
     // Create new session
-    session = createSession({
+    session = await createSession({
       fingerprintId,
       userAgent,
       attribution: {
