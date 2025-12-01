@@ -47,6 +47,12 @@ export {
   type BuilderVolumeData,
 } from "./builder";
 
+// Export misc Data-API functions
+export {
+  fetchTotalMarketsTraded,
+  type TotalMarketsTradedResponse,
+} from "./misc";
+
 // Export order placement functions
 export {
   placeClobOrder,

@@ -2,6 +2,7 @@ import type { Context } from "hono";
 import {
   getBuilderVolumeAnalytics,
   getActiveTradersAnalytics,
+  getUserMarketsTraded,
 } from "../services/analytics";
 
 /**
@@ -38,4 +39,16 @@ export async function getActiveTradersController(c: Context) {
   }
 
   return c.json(analytics);
+}
+
+/**
+ * GET /analytics/user/:address/traded
+ *
+ * Returns the total number of markets a given user has traded on Polymarket,
+ * using the Data-API "Get total markets a user has traded" endpoint.
+ */
+export async function getUserMarketsTradedController(c: Context) {
+  const address = c.req.param("address");
+  const result = await getUserMarketsTraded(address);
+  return c.json(result);
 }

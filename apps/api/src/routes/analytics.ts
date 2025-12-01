@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import {
   getAnalyticsVolumeController,
   getActiveTradersController,
+  getUserMarketsTradedController,
 } from "../controllers/analytics";
 import { sessionMiddleware } from "../middleware/session";
 
@@ -13,12 +14,14 @@ import { sessionMiddleware } from "../middleware/session";
  *
  * - GET /analytics/volume
  * - GET /analytics/active-traders (placeholder)
+ * - GET /analytics/user/:address/traded
  */
 
 const analyticsRoutes = new Hono()
   // Apply session middleware for attribution (optional but consistent)
   .use("*", sessionMiddleware)
   .get("/volume", getAnalyticsVolumeController)
-  .get("/active-traders", getActiveTradersController);
+  .get("/active-traders", getActiveTradersController)
+  .get("/user/:address/traded", getUserMarketsTradedController);
 
 export { analyticsRoutes };

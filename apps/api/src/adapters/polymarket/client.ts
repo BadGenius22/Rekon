@@ -19,6 +19,7 @@ import { trackPolymarketApiFailure } from "../../utils/sentry";
 
 const BUILDER_API_URL = POLYMARKET_CONFIG.builderApiUrl;
 const CLOB_API_URL = POLYMARKET_CONFIG.clobApiUrl || POLYMARKET_CONFIG.apiUrl;
+const OFFLINE_MODE = POLYMARKET_CONFIG.offline === true;
 
 export interface FetchMarketsParams {
   category?: string;
@@ -36,6 +37,14 @@ export interface FetchMarketsParams {
 export async function fetchPolymarketMarkets(
   params: FetchMarketsParams = {}
 ): Promise<PolymarketMarket[]> {
+  // In offline mode, return an empty list so local/dev can boot without Polymarket
+  if (OFFLINE_MODE) {
+    console.warn(
+      "[Polymarket] OFFLINE mode enabled (POLYMARKET_OFFLINE=true) – returning empty markets list"
+    );
+    return [];
+  }
+
   const searchParams = new URLSearchParams();
 
   if (params.category) {
@@ -61,23 +70,33 @@ export async function fetchPolymarketMarkets(
     searchParams.toString() ? `?${searchParams.toString()}` : ""
   }`;
 
-  const response = await fetch(url, {
-    headers: getClobApiHeaders(),
-  });
+  try {
+    const response = await fetch(url, {
+      // Builder markets endpoint should use Builder API headers (with API key)
+      headers: getBuilderApiHeaders(),
+    });
 
-  if (!response.ok) {
-    const error = new Error(
-      `Polymarket API error: ${response.status} ${response.statusText}`
+    if (!response.ok) {
+      const error = new Error(
+        `Polymarket API error: ${response.status} ${response.statusText}`
+      );
+
+      // Track Polymarket API failure
+      trackPolymarketApiFailure(url, response.status, error);
+
+      throw error;
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    // Network / DNS failures (e.g. offline dev, DNS issues) – fail soft with empty list
+    console.error("[Polymarket] Failed to fetch markets:", error);
+    console.warn(
+      "[Polymarket] fetchPolymarketMarkets: swallowing error and returning [] to keep API responsive"
     );
-    
-    // Track Polymarket API failure
-    trackPolymarketApiFailure(url, response.status, error);
-    
-    throw error;
+    return [];
   }
-
-  const data = await response.json();
-  return Array.isArray(data) ? data : [];
 }
 
 /**

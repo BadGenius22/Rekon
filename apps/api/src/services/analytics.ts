@@ -2,6 +2,7 @@ import {
   fetchBuilderVolume,
   fetchMyBuilderStats,
 } from "../adapters/polymarket/builder";
+import { fetchTotalMarketsTraded } from "../adapters/polymarket";
 
 /**
  * Analytics Service
@@ -82,5 +83,22 @@ export async function getActiveTradersAnalytics(): Promise<{
     implemented: false,
     message:
       "Active traders analytics requires internal order persistence and is not implemented yet.",
+  };
+}
+
+/**
+ * Gets the total number of markets a given user has traded on Polymarket.
+ * Thin wrapper around the Data-API \"Get total markets a user has traded\" endpoint.
+ *
+ * Docs:
+ * https://docs.polymarket.com/api-reference/misc/get-total-markets-a-user-has-traded
+ */
+export async function getUserMarketsTraded(
+  userAddress: string
+): Promise<{ user: string; traded: number }> {
+  const result = await fetchTotalMarketsTraded(userAddress);
+  return {
+    user: result.user,
+    traded: result.traded,
   };
 }

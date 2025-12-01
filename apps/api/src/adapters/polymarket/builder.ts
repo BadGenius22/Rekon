@@ -43,7 +43,7 @@ export async function fetchBuilderLeaderboard(
   period: string = "all-time",
   limit: number = 100
 ): Promise<BuilderLeaderboardEntry[]> {
-  const url = `${DATA_API_URL}/builders/leaderboard?period=${period}&limit=${limit}`;
+  const url = `${DATA_API_URL}/v1/builders/leaderboard?period=${period}&limit=${limit}`;
 
   const response = await fetch(url, {
     headers: getDataApiHeaders(),
@@ -91,7 +91,7 @@ export async function fetchBuilderVolume(
     searchParams.append("end_date", endDate);
   }
 
-  const url = `${DATA_API_URL}/builders/volume?${searchParams.toString()}`;
+  const url = `${DATA_API_URL}/v1/builders/volume?${searchParams.toString()}`;
 
   const response = await fetch(url, {
     headers: getDataApiHeaders(),

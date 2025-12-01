@@ -33,7 +33,11 @@ export const POLYMARKET_CONFIG = {
   // builderName: Your builder name/display name
   builderId: process.env.POLYMARKET_BUILDER_ID || undefined,
   builderName: process.env.POLYMARKET_BUILDER_NAME || undefined,
-  // Data API - User data, holdings, on-chain activities
+  // Data API - Builder volume & leaderboard, misc analytics, user data, holdings
+  // Base URL (no version) so we can target both:
+  // - https://data-api.polymarket.com/v1/builders/volume
+  // - https://data-api.polymarket.com/v1/builders/leaderboard
+  // - https://data-api.polymarket.com/traded
   dataApiUrl:
     process.env.POLYMARKET_DATA_API_URL || "https://data-api.polymarket.com",
   // WebSocket CLOB - Real-time CLOB subscriptions
@@ -44,6 +48,9 @@ export const POLYMARKET_CONFIG = {
   rtdsUrl:
     process.env.POLYMARKET_RTDS_URL || "wss://ws-live-data.polymarket.com",
   chainId: process.env.POLYMARKET_CHAIN_ID || "137", // Polygon
+  // Offline mode (development-only): skip live HTTP calls and use safe fallbacks
+  // Set POLYMARKET_OFFLINE=true to allow the API to boot without external access.
+  offline: process.env.POLYMARKET_OFFLINE === "true",
   // CLOB Client Configuration
   // Wallet private key for signing orders (required for ClobClient)
   walletPrivateKey: process.env.POLYMARKET_WALLET_PRIVATE_KEY || undefined,
@@ -100,5 +107,7 @@ export const REDIS_CONFIG = {
   // Upstash Redis REST API Token
   token: process.env.UPSTASH_REDIS_REST_TOKEN || undefined,
   // Enable Redis (set to false to use in-memory LRU cache)
-  enabled: process.env.REDIS_ENABLED !== "false" && !!process.env.UPSTASH_REDIS_REST_URL,
+  enabled:
+    process.env.REDIS_ENABLED !== "false" &&
+    !!process.env.UPSTASH_REDIS_REST_URL,
 } as const;
