@@ -13,6 +13,7 @@
   "dependencies": {
     "@ethersproject/wallet": "^5.8.0",
     "@hono/node-server": "^1.13.0",
+    "@neondatabase/serverless": "^0.10.4",
     "@polymarket/builder-signing-sdk": "^0.0.8",
     "@polymarket/clob-client": "^4.22.8",
     "@rekon/config": "workspace:*",
