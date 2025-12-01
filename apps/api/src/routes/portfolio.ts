@@ -6,13 +6,13 @@ import { sessionMiddleware } from "../middleware/session";
  * Portfolio Routes
  *
  * Defines portfolio-related HTTP endpoints.
- * 
- * GET /portfolio/:sessionId - Get user portfolio
+ *
+ * GET /portfolio - Get portfolio for current session (from cookie)
  */
 
 const portfolioRoutes = new Hono()
   .use("*", sessionMiddleware)
-  .get("/:sessionId", getPortfolioController);
+  .get("/", getPortfolioController);
 
 export { portfolioRoutes };
 

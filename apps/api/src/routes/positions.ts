@@ -6,13 +6,13 @@ import { sessionMiddleware } from "../middleware/session";
  * Positions Routes
  *
  * Defines positions-related HTTP endpoints.
- * 
- * GET /positions/:sessionId - Get user positions
+ *
+ * GET /positions - Get positions for current session (from cookie)
  */
 
 const positionsRoutes = new Hono()
   .use("*", sessionMiddleware)
-  .get("/:sessionId", getPositionsController);
+  .get("/", getPositionsController);
 
 export { positionsRoutes };
 
