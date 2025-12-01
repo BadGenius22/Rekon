@@ -21,7 +21,8 @@ app.onError((err, c) => {
 
   // Track failed request
   // Use type assertion to access sessionId from context
-  const sessionId = (c.get("sessionId" as never) as string | undefined) || undefined;
+  const sessionId =
+    (c.get("sessionId" as never) as string | undefined) || undefined;
   trackFailedRequest(path, method, statusCode, err, {
     sessionId,
   });
@@ -66,9 +67,7 @@ app.onError((err, c) => {
       url: c.req.url,
     },
     level: "error",
-    user: sessionId
-      ? { sessionId }
-      : undefined,
+    user: sessionId ? { sessionId } : undefined,
   });
 
   // Handle unexpected errors
@@ -131,6 +130,7 @@ import { fillsRoutes } from "./routes/fills";
 import { simulationRoutes } from "./routes/simulation";
 import { watchlistRoutes } from "./routes/watchlist";
 import { alertsRoutes } from "./routes/alerts";
+import { analyticsRoutes } from "./routes/analytics";
 
 // Apply rate limiting to all API routes that call Polymarket
 // Rate limiter is applied to each route group
@@ -158,6 +158,7 @@ app.route("/fills", fillsRoutes);
 app.route("/simulate", simulationRoutes);
 app.route("/watchlist", watchlistRoutes);
 app.route("/alerts", alertsRoutes);
+app.route("/analytics", analyticsRoutes);
 
 const port = Number(process.env.PORT) || 3001;
 
