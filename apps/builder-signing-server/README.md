@@ -29,9 +29,9 @@ Create a `.env` file in `apps/builder-signing-server/`:
 
 ```env
 PORT=3000
-POLY_BUILDER_API_KEY=your_api_key
-POLY_BUILDER_SECRET=your_secret
-POLY_BUILDER_PASSPHRASE=your_passphrase
+POLYMARKET_BUILDER_API_KEY=your_api_key
+POLYMARKET_BUILDER_SECRET=your_secret
+POLYMARKET_BUILDER_PASSPHRASE=your_passphrase
 ```
 
 Get these credentials from: https://polymarket.com/settings/api

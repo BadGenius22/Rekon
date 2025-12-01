@@ -33,9 +33,9 @@ if (authToken) {
 
 // Validate environment variables
 const requiredEnvVars = [
-  "POLY_BUILDER_API_KEY",
-  "POLY_BUILDER_SECRET",
-  "POLY_BUILDER_PASSPHRASE",
+  "POLYMARKET_BUILDER_API_KEY",
+  "POLYMARKET_BUILDER_SECRET",
+  "POLYMARKET_BUILDER_PASSPHRASE",
 ];
 
 for (const envVar of requiredEnvVars) {
@@ -48,9 +48,9 @@ for (const envVar of requiredEnvVars) {
 
 // Builder credentials (loaded from environment)
 const builderCreds = {
-  key: process.env.POLY_BUILDER_API_KEY!,
-  secret: process.env.POLY_BUILDER_SECRET!,
-  passphrase: process.env.POLY_BUILDER_PASSPHRASE!,
+  key: process.env.POLYMARKET_BUILDER_API_KEY!,
+  secret: process.env.POLYMARKET_BUILDER_SECRET!,
+  passphrase: process.env.POLYMARKET_BUILDER_PASSPHRASE!,
 };
 
 /**
@@ -68,7 +68,7 @@ app.get("/", (_req: Request, res: Response) => {
 /**
  * Sign endpoint
  * POST /sign
- * 
+ *
  * Accepts signing requests with path, method, and body.
  * Returns a BuilderHeaderPayload with builder attribution headers.
  */
@@ -124,4 +124,3 @@ app.post("/sign", async (req: Request, res: Response) => {
 });
 
 export default app;
-
