@@ -8,6 +8,8 @@ import {
   updatePreferencesController,
   deleteSessionController,
   getSessionStatsController,
+  createWalletChallengeController,
+  verifyWalletController,
 } from "../controllers/sessions";
 import { sessionMiddleware } from "../middleware/session";
 
@@ -15,7 +17,7 @@ import { sessionMiddleware } from "../middleware/session";
  * Sessions Routes
  *
  * Defines all session-related HTTP endpoints.
- * 
+ *
  * POST /sessions - Create new session
  * GET /sessions/me - Get current session (from cookie)
  * GET /sessions/:id - Get session by ID
@@ -34,6 +36,8 @@ const sessionsRoutes = new Hono()
   // Current session operations
   .get("/me", getCurrentSessionController)
   .post("/me/refresh", refreshSessionController)
+  .post("/me/wallet-challenge", createWalletChallengeController)
+  .post("/me/wallet-verify", verifyWalletController)
   .post("/me/wallet", linkWalletController)
   .put("/me/preferences", updatePreferencesController)
   .delete("/me", deleteSessionController)
@@ -43,4 +47,3 @@ const sessionsRoutes = new Hono()
   .get("/stats", getSessionStatsController);
 
 export { sessionsRoutes };
-

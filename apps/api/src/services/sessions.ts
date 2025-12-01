@@ -5,6 +5,7 @@ import type {
 } from "@rekon/types";
 import { getRedisClient } from "../adapters/redis";
 import { randomBytes } from "crypto";
+import { verifyMessage } from "ethers";
 
 /**
  * Session Service
@@ -27,6 +28,7 @@ const redis = getRedisClient();
 
 // Session storage fallback (in-memory for dev/MVP)
 const inMemorySessionStore = new Map<string, UserSession>();
+const inMemoryWalletNonceStore = new Map<string, string>();
 
 // Session configuration
 const SESSION_CONFIG = {
@@ -37,9 +39,15 @@ const SESSION_CONFIG = {
 const SESSION_TTL_SECONDS = SESSION_CONFIG.durationMs / 1000;
 
 const SESSION_KEY_PREFIX = "rekon:session";
+const WALLET_NONCE_KEY_PREFIX = "rekon:wallet:nonce";
+const WALLET_NONCE_TTL_SECONDS = 60 * 10; // 10 minutes
 
 function buildSessionKey(sessionId: string): string {
   return `${SESSION_KEY_PREFIX}:${sessionId}`;
+}
+
+function buildWalletNonceKey(sessionId: string): string {
+  return `${WALLET_NONCE_KEY_PREFIX}:${sessionId}`;
 }
 
 /**
@@ -292,4 +300,109 @@ export function getSessionStats() {
     maxSessions: 10000,
     backend: "memory",
   };
+}
+
+/**
+ * Creates a wallet linking challenge (nonce + message) for a session.
+ * The nonce is stored temporarily (Redis or in-memory) and must be
+ * provided back with a valid wallet signature.
+ */
+export async function createWalletChallenge(sessionId: string): Promise<{
+  nonce: string;
+  message: string;
+} | null> {
+  const session = await getSession(sessionId);
+  if (!session) {
+    return null;
+  }
+
+  const nonceBytes = randomBytes(32).toString("hex");
+  const nonce = `rekon_wallet_link_${nonceBytes}`;
+
+  const message = [
+    "Rekon.gg - Link Wallet",
+    "",
+    `Session: ${sessionId}`,
+    `Nonce: ${nonce}`,
+  ].join("\n");
+
+  if (redis) {
+    const key = buildWalletNonceKey(sessionId);
+    await redis
+      .set(key, nonce, { ex: WALLET_NONCE_TTL_SECONDS })
+      .catch((error: unknown) => {
+        console.error(`Redis set error for wallet nonce ${key}:`, error);
+      });
+  } else {
+    inMemoryWalletNonceStore.set(sessionId, nonce);
+  }
+
+  return { nonce, message };
+}
+
+/**
+ * Verifies a wallet signature for the current session.
+ * If valid, links the wallet to the session.
+ */
+export async function verifyWalletSignature(
+  sessionId: string,
+  walletAddress: string,
+  signature: string
+): Promise<UserSession | null> {
+  const session = await getSession(sessionId);
+  if (!session) {
+    return null;
+  }
+
+  // Load nonce
+  let nonce: string | null = null;
+
+  if (redis) {
+    const key = buildWalletNonceKey(sessionId);
+    const value = (await redis.get(key).catch((error: unknown) => {
+      console.error(`Redis get error for wallet nonce ${key}:`, error);
+      return null;
+    })) as string | null;
+    nonce = value;
+  } else {
+    nonce = inMemoryWalletNonceStore.get(sessionId) || null;
+  }
+
+  if (!nonce) {
+    // No active challenge
+    return null;
+  }
+
+  const message = [
+    "Rekon.gg - Link Wallet",
+    "",
+    `Session: ${sessionId}`,
+    `Nonce: ${nonce}`,
+  ].join("\n");
+
+  let recoveredAddress: string;
+  try {
+    recoveredAddress = verifyMessage(message, signature);
+  } catch (error) {
+    console.error("Wallet signature verification error:", error);
+    return null;
+  }
+
+  if (recoveredAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+    return null;
+  }
+
+  // Clear nonce
+  if (redis) {
+    const key = buildWalletNonceKey(sessionId);
+    await redis.del(key).catch((error: unknown) => {
+      console.error(`Redis del error for wallet nonce ${key}:`, error);
+    });
+  } else {
+    inMemoryWalletNonceStore.delete(sessionId);
+  }
+
+  // Link wallet to session as browser wallet (0)
+  const updated = await linkWalletToSession(sessionId, walletAddress, 0);
+  return updated;
 }

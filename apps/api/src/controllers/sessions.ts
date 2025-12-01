@@ -9,6 +9,8 @@ import {
   updateTradingPreferences,
   deleteSession,
   getSessionStats,
+  createWalletChallenge,
+  verifyWalletSignature,
 } from "../services/sessions";
 import { getSessionFromContext } from "../middleware/session";
 import { BadRequest, NotFound } from "../utils/http-errors";
@@ -130,6 +132,64 @@ export async function linkWalletController(c: Context) {
 
   if (!updated) {
     return c.json({ error: "Failed to link wallet" }, 500);
+  }
+
+  return c.json({
+    sessionId: updated.sessionId,
+    walletAddress: updated.walletAddress,
+    signatureType: updated.signatureType,
+  });
+}
+
+/**
+ * POST /sessions/me/wallet-challenge
+ * Creates a wallet linking challenge (nonce + message) for the current session.
+ */
+export async function createWalletChallengeController(c: Context) {
+  const session = getSessionFromContext(c);
+
+  if (!session) {
+    return c.json({ error: "Session not found" }, 404);
+  }
+
+  const challenge = await createWalletChallenge(session.sessionId);
+
+  if (!challenge) {
+    return c.json({ error: "Failed to create wallet challenge" }, 500);
+  }
+
+  return c.json(challenge);
+}
+
+/**
+ * POST /sessions/me/wallet-verify
+ * Verifies a wallet signature and links the wallet to the current session.
+ */
+export async function verifyWalletController(c: Context) {
+  const session = getSessionFromContext(c);
+
+  if (!session) {
+    return c.json({ error: "Session not found" }, 404);
+  }
+
+  const VerifySchema = z.object({
+    walletAddress: z.string().min(1, "Wallet address is required"),
+    signature: z.string().min(1, "Signature is required"),
+  });
+
+  const body = VerifySchema.parse(await c.req.json());
+
+  const updated = await verifyWalletSignature(
+    session.sessionId,
+    body.walletAddress,
+    body.signature
+  );
+
+  if (!updated) {
+    return c.json(
+      { error: "Invalid wallet signature or expired challenge" },
+      400
+    );
   }
 
   return c.json({
