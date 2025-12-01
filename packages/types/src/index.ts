@@ -177,6 +177,32 @@ export type WebSocketMessage =
   | { type: "order"; order: Order }
   | { type: "position"; position: Position };
 
+// Notification types
+export type NotificationType =
+  | "order_filled"
+  | "order_partially_filled"
+  | "order_failed"
+  | "position_in_profit"
+  | "position_closed"
+  | "new_market"
+  | "system";
+
+export type NotificationStatus = "unread" | "read";
+
+export interface Notification {
+  id: string;
+  sessionId: string;
+  userId?: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  createdAt: string;
+  readAt?: string;
+  status: NotificationStatus;
+  // Optional metadata for deep linking (e.g., marketId, orderId)
+  metadata?: Record<string, unknown>;
+}
+
 // Session types
 export * from "./session";
 

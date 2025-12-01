@@ -131,6 +131,7 @@ import { simulationRoutes } from "./routes/simulation";
 import { watchlistRoutes } from "./routes/watchlist";
 import { alertsRoutes } from "./routes/alerts";
 import { analyticsRoutes } from "./routes/analytics";
+import { notificationsRoutes } from "./routes/notifications";
 
 // Apply rate limiting to all API routes that call Polymarket
 // Rate limiter is applied to each route group
@@ -159,6 +160,7 @@ app.route("/simulate", simulationRoutes);
 app.route("/watchlist", watchlistRoutes);
 app.route("/alerts", alertsRoutes);
 app.route("/analytics", analyticsRoutes);
+app.route("/notifications", notificationsRoutes);
 
 const port = Number(process.env.PORT) || 3001;
 
