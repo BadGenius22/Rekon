@@ -61,7 +61,7 @@ export async function processOrderWebhook(
   };
 
   // Update cache
-  orderConfirmationCacheService.set(payload.orderId, updatedOrder);
+  await orderConfirmationCacheService.set(payload.orderId, updatedOrder);
 
   // TODO: Emit event for real-time updates (WebSocket, SSE, etc.)
   // emitOrderUpdate(updatedOrder);

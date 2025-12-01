@@ -126,7 +126,7 @@ export async function placeOrder(
   );
 
   // Cache order confirmation
-  orderConfirmationCacheService.set(clobResponse.order_id, order);
+  await orderConfirmationCacheService.set(clobResponse.order_id, order);
 
   return order;
 }
@@ -140,7 +140,7 @@ export async function placeOrder(
  */
 export async function getOrderStatus(orderId: string): Promise<Order | null> {
   // Check cache first
-  const cached = orderConfirmationCacheService.get(orderId);
+  const cached = await orderConfirmationCacheService.get(orderId);
   if (cached) {
     return cached;
   }
@@ -176,7 +176,7 @@ export async function getOrderStatus(orderId: string): Promise<Order | null> {
   };
 
   // Cache the result
-  orderConfirmationCacheService.set(orderId, order);
+  await orderConfirmationCacheService.set(orderId, order);
 
   return order;
 }

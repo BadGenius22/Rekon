@@ -55,7 +55,7 @@ export async function getOHLCVByTokenId(
 ): Promise<ChartData | null> {
   // Check cache first
   const cacheKey = chartCacheService.generateKey(tokenId, timeframe);
-  const cached = chartCacheService.get(cacheKey);
+  const cached = await chartCacheService.get(cacheKey);
   if (cached) {
     // Chart cache stores OHLCV[], reconstruct ChartData
     return {
@@ -83,7 +83,7 @@ export async function getOHLCVByTokenId(
   };
 
   // Cache the OHLCV data (not the full ChartData wrapper)
-  chartCacheService.set(cacheKey, candles);
+  await chartCacheService.set(cacheKey, candles);
 
   return chartData;
 }

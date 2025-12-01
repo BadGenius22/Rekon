@@ -62,7 +62,7 @@ export async function postUserOrder(
 
   // Cache order confirmation
   if (order.id) {
-    orderConfirmationCacheService.set(order.id, order);
+    await orderConfirmationCacheService.set(order.id, order);
   }
 
   return order;

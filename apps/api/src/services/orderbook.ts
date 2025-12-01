@@ -33,7 +33,7 @@ export async function getOrderBookByMarketId(
   }
 
   // Check cache first
-  const cached = orderBookCacheService.get(tokenId);
+  const cached = await orderBookCacheService.get(tokenId);
   if (cached) {
     return cached;
   }
@@ -45,7 +45,7 @@ export async function getOrderBookByMarketId(
   );
 
   // Cache the result
-  orderBookCacheService.set(tokenId, orderBook);
+  await orderBookCacheService.set(tokenId, orderBook);
 
   return orderBook;
 }
@@ -58,7 +58,7 @@ export async function getOrderBookByTokenId(
   tokenId: string
 ): Promise<OrderBook | null> {
   // Check cache first
-  const cached = orderBookCacheService.get(tokenId);
+  const cached = await orderBookCacheService.get(tokenId);
   if (cached) {
     return cached;
   }
@@ -70,7 +70,7 @@ export async function getOrderBookByTokenId(
   );
 
   // Cache the result
-  orderBookCacheService.set(tokenId, orderBook);
+  await orderBookCacheService.set(tokenId, orderBook);
 
   return orderBook;
 }

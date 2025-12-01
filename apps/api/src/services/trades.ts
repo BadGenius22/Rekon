@@ -41,7 +41,7 @@ export async function getTradesByMarketId(
 
   // Check cache first
   const cacheKey = tradesCacheService.generateKey(tokenId, limit);
-  const cached = tradesCacheService.get(cacheKey);
+  const cached = await tradesCacheService.get(cacheKey);
   if (cached) {
     return cached;
   }
@@ -55,7 +55,7 @@ export async function getTradesByMarketId(
   );
 
   // Cache the result
-  tradesCacheService.set(cacheKey, trades);
+  await tradesCacheService.set(cacheKey, trades);
 
   return trades;
 }
@@ -74,7 +74,7 @@ export async function getTradesByTokenId(
 
   // Check cache first
   const cacheKey = tradesCacheService.generateKey(tokenId, limit);
-  const cached = tradesCacheService.get(cacheKey);
+  const cached = await tradesCacheService.get(cacheKey);
   if (cached) {
     return cached;
   }
@@ -84,7 +84,7 @@ export async function getTradesByTokenId(
   const trades = mapPolymarketTrades(rawTrades, marketId, outcome);
 
   // Cache the result
-  tradesCacheService.set(cacheKey, trades);
+  await tradesCacheService.set(cacheKey, trades);
 
   return trades;
 }

@@ -91,3 +91,14 @@ export const UI_CONFIG = {
   orderBookDepth: 20,
   tradesFeedLimit: 100,
 } as const;
+
+// Redis Configuration (Upstash)
+export const REDIS_CONFIG = {
+  // Upstash Redis REST API URL
+  // Get from: https://console.upstash.com/
+  url: process.env.UPSTASH_REDIS_REST_URL || undefined,
+  // Upstash Redis REST API Token
+  token: process.env.UPSTASH_REDIS_REST_TOKEN || undefined,
+  // Enable Redis (set to false to use in-memory LRU cache)
+  enabled: process.env.REDIS_ENABLED !== "false" && !!process.env.UPSTASH_REDIS_REST_URL,
+} as const;

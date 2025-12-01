@@ -50,7 +50,7 @@ export async function getOrderStatus(
 ): Promise<Order | null> {
   // Check cache first
   if (useCache) {
-    const cached = orderConfirmationCacheService.get(orderId);
+    const cached = await orderConfirmationCacheService.get(orderId);
     if (cached) {
       return cached;
     }
@@ -95,7 +95,7 @@ export async function getOrderStatus(
 
   // Cache order status
   if (useCache && order.id) {
-    orderConfirmationCacheService.set(order.id, order);
+    await orderConfirmationCacheService.set(order.id, order);
   }
 
   return order;
