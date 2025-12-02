@@ -1,0 +1,642 @@
+{
+  "meta": {
+    "name": "Rekon Esports Markets Design System",
+    "version": "1.0.0",
+    "description": "High-level design and style guidelines inspired by a pro prediction-market terminal. This file is intended to guide AI tools to recreate the visual style: dark, dense, and data-heavy with neon gradients and card-based layout."
+  },
+  "principles": {
+    "visual_identity": [
+      "Always feel like a pro trading terminal: dark background, high contrast, dense information, minimal decoration.",
+      "Use neon gradients (blue, purple, cyan, red) as the primary way to create hierarchy and excitement on hero elements.",
+      "Most surfaces are dark and matte; gradients are reserved for key callouts, not every card."
+    ],
+    "layout": [
+      "Everything is structured in a grid of cards and panels; avoid free-floating elements.",
+      "Keep vertical rhythm tight: small gaps between related elements, consistent section padding.",
+      "Use clear left-to-right scanning order: navigation at top, filters under nav, primary content in the main column, secondary content in right-side panels."
+    ],
+    "information_design": [
+      "Prioritize legibility of numbers and probabilities; use large type, clear labels, and consistent color coding.",
+      "Use color as a semantic tool: green for positive/YES/upside, red for negative/NO/downside, yellow/orange for warnings or neutral highlights.",
+      "When in doubt, simplify: fewer borders, more reliance on spacing and subtle shadows to separate elements."
+    ],
+    "interaction": [
+      "States should be clearly visible but not flashy: hover lifts cards slightly and brightens borders or glows, active states use solid fills or stronger outlines.",
+      "Use pill-shaped controls (filters, toggles, tabs) for mode switching and segmentation.",
+      "Animations are subtle and fast: 150–200ms ease-out, primarily for hover, focus, and in/out transitions of panels."
+    ],
+    "tone": [
+      "Professional, confident, and focused; no playful or cartoon styling.",
+      "Typography is sharp and modern; avoid rounded, casual fonts.",
+      "Overall mood: late-night trading desk with esports energy."
+    ]
+  },
+  "tokens": {
+    "breakpoints": {
+      "xs": 480,
+      "sm": 640,
+      "md": 768,
+      "lg": 1024,
+      "xl": 1280,
+      "2xl": 1536
+    },
+    "spacing": {
+      "xxs": 2,
+      "xs": 4,
+      "sm": 8,
+      "md": 12,
+      "lg": 16,
+      "xl": 24,
+      "2xl": 32,
+      "3xl": 40
+    },
+    "radii": {
+      "sm": 6,
+      "md": 10,
+      "lg": 16,
+      "xl": 24,
+      "pill": 999
+    },
+    "elevation": {
+      "none": {
+        "shadow": "none"
+      },
+      "low": {
+        "shadow": "0 8px 20px rgba(0, 0, 0, 0.45)"
+      },
+      "medium": {
+        "shadow": "0 14px 35px rgba(0, 0, 0, 0.60)"
+      },
+      "high": {
+        "shadow": "0 22px 60px rgba(0, 0, 0, 0.80)"
+      }
+    },
+    "blur": {
+      "subtle_glass": 10
+    },
+    "typography": {
+      "font_family_primary": "system-ui, -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Text', sans-serif",
+      "font_family_mono": "'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, Monaco, monospace",
+      "sizes": {
+        "xs": 11,
+        "sm": 12,
+        "md": 14,
+        "lg": 16,
+        "xl": 20,
+        "2xl": 24,
+        "3xl": 32
+      },
+      "weights": {
+        "regular": 400,
+        "medium": 500,
+        "semibold": 600,
+        "bold": 700
+      },
+      "line_heights": {
+        "tight": 1.1,
+        "snug": 1.25,
+        "normal": 1.4,
+        "relaxed": 1.6
+      }
+    },
+    "colors": {
+      "background": {
+        "page": "#030711",
+        "shell": "#050816",
+        "surface_low": "#090E1C",
+        "surface": "#0C1224",
+        "surface_high": "#121A30",
+        "surface_glass": "rgba(9, 14, 28, 0.85)"
+      },
+      "borders": {
+        "subtle": "rgba(255, 255, 255, 0.06)",
+        "strong": "rgba(255, 255, 255, 0.16)",
+        "focus": "#3B82F6"
+      },
+      "text": {
+        "primary": "rgba(255, 255, 255, 0.96)",
+        "secondary": "rgba(255, 255, 255, 0.72)",
+        "muted": "rgba(255, 255, 255, 0.50)",
+        "disabled": "rgba(255, 255, 255, 0.32)",
+        "on_accent": "#0B1020"
+      },
+      "accent": {
+        "blue": "#3B82F6",
+        "purple": "#8B5CF6",
+        "cyan": "#22D3EE",
+        "magenta": "#EC4899",
+        "yellow": "#FACC15"
+      },
+      "semantic": {
+        "success": "#22C55E",
+        "danger": "#EF4444",
+        "warning": "#F97316",
+        "info": "#38BDF8",
+        "neutral": "#64748B"
+      },
+      "data": {
+        "yes": "#22C55E",
+        "no": "#EF4444",
+        "series_one": "#FACC15",
+        "series_two": "#EF4444",
+        "series_three": "#22D3EE"
+      },
+      "special": {
+        "badge_new": "#22C55E",
+        "badge_trending": "#F97316"
+      }
+    },
+    "gradients": {
+      "hero_blue": "linear-gradient(135deg, #1D4ED8 0%, #22D3EE 100%)",
+      "hero_purple": "linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)",
+      "hero_red": "linear-gradient(135deg, #DC2626 0%, #F97316 100%)",
+      "card_overlay_blue": "linear-gradient(145deg, rgba(37, 99, 235, 0.8), rgba(56, 189, 248, 0.2))",
+      "card_overlay_purple": "linear-gradient(145deg, rgba(147, 51, 234, 0.8), rgba(236, 72, 153, 0.2))",
+      "card_overlay_red": "linear-gradient(145deg, rgba(220, 38, 38, 0.8), rgba(248, 113, 113, 0.2))"
+    }
+  },
+  "components": {
+    "app_shell": {
+      "description": "Global shell containing top navigation, main content, and right-side utility column. Everything sits on a very dark gradient background with slightly lighter surfaces for panels.",
+      "layout": {
+        "max_width": 1440,
+        "padding_x": "spacing.lg",
+        "padding_y": "spacing.md",
+        "gutter": "spacing.lg",
+        "columns": {
+          "main": "2.5fr",
+          "right": "1fr"
+        }
+      },
+      "style": {
+        "background": "colors.background.page",
+        "shell_background": "colors.background.shell"
+      }
+    },
+    "top_nav": {
+      "description": "Persistent horizontal navigation bar with product logo, primary nav items, search, and user actions.",
+      "layout": {
+        "height": 64,
+        "padding_x": "spacing.lg",
+        "padding_y": "spacing.sm",
+        "sections": [
+          "left: logo + app name",
+          "center: primary nav tabs (Markets, Dashboards, Activity, Ranks, Rewards)",
+          "right: search input, notifications, account actions, CTA button"
+        ]
+      },
+      "style": {
+        "background": "colors.background.surface_low",
+        "border_bottom": "borders.subtle",
+        "logo": {
+          "size": 28,
+          "treatment": "simple geometric mark in accent.blue with subtle glow"
+        },
+        "nav_items": {
+          "typography": {
+            "size": "typography.sizes.sm",
+            "weight": "typography.weights.medium"
+          },
+          "color_default": "colors.text.secondary",
+          "color_active": "colors.text.primary",
+          "underline_active": true
+        }
+      }
+    },
+    "search_input": {
+      "description": "Compact search bar integrated into the nav and filter rows; feels like a command palette.",
+      "layout": {
+        "height": 36,
+        "padding_x": "spacing.md",
+        "icon_size": 16,
+        "border_radius": "radii.lg"
+      },
+      "style": {
+        "background": "colors.background.surface",
+        "border": "borders.subtle",
+        "placeholder_color": "colors.text.muted",
+        "text_color": "colors.text.primary",
+        "shortcut_hint": {
+          "background": "colors.background.surface_high",
+          "border_radius": "radii.sm",
+          "font_size": "typography.sizes.xs",
+          "color": "colors.text.muted"
+        }
+      },
+      "states": {
+        "hover": {
+          "border": "borders.strong"
+        },
+        "focus": {
+          "border_color": "colors.borders.focus",
+          "shadow": "tokens.elevation.low"
+        }
+      }
+    },
+    "primary_button": {
+      "description": "Filled, high-contrast call-to-action button used for sign up, deposit, and primary flows.",
+      "layout": {
+        "height": 38,
+        "padding_x": "spacing.lg",
+        "border_radius": "radii.pill",
+        "gap": "spacing.sm"
+      },
+      "style": {
+        "background": "colors.accent.yellow",
+        "text_color": "colors.background.page",
+        "font_weight": "typography.weights.semibold"
+      },
+      "variants": {
+        "primary": {
+          "background": "colors.accent.yellow"
+        },
+        "danger": {
+          "background": "colors.semantic.danger"
+        }
+      },
+      "states": {
+        "hover": {
+          "brightness": 1.08
+        },
+        "active": {
+          "scale": 0.98
+        },
+        "disabled": {
+          "opacity": 0.5
+        }
+      }
+    },
+    "secondary_button": {
+      "description": "Ghost or outline button for secondary actions and segmented toggles.",
+      "layout": {
+        "height": 36,
+        "padding_x": "spacing.md",
+        "border_radius": "radii.pill"
+      },
+      "style": {
+        "background": "transparent",
+        "border": "borders.subtle",
+        "text_color": "colors.text.secondary"
+      },
+      "states": {
+        "hover": {
+          "background": "colors.background.surface",
+          "border": "borders.strong",
+          "text_color": "colors.text.primary"
+        },
+        "active": {
+          "background": "colors.background.surface_high"
+        }
+      }
+    },
+    "pill_filter": {
+      "description": "Rounded pill used for category filters (All, Politics, Sports, Crypto, etc.) and time ranges.",
+      "layout": {
+        "height": 32,
+        "padding_x": "spacing.md",
+        "border_radius": "radii.pill",
+        "gap": "spacing.xs"
+      },
+      "style": {
+        "background_default": "colors.background.surface_low",
+        "background_active": "colors.background.surface_high",
+        "border_default": "borders.subtle",
+        "border_active": "borders.strong",
+        "text_default": "colors.text.secondary",
+        "text_active": "colors.text.primary"
+      },
+      "states": {
+        "hover": {
+          "background": "colors.background.surface"
+        }
+      }
+    },
+    "toggle_switch": {
+      "description": "Compact toggle for enabling options like animations.",
+      "layout": {
+        "width": 36,
+        "height": 20,
+        "track_radius": "radii.pill",
+        "thumb_size": 16
+      },
+      "style": {
+        "track_off": "colors.background.surface",
+        "track_on": "colors.accent.blue",
+        "thumb": "colors.background.page"
+      }
+    },
+    "tab_list": {
+      "description": "Horizontal tab list for switching time ranges or content modes in charts and panels.",
+      "layout": {
+        "height": 28,
+        "gap": "spacing.sm",
+        "border_radius": "radii.pill"
+      },
+      "style": {
+        "background": "colors.background.surface_low",
+        "indicator": {
+          "background": "colors.background.surface_high",
+          "border_radius": "radii.pill"
+        }
+      }
+    },
+    "section_header": {
+      "description": "Compact header for sections like Trending Topics, Portfolio, Watchlist.",
+      "layout": {
+        "padding_y": "spacing.sm",
+        "padding_x": "spacing.md",
+        "gap": "spacing.sm"
+      },
+      "style": {
+        "title": {
+          "font_size": "typography.sizes.sm",
+          "font_weight": "typography.weights.semibold",
+          "color": "colors.text.secondary"
+        },
+        "action_link": {
+          "font_size": "typography.sizes.xs",
+          "color": "colors.accent.blue"
+        }
+      }
+    },
+    "panel": {
+      "description": "Generic right-side or dashboard panel for portfolio, watchlist, trending topics, or recent activity.",
+      "layout": {
+        "padding": "spacing.lg",
+        "border_radius": "radii.lg",
+        "gap": "spacing.md"
+      },
+      "style": {
+        "background": "colors.background.surface",
+        "border": "borders.subtle",
+        "shadow": "tokens.elevation.low"
+      }
+    },
+    "hero_banner": {
+      "description": "Large hero tiles at the top of the markets page showcasing featured events or promotions.",
+      "layout": {
+        "height": 220,
+        "border_radius": "radii.xl",
+        "padding": "spacing.lg",
+        "gap": "spacing.md",
+        "content_structure": [
+          "Left: main title and subtitle",
+          "Right or center: big emblem or illustrative graphic"
+        ]
+      },
+      "style": {
+        "primary_background": "gradients.hero_blue",
+        "secondary_background": "gradients.hero_purple",
+        "tertiary_background": "gradients.hero_red",
+        "overlay_blur": "tokens.blur.subtle_glass",
+        "title": {
+          "font_size": "typography.sizes.2xl",
+          "font_weight": "typography.weights.bold",
+          "color": "colors.text.on_accent"
+        },
+        "subtitle": {
+          "font_size": "typography.sizes.sm",
+          "color": "rgba(11, 16, 32, 0.8)"
+        }
+      }
+    },
+    "market_grid": {
+      "description": "Dense, scrollable grid of market cards with consistent card width and gutter.",
+      "layout": {
+        "columns_desktop": 3,
+        "gap_x": "spacing.md",
+        "gap_y": "spacing.md",
+        "margin_top": "spacing.lg"
+      }
+    },
+    "market_card_horizontal": {
+      "description": "Wide horizontal card summarizing a market with title, outcomes, and quick stats.",
+      "layout": {
+        "height": 136,
+        "padding": "spacing.lg",
+        "border_radius": "radii.lg",
+        "sections": [
+          "Top: market question/title",
+          "Middle: outcome summary with percentages",
+          "Bottom: stats row (liquidity, volume, comments count, badges)"
+        ]
+      },
+      "style": {
+        "background": "colors.background.surface_high",
+        "border": "borders.subtle",
+        "shadow": "tokens.elevation.low",
+        "title": {
+          "font_size": "typography.sizes.sm",
+          "line_height": "typography.line_heights.snug",
+          "color": "colors.text.primary"
+        },
+        "subtitle": {
+          "font_size": "typography.sizes.xs",
+          "color": "colors.text.muted"
+        }
+      },
+      "states": {
+        "hover": {
+          "border": "borders.strong",
+          "shadow": "tokens.elevation.medium",
+          "translate_y": -2
+        },
+        "selected": {
+          "border_color": "colors.accent.blue",
+          "outline_glow": "0 0 0 1px rgba(59, 130, 246, 0.6)"
+        }
+      }
+    },
+    "market_card_vertical": {
+      "description": "Tall, visually rich market card with prominent imagery of two opposing outcomes and a chart underneath.",
+      "layout": {
+        "border_radius": "radii.xl",
+        "padding": "spacing.lg",
+        "gap": "spacing.lg",
+        "sections": [
+          "Top: opposing outcome cards side by side, each with label and total market cap/value.",
+          "Middle: outcome price chips (YES/NO) for each side.",
+          "Bottom: mini chart comparing probabilities over time with toggleable time ranges."
+        ]
+      },
+      "style": {
+        "background": "colors.background.surface_low",
+        "border": "borders.subtle",
+        "shadow": "tokens.elevation.medium"
+      }
+    },
+    "outcome_chip": {
+      "description": "Rectangular chip showing the price/probability of a YES or NO outcome.",
+      "layout": {
+        "height": 40,
+        "border_radius": "radii.md",
+        "padding_x": "spacing.md",
+        "padding_y": "spacing.xs",
+        "gap": "spacing.xs"
+      },
+      "style": {
+        "yes": {
+          "background": "rgba(34, 197, 94, 0.16)",
+          "border": "rgba(34, 197, 94, 0.65)",
+          "text_color": "colors.semantic.success"
+        },
+        "no": {
+          "background": "rgba(239, 68, 68, 0.16)",
+          "border": "rgba(239, 68, 68, 0.65)",
+          "text_color": "colors.semantic.danger"
+        }
+      }
+    },
+    "stat_pill": {
+      "description": "Small pill showing short stats like volume, MC, or comments count.",
+      "layout": {
+        "height": 24,
+        "border_radius": "radii.pill",
+        "padding_x": "spacing.sm",
+        "gap": "spacing.xs"
+      },
+      "style": {
+        "background": "colors.background.surface_low",
+        "text_color": "colors.text.muted",
+        "icon_color": "colors.text.muted"
+      }
+    },
+    "tag": {
+      "description": "Keyword-like tag for Trending Topics or categories.",
+      "layout": {
+        "height": 26,
+        "padding_x": "spacing.sm",
+        "border_radius": "radii.pill"
+      },
+      "style": {
+        "background": "colors.background.surface_low",
+        "text_color": "colors.text.secondary"
+      },
+      "variants": {
+        "solid": {
+          "background": "colors.background.surface_high",
+          "text_color": "colors.text.primary"
+        },
+        "outline": {
+          "border": "borders.subtle"
+        }
+      }
+    },
+    "chart_card": {
+      "description": "Container for line charts comparing outcome probabilities or prices over time.",
+      "layout": {
+        "height": 220,
+        "border_radius": "radii.lg",
+        "padding": "spacing.lg",
+        "gap": "spacing.md",
+        "sections": [
+          "Top: legend with outcome labels and color dots.",
+          "Top-right: time range tab list.",
+          "Bottom: line chart with grid lines and x-axis labels."
+        ]
+      },
+      "style": {
+        "background": "colors.background.surface",
+        "border": "borders.subtle",
+        "grid_lines": "rgba(148, 163, 184, 0.24)",
+        "axis_labels": "colors.text.muted",
+        "series_colors": {
+          "series_one": "colors.data.series_one",
+          "series_two": "colors.data.series_two",
+          "series_three": "colors.data.series_three"
+        }
+      }
+    },
+    "legend_item": {
+      "description": "Line chart legend item showing color dot, label, and percentage.",
+      "layout": {
+        "gap": "spacing.xs"
+      },
+      "style": {
+        "label_color": "colors.text.secondary",
+        "value_color": "colors.text.primary",
+        "dot_size": 8
+      }
+    },
+    "badge": {
+      "description": "Small label-style badge used for NEW, Trending, or status indicators.",
+      "layout": {
+        "height": 18,
+        "padding_x": "spacing.xs",
+        "border_radius": "radii.pill"
+      },
+      "variants": {
+        "new": {
+          "background": "colors.special.badge_new",
+          "text_color": "colors.background.page"
+        },
+        "trending": {
+          "background": "colors.special.badge_trending",
+          "text_color": "colors.background.page"
+        },
+        "neutral": {
+          "background": "colors.background.surface_high",
+          "text_color": "colors.text.secondary"
+        }
+      }
+    },
+    "recent_activity_item": {
+      "description": "Row item summarizing a recent trade or action.",
+      "layout": {
+        "padding_y": "spacing.sm",
+        "gap": "spacing.sm"
+      },
+      "style": {
+        "primary_text": {
+          "font_size": "typography.sizes.xs",
+          "color": "colors.text.secondary"
+        },
+        "meta_text": {
+          "font_size": "typography.sizes.xs",
+          "color": "colors.text.muted"
+        },
+        "highlight_value": {
+          "color_yes": "colors.semantic.success",
+          "color_no": "colors.semantic.danger"
+        }
+      }
+    },
+    "portfolio_summary": {
+      "description": "Panel summary of user portfolio or balance with a few key metrics and actions.",
+      "layout": {
+        "padding": "spacing.lg",
+        "border_radius": "radii.lg",
+        "gap": "spacing.md"
+      },
+      "style": {
+        "background": "colors.background.surface_high",
+        "border": "borders.subtle",
+        "title_color": "colors.text.secondary",
+        "value_color": "colors.text.primary"
+      }
+    },
+    "watchlist_panel": {
+      "description": "Panel listing markets the user is tracking, each as a compact row with price chips.",
+      "layout": {
+        "padding": "spacing.lg",
+        "border_radius": "radii.lg",
+        "gap": "spacing.sm"
+      },
+      "style": {
+        "background": "colors.background.surface",
+        "border": "borders.subtle"
+      }
+    },
+    "shortcut_bar": {
+      "description": "Small auxiliary row under nav showing quick filters like LIVE, category chips, and settings toggles.",
+      "layout": {
+        "height": 40,
+        "gap": "spacing.md",
+        "padding_y": "spacing.sm"
+      },
+      "style": {
+        "background": "transparent"
+      }
+    }
+  }
+}
