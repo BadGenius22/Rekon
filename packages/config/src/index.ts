@@ -12,7 +12,12 @@ export const POLYMARKET_CONFIG = {
     process.env.POLYMARKET_CLOB_API_URL || "https://clob.polymarket.com",
   // Legacy alias (for backward compatibility)
   apiUrl: process.env.POLYMARKET_API_URL || "https://clob.polymarket.com",
-  // Builder API - Used for markets data
+  // Gamma API - Primary source for markets & events data
+  // Docs: https://gamma-api.polymarket.com
+  gammaApiUrl:
+    process.env.POLYMARKET_GAMMA_API_URL || "https://gamma-api.polymarket.com",
+  // Builder API - Used for builder analytics (leaderboard, volume) and
+  // legacy integrations. Should NOT be used for core market/trade data.
   builderApiUrl:
     process.env.POLYMARKET_BUILDER_API_URL ||
     "https://api.builder.polymarket.com",
@@ -33,6 +38,21 @@ export const POLYMARKET_CONFIG = {
   // builderName: Your builder name/display name
   builderId: process.env.POLYMARKET_BUILDER_ID || undefined,
   builderName: process.env.POLYMARKET_BUILDER_NAME || undefined,
+  // Optional esports game tag IDs for Gamma /events filtering.
+  // Polymarket models esports as separate sports (CS2, LoL, Dota 2, Valorant),
+  // so we keep per-game tags instead of a single "esports" tag.
+  gameTagIds: {
+    cs2: process.env.POLYMARKET_TAG_CS2 || undefined,
+    lol: process.env.POLYMARKET_TAG_LOL || undefined,
+    dota2: process.env.POLYMARKET_TAG_DOTA2 || undefined,
+    valorant: process.env.POLYMARKET_TAG_VALORANT || undefined,
+  },
+  // Source toggle for markets fetching
+  // - "gamma"  (recommended default) → use Gamma API for markets/events
+  // - "builder" (legacy)            → use Builder markets endpoint
+  marketSource: (process.env.POLYMARKET_MARKET_SOURCE || "gamma") as
+    | "gamma"
+    | "builder",
   // Data API - Builder volume & leaderboard, misc analytics, user data, holdings
   // Base URL (no version) so we can target both:
   // - https://data-api.polymarket.com/v1/builders/volume

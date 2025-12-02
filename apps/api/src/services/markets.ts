@@ -1,10 +1,14 @@
 import type { Market } from "@rekon/types";
+import { POLYMARKET_CONFIG } from "@rekon/config";
 import {
   fetchPolymarketMarkets,
   fetchPolymarketMarketById,
   fetchPolymarketMarketByConditionId,
+  fetchGammaEvents,
+  fetchGammaMarketBySlug,
   mapPolymarketMarket,
   type FetchMarketsParams,
+  type FetchGammaEventsParams,
 } from "../adapters/polymarket";
 import { marketsListCacheService, marketCacheService } from "./cache";
 
@@ -30,6 +34,16 @@ export interface GetMarketsParams extends FetchMarketsParams {
   featured?: boolean;
   limit?: number;
   offset?: number;
+  /**
+   * Optional Gamma tag filter (tag_id query param).
+   * When marketSource === "gamma", this is passed through to /events.
+   */
+  tagId?: string | number;
+  /**
+   * Optional logical game identifier (e.g. "dota2", "cs2").
+   * Mapping from gameSlug → tagId is handled at the service/config layer.
+   */
+  gameSlug?: string;
   esportsOnly?: boolean; // Filter for esports markets only
 }
 
@@ -64,9 +78,39 @@ export async function getMarkets(
     return cached;
   }
 
-  // Fetch from API
-  const rawMarkets = await fetchPolymarketMarkets(params);
-  let markets = rawMarkets.map(mapPolymarketMarket);
+  const marketSource = POLYMARKET_CONFIG.marketSource;
+
+  let markets: Market[];
+
+  if (marketSource === "gamma") {
+    // Gamma best practice: fetch via /events and flatten markets.
+    // Tag-based filtering (esports/game-specific) is provided via params.tagId
+    // and higher-level helpers like getEsportsMarkets.
+    const effectiveTagId = params.tagId;
+
+    const gammaParams: FetchGammaEventsParams = {
+      closed: params.closed ?? false,
+      limit: params.limit,
+      offset: params.offset,
+      order: "id",
+      ascending: false,
+      tagId: effectiveTagId,
+    };
+
+    const events = await fetchGammaEvents(gammaParams);
+    const rawMarkets = events.flatMap((event: { markets?: unknown[] }) =>
+      Array.isArray(event.markets) ? event.markets : []
+    ) as unknown[];
+
+    const mapped = rawMarkets.map((m) =>
+      mapPolymarketMarket(m as never)
+    );
+    markets = mapped;
+  } else {
+    // Legacy: use Builder markets endpoint
+    const rawMarkets = await fetchPolymarketMarkets(params);
+    markets = rawMarkets.map(mapPolymarketMarket);
+  }
 
   // Filter esports markets if requested
   if (params.esportsOnly) {
@@ -104,6 +148,32 @@ export async function getMarketById(marketId: string): Promise<Market | null> {
 
   // Cache the result
   await marketCacheService.set(marketId, enriched);
+
+  return enriched;
+}
+
+/**
+ * Fetches a single market by slug (Gamma recommended pattern).
+ * Returns null if market not found.
+ * Uses cache to reduce API calls (3 second TTL).
+ */
+export async function getMarketBySlug(slug: string): Promise<Market | null> {
+  const cacheKey = `slug:${slug}`;
+
+  const cached = await marketCacheService.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const rawMarket = await fetchGammaMarketBySlug(slug);
+  if (!rawMarket) {
+    return null;
+  }
+
+  const market = mapPolymarketMarket(rawMarket as never);
+  const enriched = enrichMarket(market);
+
+  await marketCacheService.set(cacheKey, enriched);
 
   return enriched;
 }
@@ -168,6 +238,58 @@ export async function getMarketsByCategory(
 export async function getEsportsMarkets(
   params: Omit<GetMarketsParams, "esportsOnly"> = {}
 ): Promise<Market[]> {
+  const marketSource = POLYMARKET_CONFIG.marketSource;
+
+  // When using Gamma, model "esports" as the union of the four core
+  // esports games: CS2, LoL, Dota 2, Valorant. Each has its own tag.
+  if (marketSource === "gamma") {
+    const { gameTagIds } = POLYMARKET_CONFIG;
+    const tagIds = [
+      gameTagIds.cs2,
+      gameTagIds.lol,
+      gameTagIds.dota2,
+      gameTagIds.valorant,
+    ].filter((id): id is string => Boolean(id));
+
+    // If no game tags are configured yet, fall back to the legacy
+    // text-based esports filter for now.
+    if (tagIds.length === 0) {
+      return getMarkets({
+        ...params,
+        esportsOnly: true,
+      });
+    }
+
+    const baseParams: GetMarketsParams = {
+      ...params,
+      // Tag-based filtering already restricts to esports; no need for
+      // the keyword-based esportsOnly filter in this path.
+      esportsOnly: false,
+      closed: params.closed ?? false,
+    };
+
+    const resultsByTag = await Promise.all(
+      tagIds.map((tagId) =>
+        getMarkets({
+          ...baseParams,
+          tagId,
+        })
+      )
+    );
+
+    // Merge and de-duplicate by market id
+    const combined = resultsByTag.flat();
+    const uniqueById = new Map<string, Market>();
+    for (const market of combined) {
+      if (!uniqueById.has(market.id)) {
+        uniqueById.set(market.id, market);
+      }
+    }
+
+    return Array.from(uniqueById.values());
+  }
+
+  // Legacy / Builder path: use text-based esports detection.
   return getMarkets({
     ...params,
     esportsOnly: true,

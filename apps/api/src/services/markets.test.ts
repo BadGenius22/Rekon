@@ -1,10 +1,26 @@
-import { describe, it, expect, vi, type Mock } from "vitest";
+import { describe, it, expect, vi, type Mock, beforeEach } from "vitest";
 import type { Market } from "@rekon/types";
+
+// Force markets service to use the legacy Builder-based path by default in
+// tests so we don't depend on Gamma-specific behavior unless a test
+// explicitly opts into it.
+vi.mock("@rekon/config", () => ({
+  POLYMARKET_CONFIG: {
+    marketSource: "builder" as "builder" | "gamma",
+    gameTagIds: {
+      cs2: undefined,
+      lol: undefined,
+      dota2: undefined,
+      valorant: undefined,
+    },
+  },
+}));
 
 vi.mock("../adapters/polymarket", () => ({
   fetchPolymarketMarkets: vi.fn(),
   fetchPolymarketMarketById: vi.fn(),
   fetchPolymarketMarketByConditionId: vi.fn(),
+  fetchGammaEvents: vi.fn(),
   mapPolymarketMarket: vi.fn(),
 }));
 
@@ -28,19 +44,29 @@ import {
   getTrendingMarkets,
 } from "./markets";
 import * as polymarketModule from "../adapters/polymarket";
+import { POLYMARKET_CONFIG } from "@rekon/config";
 import { marketsListCacheService, marketCacheService } from "./cache";
 
-const fetchPolymarketMarketsMock = polymarketModule
-  .fetchPolymarketMarkets as unknown as Mock;
-const fetchPolymarketMarketByIdMock = polymarketModule
-  .fetchPolymarketMarketById as unknown as Mock;
-const mapPolymarketMarketMock = polymarketModule
-  .mapPolymarketMarket as unknown as Mock;
+const fetchPolymarketMarketsMock =
+  polymarketModule.fetchPolymarketMarkets as unknown as Mock;
+const fetchPolymarketMarketByIdMock =
+  polymarketModule.fetchPolymarketMarketById as unknown as Mock;
+const fetchGammaEventsMock =
+  polymarketModule.fetchGammaEvents as unknown as Mock;
+const mapPolymarketMarketMock =
+  polymarketModule.mapPolymarketMarket as unknown as Mock;
 
 const marketsListCacheGetMock = marketsListCacheService.get as unknown as Mock;
 const marketsListCacheSetMock = marketsListCacheService.set as unknown as Mock;
 const marketCacheGetMock = marketCacheService.get as unknown as Mock;
 const marketCacheSetMock = marketCacheService.set as unknown as Mock;
+
+beforeEach(() => {
+  // Reset config and mocks before each test. In production we always use
+  // Gamma, but tests exercise both Builder (legacy) and Gamma paths.
+  (POLYMARKET_CONFIG as any).marketSource = "builder";
+  vi.clearAllMocks();
+});
 
 describe("services/markets - getMarkets", () => {
   it("returns cached markets when present", async () => {
@@ -131,6 +157,94 @@ describe("services/markets - getMarkets", () => {
       }))
     );
     expect(marketsListCacheSetMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("services/markets - getMarkets with Gamma source", () => {
+  it("uses fetchGammaEvents and flattens markets from events when marketSource=gamma", async () => {
+    (POLYMARKET_CONFIG as any).marketSource = "gamma";
+
+    marketsListCacheGetMock.mockResolvedValueOnce(undefined);
+
+    const gammaEvents = [
+      { markets: [{ id: "raw-1" }, { id: "raw-2" }] },
+      { markets: [{ id: "raw-3" }] },
+    ];
+    fetchGammaEventsMock.mockResolvedValueOnce(gammaEvents);
+
+    const mappedMarkets: Market[] = [
+      {
+        id: "m1",
+        question: "Q1",
+        slug: "q1",
+        conditionId: "c1",
+        resolutionSource: "oracle",
+        endDate: "2024-12-31",
+        outcomes: [],
+        volume: 0,
+        liquidity: 0,
+        isResolved: false,
+        active: true,
+        closed: false,
+        tradingPaused: false,
+        acceptingOrders: true,
+      },
+      {
+        id: "m2",
+        question: "Q2",
+        slug: "q2",
+        conditionId: "c2",
+        resolutionSource: "oracle",
+        endDate: "2024-12-31",
+        outcomes: [],
+        volume: 0,
+        liquidity: 0,
+        isResolved: false,
+        active: true,
+        closed: false,
+        tradingPaused: false,
+        acceptingOrders: true,
+      },
+      {
+        id: "m3",
+        question: "Q3",
+        slug: "q3",
+        conditionId: "c3",
+        resolutionSource: "oracle",
+        endDate: "2024-12-31",
+        outcomes: [],
+        volume: 0,
+        liquidity: 0,
+        isResolved: false,
+        active: true,
+        closed: false,
+        tradingPaused: false,
+        acceptingOrders: true,
+      },
+    ];
+
+    mapPolymarketMarketMock
+      .mockReturnValueOnce(mappedMarkets[0])
+      .mockReturnValueOnce(mappedMarkets[1])
+      .mockReturnValueOnce(mappedMarkets[2]);
+
+    const result = await getMarkets({ limit: 3, offset: 0, closed: false });
+
+    expect(fetchGammaEventsMock).toHaveBeenCalledTimes(1);
+    expect(fetchGammaEventsMock).toHaveBeenCalledWith({
+      closed: false,
+      limit: 3,
+      offset: 0,
+      order: "id",
+      ascending: false,
+      tagId: undefined,
+    });
+    expect(fetchPolymarketMarketsMock).not.toHaveBeenCalled();
+
+    expect(result).toHaveLength(3);
+    expect(result[0].id).toBe("m1");
+    expect(result[1].id).toBe("m2");
+    expect(result[2].id).toBe("m3");
   });
 });
 
@@ -237,5 +351,3 @@ describe("services/markets - esports and trending helpers", () => {
     expect(trending[0].isTrending).toBe(true);
   });
 });
-
-

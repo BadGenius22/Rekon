@@ -23,12 +23,21 @@ export {
   fetchPolymarketMarkets,
   fetchPolymarketMarketById,
   fetchPolymarketMarketByConditionId,
+  fetchGammaEvents,
+  fetchGammaMarketBySlug,
+  fetchGammaTags,
+  fetchGammaSports,
+  fetchGammaComments,
+  fetchGammaCommentById,
+  fetchGammaCommentsByUserAddress,
+  fetchGammaPublicSearch,
   fetchPolymarketCondition,
   fetchPolymarketOrderBook,
   fetchPolymarketTrades,
   fetchPolymarketPrice,
   fetchPolymarketPrices,
   type FetchMarketsParams,
+  type FetchGammaEventsParams,
 } from "./client";
 
 // Export header utilities
