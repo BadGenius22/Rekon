@@ -32,7 +32,11 @@ describe("utils/http-errors", () => {
       defaultMessage: "Forbidden",
     },
     { name: "NotFound", factory: (m) => NotFound(m || "missing"), status: 404 },
-    { name: "Conflict", factory: (m) => Conflict(m || "conflict"), status: 409 },
+    {
+      name: "Conflict",
+      factory: (m) => Conflict(m || "conflict"),
+      status: 409,
+    },
     {
       name: "UnprocessableEntity",
       factory: (m) => UnprocessableEntity(m || "invalid"),
@@ -52,27 +56,34 @@ describe("utils/http-errors", () => {
     },
   ];
 
-  it.each(cases)("$name creates HTTPException with correct status and message", ({ factory, status }) => {
-    const message = "custom message";
-    const err = factory(message);
-    expect(err).toBeInstanceOf(HTTPException);
-    // @ts-expect-error accessing internal properties of HTTPException
-    expect(err.status).toBe(status);
-    // @ts-expect-error message stored in props
-    expect(err.message).toBe(message);
-  });
+  it.each(cases)(
+    "$name creates HTTPException with correct status and message",
+    async ({ factory, status }) => {
+      const message = "custom message";
+      const err = factory(message);
+      expect(err).toBeInstanceOf(HTTPException);
+
+      const res = err.getResponse();
+      expect(res.status).toBe(status);
+
+      const text = await res.text();
+      expect(text).toContain(message);
+    }
+  );
 
   it.each(cases.filter((c) => c.defaultMessage))(
     "$name uses default message when not provided",
-    ({ factory, status, defaultMessage }) => {
+    async ({ factory, status, defaultMessage }) => {
       const err = factory(undefined);
       expect(err).toBeInstanceOf(HTTPException);
-      // @ts-expect-error accessing status
-      expect(err.status).toBe(status);
-      // @ts-expect-error message stored in props
-      expect(err.message).toBe(defaultMessage);
+
+      const res = err.getResponse();
+      expect(res.status).toBe(status);
+
+      const text = await res.text();
+      if (defaultMessage) {
+        expect(text).toContain(defaultMessage);
+      }
     }
   );
 });
-
-

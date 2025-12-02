@@ -26,7 +26,7 @@ import { trackPolymarketApiFailure } from "../../utils/sentry";
  */
 export interface UserSignedOrder {
   // Order data (signed by user)
-  order: any; // ClobClient order object signed by user
+  order: Record<string, unknown>; // ClobClient order object signed by user
   // Market metadata (for validation and response mapping)
   marketId: string;
   outcome: string;
@@ -43,7 +43,7 @@ export interface UserSignedOrder {
  */
 export async function postUserSignedOrder(
   signedOrder: UserSignedOrder
-): Promise<any> {
+): Promise<unknown> {
   // Get builder config for attribution
   const builderConfig = createBuilderConfig();
 
@@ -78,20 +78,31 @@ export async function postUserSignedOrder(
  */
 async function postOrderViaRemoteSigning(
   signedOrder: UserSignedOrder,
-  builderConfig: any
-): Promise<any> {
-  const signingServerUrl = builderConfig.remoteBuilderConfig.url;
+  builderConfig: unknown
+): Promise<unknown> {
+  if (
+    !builderConfig ||
+    typeof builderConfig !== "object" ||
+    !("remoteBuilderConfig" in builderConfig)
+  ) {
+    throw new Error("Invalid remote builder configuration");
+  }
+
+  const remoteBuilder = (builderConfig as {
+    remoteBuilderConfig: { url: string; token?: string };
+  }).remoteBuilderConfig;
+  const signingServerUrl = remoteBuilder.url;
 
   // Send signed order to builder signing server
   // Server adds builder attribution headers and returns BuilderHeaderPayload
   const response = await fetch(`${signingServerUrl}/sign`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(builderConfig.remoteBuilderConfig.token && {
-        Authorization: `Bearer ${builderConfig.remoteBuilderConfig.token}`,
-      }),
-    },
+      headers: {
+        "Content-Type": "application/json",
+        ...(remoteBuilder.token && {
+          Authorization: `Bearer ${remoteBuilder.token}`,
+        }),
+      },
     body: JSON.stringify({
       method: "POST",
       path: "/order",
@@ -150,8 +161,19 @@ async function postOrderViaRemoteSigning(
  */
 async function postOrderWithLocalSigning(
   signedOrder: UserSignedOrder,
-  builderConfig: any
-): Promise<any> {
+  builderConfig: unknown
+): Promise<unknown> {
+  if (
+    !builderConfig ||
+    typeof builderConfig !== "object" ||
+    !("localBuilderCreds" in builderConfig)
+  ) {
+    throw new Error("Invalid local builder credentials");
+  }
+
+  const localConfig = (builderConfig as {
+    localBuilderCreds: { key: string; secret: string; passphrase: string };
+  }).localBuilderCreds;
   // For local signing, we use the builder signing SDK
   // Import dynamically to handle optional dependency
   const builderSigningSdk = await import("@polymarket/builder-signing-sdk");
@@ -165,7 +187,7 @@ async function postOrderWithLocalSigning(
 
   // Build HMAC signature for builder attribution
   const signature = builderSigningSdk.buildHmacSignature(
-    builderConfig.localBuilderCreds.secret,
+    localConfig.secret,
     timestamp,
     method,
     path,
@@ -174,9 +196,9 @@ async function postOrderWithLocalSigning(
 
   // Build builder attribution headers
   const builderHeaders = {
-    POLY_BUILDER_API_KEY: builderConfig.localBuilderCreds.key,
+    POLY_BUILDER_API_KEY: localConfig.key,
     POLY_BUILDER_TIMESTAMP: String(timestamp),
-    POLY_BUILDER_PASSPHRASE: builderConfig.localBuilderCreds.passphrase,
+    POLY_BUILDER_PASSPHRASE: localConfig.passphrase,
     POLY_BUILDER_SIGNATURE: signature,
   };
 

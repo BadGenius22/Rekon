@@ -118,7 +118,7 @@ export async function findOrderByOrderId(
   orderId: string
 ): Promise<OrderRecord | null> {
   const sql = getSql();
-  const rows = await sql<OrderRecord>`
+  const rows = (await sql`
     SELECT
       id,
       order_id as "orderId",
@@ -136,7 +136,7 @@ export async function findOrderByOrderId(
     FROM orders
     WHERE order_id = ${orderId}
     LIMIT 1
-  `;
+  `) as OrderRecord[];
 
   return rows.length > 0 ? rows[0] : null;
 }

@@ -41,7 +41,18 @@ export async function postUserOrder(
   }
 
   // Post signed order with builder attribution
-  const clobResponse = await postUserSignedOrder(signedOrder);
+  const clobResponse = (await postUserSignedOrder(signedOrder)) as {
+    order_id?: string;
+    id?: string;
+    status?: string;
+    token_id?: string;
+    tokenID?: string;
+    side?: "BUY" | "SELL" | number;
+    price?: string | number;
+    size?: string | number;
+    filled?: string | number;
+    timestamp?: string;
+  };
 
   // Convert CLOB response to normalized Order
   const order: Order = {
@@ -51,10 +62,11 @@ export async function postUserOrder(
     side: (clobResponse.side === "BUY" || clobResponse.side === 0
       ? "yes"
       : "no") as "yes" | "no",
-    type: parseFloat(clobResponse.price || "0") === 0 ? "market" : "limit",
-    price: parseFloat(clobResponse.price || "0"),
-    amount: parseFloat(clobResponse.size || "0"),
-    filled: parseFloat(clobResponse.filled || "0"),
+    type:
+      parseFloat(String(clobResponse.price ?? "0")) === 0 ? "market" : "limit",
+    price: parseFloat(String(clobResponse.price ?? "0")),
+    amount: parseFloat(String(clobResponse.size ?? "0")),
+    filled: parseFloat(String(clobResponse.filled ?? "0")),
     status: mapClobStatusToOrderStatus(clobResponse.status),
     createdAt: clobResponse.timestamp || new Date().toISOString(),
     updatedAt: clobResponse.timestamp || new Date().toISOString(),

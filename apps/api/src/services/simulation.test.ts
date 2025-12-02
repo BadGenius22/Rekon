@@ -9,9 +9,7 @@ import { simulateOrder } from "./simulation";
 import { getOrderBookByTokenId } from "./orderbook";
 import { BadRequest, NotFound } from "../utils/http-errors";
 
-const getOrderBookByTokenIdMock = getOrderBookByTokenId as unknown as (
-  tokenId: string
-) => Promise<OrderBook | null>;
+const getOrderBookByTokenIdMock = vi.mocked(getOrderBookByTokenId);
 
 describe("services/simulation - simulateOrder", () => {
   it("throws BadRequest for non-positive size", async () => {
@@ -33,7 +31,9 @@ describe("services/simulation - simulateOrder", () => {
         size: 10,
         orderType: "limit",
       } as never)
-    ).rejects.toMatchObject(BadRequest("Limit price is required for limit orders"));
+    ).rejects.toMatchObject(
+      BadRequest("Limit price is required for limit orders")
+    );
   });
 
   it("throws NotFound when orderbook is missing", async () => {
@@ -46,7 +46,9 @@ describe("services/simulation - simulateOrder", () => {
         size: 10,
         orderType: "market",
       })
-    ).rejects.toMatchObject(NotFound("Orderbook not found for token: missing-token"));
+    ).rejects.toMatchObject(
+      NotFound("Orderbook not found for token: missing-token")
+    );
   });
 
   it("simulates a buy market order across multiple asks", async () => {
@@ -161,5 +163,3 @@ describe("services/simulation - simulateOrder", () => {
     );
   });
 });
-
-

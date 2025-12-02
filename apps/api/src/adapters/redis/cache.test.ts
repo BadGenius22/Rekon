@@ -96,7 +96,6 @@ describe("adapters/redis/HybridCache", () => {
 
     const consoleErrorMock = vi
       .spyOn(console, "error")
-      // @ts-expect-error - test override
       .mockImplementation(() => {});
 
     const cache = new HybridCache<{ value: number }>({
@@ -125,7 +124,6 @@ describe("adapters/redis/HybridCache", () => {
 
     const consoleWarnMock = vi
       .spyOn(console, "warn")
-      // @ts-expect-error - test override
       .mockImplementation(() => {});
 
     const cache = new HybridCache<{ value: string }>({

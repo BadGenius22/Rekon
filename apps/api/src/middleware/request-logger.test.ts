@@ -51,12 +51,16 @@ describe("middleware/request-logger", () => {
   });
 
   it("tracks failed requests (status >= 400)", async () => {
-    const app = new Hono();
+    type TestEnv = { Variables: { sessionId: string } };
+    const app = new Hono<TestEnv>();
 
-    app.use("*", async (c, next) => {
-      c.set("sessionId", "session-123");
-      await next();
-    });
+    app.use(
+      "*",
+      async (c, next) => {
+        c.set("sessionId", "session-123");
+        await next();
+      }
+    );
 
     app.use("*", requestLoggerMiddleware);
     app.get("/fail", (c) => c.text("boom", 500));

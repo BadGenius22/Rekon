@@ -56,9 +56,7 @@ describe("services/trade-placement - resolveMarketForTrade", () => {
     await expect(
       resolveMarketForTrade("market-1", "yes")
     ).rejects.toMatchObject(
-      BadRequest(
-        'Token ID not available for outcome "Yes" in market market-1'
-      )
+      BadRequest('Token ID not available for outcome "Yes" in market market-1')
     );
   });
 
@@ -191,6 +189,12 @@ describe("services/trade-placement - placeTrade", () => {
     expect(response.size).toBe(10);
     expect(response.filled).toBe(0);
     expect(response.remaining).toBe(10);
+
+    expect(response.execution).toBeDefined();
+    if (!response.execution) {
+      throw new Error("execution missing");
+    }
+
     expect(response.execution.averagePrice).toBeUndefined();
     expect(response.execution.totalCost).toBeUndefined();
     expect(response.execution.timestamp).toBe(order.createdAt);
@@ -237,9 +241,13 @@ describe("services/trade-placement - placeTrade", () => {
     expect(response.status).toBe("open");
     expect(response.remaining).toBe(5);
     expect(response.filled).toBe(5);
+
+    expect(response.execution).toBeDefined();
+    if (!response.execution) {
+      throw new Error("execution missing");
+    }
+
     expect(response.execution.averagePrice).toBe(0.6);
     expect(response.execution.totalCost).toBeCloseTo(5 * 0.6);
   });
 });
-
-

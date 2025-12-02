@@ -124,7 +124,7 @@ export async function linkWalletController(c: Context) {
 
   const body = LinkWalletSchema.parse(await c.req.json());
 
-  const updated = linkWalletToSession(
+  const updated = await linkWalletToSession(
     session.sessionId,
     body.walletAddress,
     body.signatureType

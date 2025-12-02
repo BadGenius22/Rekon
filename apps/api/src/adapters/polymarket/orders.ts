@@ -1,6 +1,12 @@
 import { POLYMARKET_CONFIG } from "@rekon/config";
 import { getClobClient } from "./clob-client";
-import { ClobClient, Side, OrderType } from "@polymarket/clob-client";
+import {
+  ClobClient,
+  Side,
+  OrderType,
+  type CreateOrderOptions,
+  type TickSize,
+} from "@polymarket/clob-client";
 import type { Order } from "@rekon/types";
 
 /**
@@ -57,27 +63,24 @@ export interface ClobOrderResponse {
  */
 export async function placeClobOrder(
   orderRequest: ClobOrderRequest,
-  marketInfo?: { tickSize: string; negRisk: boolean }
+  marketInfo?: { tickSize: TickSize; negRisk: boolean }
 ): Promise<ClobOrderResponse> {
   const clobClient = await getClobClient();
 
   // Convert CLOB request format to ClobClient format
   const side = orderRequest.side === "BUY" ? Side.BUY : Side.SELL;
-  
+
   // createAndPostOrder only supports GTC and GTD
   // For IOC/FOK, we'd need to use createOrder + postOrder separately
   // For now, default to GTC if not GTC/GTD
-  const orderType = 
-    orderRequest.time_in_force === "GTD" 
-      ? OrderType.GTD 
-      : OrderType.GTC;
+  const orderType =
+    orderRequest.time_in_force === "GTD" ? OrderType.GTD : OrderType.GTC;
 
   // Default market info if not provided
-  // ClobClient expects specific types, use type assertions
-  const marketConfig = (marketInfo || {
-    tickSize: "0.001",
+  const marketConfig = (marketInfo ?? {
+    tickSize: "0.001" as TickSize,
     negRisk: false,
-  }) as any; // Type assertion for ClobClient's CreateOrderOptions
+  }) as Partial<CreateOrderOptions>;
 
   // Create and post order using ClobClient
   // Builder attribution is handled automatically by ClobClient via BuilderConfig
@@ -106,14 +109,14 @@ function mapTimeInForceToOrderType(
 ): OrderType {
   switch (timeInForce) {
     case "IOC":
-      return (1 as unknown) as OrderType; // IOC
+      return 1 as unknown as OrderType; // IOC
     case "FOK":
-      return (2 as unknown) as OrderType; // FOK
+      return 2 as unknown as OrderType; // FOK
     case "FAK":
-      return (1 as unknown) as OrderType; // FAK is similar to IOC
+      return 1 as unknown as OrderType; // FAK is similar to IOC
     case "GTC":
     default:
-      return (0 as unknown) as OrderType; // GTC
+      return 0 as unknown as OrderType; // GTC
   }
 }
 
@@ -205,7 +208,7 @@ export async function getClobOrder(
   }
 
   const orderAny = order as ClobOrderShape;
-  
+
   // Determine side - handle both string and numeric values
   // Polymarket uses: "BUY" (string) or 0 (number) for buy, "SELL" (string) or 1 (number) for sell
   let side: "BUY" | "SELL";
@@ -215,7 +218,7 @@ export async function getClobOrder(
   } else {
     side = "SELL";
   }
-  
+
   return {
     order_id: orderAny.order_id || orderAny.id || orderId,
     status: mapClobClientStatusToStatus(orderAny.status),

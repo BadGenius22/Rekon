@@ -5,8 +5,16 @@ vi.mock("@sentry/node", () => {
   const captureException = vi.fn();
   const captureMessage = vi.fn();
   const addBreadcrumb = vi.fn();
-  const withScope = vi.fn((fn: (scope: any) => void) => {
-    const scope = {
+
+  interface MockScope {
+    setTag: (key: string, value: unknown) => void;
+    setExtra: (key: string, value: unknown) => void;
+    setLevel: (level: string) => void;
+    setUser: (user: unknown) => void;
+  }
+
+  const withScope = vi.fn((fn: (scope: MockScope) => void) => {
+    const scope: MockScope = {
       setTag: vi.fn(),
       setExtra: vi.fn(),
       setLevel: vi.fn(),

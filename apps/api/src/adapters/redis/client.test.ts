@@ -103,10 +103,11 @@ describe("adapters/redis/client", () => {
     redisConfigMock.token = "test-token";
 
     // Force constructor failure by temporarily mocking Redis to throw
-    const upstashModule = await import("@upstash/redis");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const upstashModule = (await import("@upstash/redis")) as {
+      Redis: new (opts: { url: string; token: string }) => unknown;
+    };
     const redisConstructorMock = vi
-      .spyOn(upstashModule as any, "Redis")
+      .spyOn(upstashModule, "Redis")
       .mockImplementation(() => {
         throw new Error("init failed");
       });

@@ -1,4 +1,5 @@
 import type { Order } from "@rekon/types";
+import type { TickSize } from "@polymarket/clob-client";
 import {
   placeClobOrder,
   getClobOrder,
@@ -111,7 +112,7 @@ export async function placeOrder(
   // Get market info for ClobClient (tickSize and negRisk)
   // These are typically available from market data
   const marketInfo = {
-    tickSize: "0.001", // Default - should be fetched from market data
+    tickSize: "0.001" as TickSize, // Default - should be fetched from market data
     negRisk: false, // Default - should be fetched from market data
   };
 
