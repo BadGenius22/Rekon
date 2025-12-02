@@ -241,7 +241,7 @@ export function mapPolymarketMarket(pm: PolymarketMarket): Market {
 ```
 HTTP Request
   ↓
-Routes (index.ts)
+Routes (index.ts + routes/*)
   ↓
 Middleware (session, rate-limit)
   ↓
@@ -275,6 +275,8 @@ HTTP Response
 
 ```
 Routes → Controllers → Services → Adapters
+          ↑
+        Tests (unit + integration)
 ```
 
 Each layer only depends on layers below it.
@@ -290,6 +292,26 @@ Each layer only depends on layers below it.
 - Global error handler in `index.ts`
 - Custom error helpers in `utils/http-errors.ts`
 - No try-catch in controllers (errors bubble up)
+
+### 5. Testing & App Export
+
+- The Hono application instance is created and exported from `index.ts` as the default export:
+  - Used directly in Vitest integration tests via `app.request(...)`.
+- Tests are co-located with implementations as `*.test.ts`:
+  - `services/*.test.ts` for business logic.
+  - `adapters/polymarket/*.test.ts` for mapping and client behavior.
+  - `middleware/*.test.ts` for session, rate limiting, and logging.
+  - `index.test.ts` for light integration tests across routes, controllers, and middleware.
+- Vitest is configured at the monorepo root (`vitest.config.ts`) and run via Turborepo (`turbo run test`).
+
+### 6. Polymarket Relayer / CLOB Client
+
+- All interaction with Polymarket’s CLOB / relayer goes through `adapters/polymarket`:
+  - `clob-client.ts` creates and caches the `ClobClient` instance.
+  - `orders.ts`, `user-orders.ts`, and `fills.ts` wrap specific CLOB operations.
+- Tests **never** talk to the real relayer:
+  - Vitest tests mock `./clob-client` (and, where needed, `@polymarket/builder-signing-sdk`) using `vi.mock`.
+  - This keeps tests deterministic and fast while still validating mapping and orchestration logic.
 
 ### 5. Caching
 
