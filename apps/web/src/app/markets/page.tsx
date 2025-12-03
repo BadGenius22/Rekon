@@ -2,7 +2,6 @@ import type { Market } from "@rekon/types";
 import Link from "next/link";
 import { API_CONFIG } from "@rekon/config";
 import { formatPrice, formatVolume, formatPercentage } from "@rekon/utils";
-import { groupMatchMarkets } from "../../lib/markets";
 
 // Use ISR (Incremental Static Regeneration) for better performance
 // Revalidates every 10 seconds - good balance between freshness and performance
@@ -21,6 +20,9 @@ async function getMarkets(
     if (game) {
       url.searchParams.set("game", game);
     }
+    // Align with home hero: only show esports game markets (matches/maps),
+    // not long-dated outrights.
+    url.searchParams.set("type", "game");
 
     const response = await fetch(url.toString(), {
       next: { revalidate: 10 }, // ISR: Cache for 10 seconds, then revalidate
@@ -46,21 +48,7 @@ export default async function MarketsPage(props: {
   const includeResolved = searchParams.includeResolved === "true";
   const game = searchParams.game;
   const markets = await getMarkets(includeResolved, game);
-
-  const dotaMarkets = markets.filter((market) =>
-    market.question.toLowerCase().includes("dota 2")
-  );
-  const groupedMatches = groupMatchMarkets(dotaMarkets);
-  const groupedIds = new Set(
-    groupedMatches
-      .flatMap((g) => [
-        g.moneyline?.id,
-        ...g.games.map((m) => m.id),
-        ...g.others.map((m) => m.id),
-      ])
-      .filter((id): id is string => Boolean(id))
-  );
-  const remainingMarkets = markets.filter((m) => !groupedIds.has(m.id));
+  const categorized = categorizeByGame(markets);
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -70,20 +58,9 @@ export default async function MarketsPage(props: {
           <p className="text-foreground/60">
             Professional trading terminal for prediction markets
           </p>
-          <div className="mt-4 flex items-center justify-between gap-4">
-            <span className="text-sm text-foreground/60">
-              {includeResolved
-                ? "Showing live and resolved esports markets"
-                : "Showing only live (unresolved) esports markets"}
-            </span>
-            <Link
-              href={
-                includeResolved ? "/markets" : "/markets?includeResolved=true"
-              }
-              className="text-xs px-3 py-1 rounded border border-neon-cyan/60 text-neon-cyan hover:bg-neon-cyan/10 transition-colors"
-            >
-              {includeResolved ? "Hide resolved" : "Include resolved"}
-            </Link>
+          <div className="mt-4 text-sm text-foreground/60">
+            Showing live esports game markets (matches/maps) across CS2, LoL,
+            Dota 2, and Valorant.
           </div>
         </div>
 
@@ -93,99 +70,131 @@ export default async function MarketsPage(props: {
           </div>
         ) : (
           <>
-            {groupedMatches.length > 0 && (
-              <section className="mb-10 space-y-4">
+            {categorized.cs2.length > 0 && (
+              <section className="space-y-4 mb-10">
                 <h2 className="text-2xl font-semibold text-foreground">
-                  Dota 2 Matches
+                  CS2 Markets
                 </h2>
-                <p className="text-sm text-foreground/60">
-                  Polymarket-style layout: match moneyline, then individual game
-                  markets.
-                </p>
-                <div className="space-y-6">
-                  {groupedMatches.map((group) => (
-                    <div
-                      key={group.key}
-                      className="rounded-lg border border-border bg-card/60 p-4"
-                    >
-                      <div className="mb-3 flex items-center justify-between gap-4">
-                        <h3 className="text-lg font-semibold text-foreground">
-                          {group.title}
-                        </h3>
-                        {group.moneyline && (
-                          <span className="text-xs rounded-full border border-neon-cyan/60 px-2 py-0.5 text-neon-cyan">
-                            Moneyline
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-                        {group.moneyline && (
-                          <div>
-                            <MarketCard market={group.moneyline} />
-                          </div>
-                        )}
-
-                        {(group.games.length > 0 ||
-                          group.others.length > 0) && (
-                          <div className="space-y-3">
-                            {group.games.length > 0 && (
-                              <div>
-                                <div className="mb-2 text-xs font-medium uppercase tracking-wide text-foreground/60">
-                                  Games
-                                </div>
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                  {group.games.map((market) => (
-                                    <MarketCard
-                                      key={market.id}
-                                      market={market}
-                                      compact
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {group.others.length > 0 && (
-                              <div>
-                                <div className="mb-2 text-xs font-medium uppercase tracking-wide text-foreground/60">
-                                  Other Markets
-                                </div>
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                  {group.others.map((market) => (
-                                    <MarketCard
-                                      key={market.id}
-                                      market={market}
-                                      compact
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                <div className="grid gap-4">
+                  {categorized.cs2.map((market) => (
+                    <MarketCard key={market.id} market={market} />
                   ))}
                 </div>
               </section>
             )}
 
-            <section className="space-y-4">
-              <h2 className="text-2xl font-semibold text-foreground">
-                All Markets
-              </h2>
-              <div className="grid gap-4">
-                {remainingMarkets.map((market) => (
-                  <MarketCard key={market.id} market={market} />
-                ))}
-              </div>
-            </section>
+            {categorized.lol.length > 0 && (
+              <section className="space-y-4 mb-10">
+                <h2 className="text-2xl font-semibold text-foreground">
+                  League of Legends Markets
+                </h2>
+                <div className="grid gap-4">
+                  {categorized.lol.map((market) => (
+                    <MarketCard key={market.id} market={market} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {categorized.dota2.length > 0 && (
+              <section className="space-y-4 mb-10">
+                <h2 className="text-2xl font-semibold text-foreground">
+                  Dota 2 Markets
+                </h2>
+                <div className="grid gap-4">
+                  {categorized.dota2.map((market) => (
+                    <MarketCard key={market.id} market={market} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {categorized.valorant.length > 0 && (
+              <section className="space-y-4">
+                <h2 className="text-2xl font-semibold text-foreground">
+                  Valorant Markets
+                </h2>
+                <div className="grid gap-4">
+                  {categorized.valorant.map((market) => (
+                    <MarketCard key={market.id} market={market} />
+                  ))}
+                </div>
+              </section>
+            )}
           </>
         )}
       </div>
     </div>
   );
+}
+
+function categorizeByGame(markets: Market[]): {
+  cs2: Market[];
+  lol: Market[];
+  dota2: Market[];
+  valorant: Market[];
+} {
+  const result = {
+    cs2: [] as Market[],
+    lol: [] as Market[],
+    dota2: [] as Market[],
+    valorant: [] as Market[],
+  };
+
+  for (const market of markets) {
+    const slug = getGameSlug(market);
+    if (slug && slug in result) {
+      result[slug].push(market);
+    }
+  }
+
+  return result;
+}
+
+function getGameSlug(
+  market: Market
+): "cs2" | "lol" | "dota2" | "valorant" | null {
+  const text = `${market.category ?? ""} ${market.subcategory ?? ""} ${
+    market.question
+  }`.toLowerCase();
+
+  if (
+    text.includes("dota 2") ||
+    text.includes("dota2") ||
+    text.includes("dota")
+  ) {
+    return "dota2";
+  }
+
+  if (
+    text.includes("valorant") ||
+    text.includes("vct") ||
+    text.includes("champions") ||
+    text.includes("masters")
+  ) {
+    return "valorant";
+  }
+
+  if (
+    text.includes("cs2") ||
+    text.includes("counter-strike") ||
+    text.includes("counter strike")
+  ) {
+    return "cs2";
+  }
+
+  if (
+    text.includes("league of legends") ||
+    text.includes(" lol ") ||
+    text.startsWith("lol:") ||
+    text.includes(" lck ") ||
+    text.includes(" lpl ") ||
+    text.includes(" lec ")
+  ) {
+    return "lol";
+  }
+
+  return null;
 }
 
 function MarketCard({

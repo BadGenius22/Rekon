@@ -45,6 +45,13 @@ export interface GetMarketsParams extends FetchMarketsParams {
    */
   gameSlug?: string;
   esportsOnly?: boolean; // Filter for esports markets only
+  /**
+   * Optional market type filter:
+   * - "game"     → individual matches/maps (Polymarket "games" views)
+   * - "outright" → futures/season winners, long-dated markets
+   * - undefined  → all esports markets
+   */
+  marketType?: "game" | "outright";
 }
 
 /**
@@ -72,6 +79,12 @@ export async function getMarkets(
     limit: params.limit,
     offset: params.offset,
     esportsOnly: params.esportsOnly,
+    // Important: include tagId so Gamma tag-scoped requests (per-game views)
+    // do not collide in the cache. Without this, switching between different
+    // game filters (cs2, lol, dota2, valorant) can return stale results from
+    // a previous tag.
+    tagId: params.tagId,
+    marketType: params.marketType,
   });
   const cached = await marketsListCacheService.get(cacheKey);
   if (cached) {
@@ -126,6 +139,13 @@ export async function getMarkets(
   // listings even if the low-level "closed" flag has not been flipped yet.
   if (params.closed === false) {
     markets = filterUpcomingAndLiveMarkets(markets);
+  }
+
+  // Apply market type filter (games vs outrights) when requested.
+  if (params.marketType === "game") {
+    markets = markets.filter(isGameMarket);
+  } else if (params.marketType === "outright") {
+    markets = markets.filter((market) => !isGameMarket(market));
   }
 
   // Cache the result
@@ -506,6 +526,58 @@ function filterEsportsMarkets(markets: Market[]): Market[] {
     // Market is esports if it matches any detection method
     return hasEsportsKeyword || hasEsportsResolutionSource;
   });
+}
+
+/**
+ * Heuristic to detect "game" markets (individual matches/maps) versus
+ * long-dated outrights or futures. This is used to approximate Polymarket's
+ * /games views for CS2, LoL, Dota 2, Valorant.
+ */
+function isGameMarket(market: Market): boolean {
+  const q = market.question.toLowerCase();
+
+  // Match-style questions with "Team A vs Team B"
+  const hasVsPattern =
+    q.includes(" vs ") ||
+    q.includes(" vs. ") ||
+    q.includes(" vs\n") ||
+    q.includes(" vs\t");
+
+  // Best-of notation is a strong signal of a specific match/series.
+  const hasBestOf = /\(bo\d+\)/i.test(q);
+
+  // Short "Game X" markets, e.g. "Game 1 Winner", "Map 2 Winner".
+  const hasGameOrMap = /\bgame\s*\d+\b/i.test(q) || /\bmap\s*\d+\b/i.test(q);
+
+  // Outright-style phrases that usually indicate season/championship futures.
+  const outrightPhrases = [
+    "win the lpl",
+    "win the lec",
+    "win the lcs",
+    "win worlds",
+    "win the split",
+    "win the season",
+    "to win lpl",
+    "to win lec",
+    "to win lcs",
+    "to win worlds",
+    "outright",
+    "winner of worlds",
+  ];
+  const looksLikeOutright = outrightPhrases.some((phrase) => q.includes(phrase));
+
+  // Treat as a game market when it clearly looks like a match/map and not
+  // like an outright/season future.
+  const gameSignals = hasVsPattern || hasBestOf || hasGameOrMap;
+  if (!gameSignals) {
+    return false;
+  }
+
+  if (looksLikeOutright) {
+    return false;
+  }
+
+  return true;
 }
 
 /**

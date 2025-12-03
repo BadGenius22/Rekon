@@ -22,6 +22,7 @@ import { getChartData } from "../services/chart";
 const GetMarketsQuerySchema = z.object({
   category: z.string().optional(),
   game: z.enum(["cs2", "lol", "dota2", "valorant"]).optional(),
+  type: z.enum(["game", "outright"]).optional(),
   active: z
     .string()
     .transform((val) => val === "true")
@@ -63,6 +64,7 @@ export async function getMarketsController(c: Context) {
   const params: GetMarketsParams = {
     category: query.category,
     gameSlug: query.game,
+    marketType: query.type,
     active: query.active,
     closed: query.closed,
     featured: query.featured,
