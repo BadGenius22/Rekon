@@ -108,7 +108,7 @@ export async function getMarkets(
     markets = mapped;
   } else {
     // Legacy: use Builder markets endpoint
-    const rawMarkets = await fetchPolymarketMarkets(params);
+  const rawMarkets = await fetchPolymarketMarkets(params);
     markets = rawMarkets.map(mapPolymarketMarket);
   }
 
@@ -119,6 +119,14 @@ export async function getMarkets(
 
   // Enrich with derived fields
   markets = markets.map(enrichMarket);
+
+  // For the default "live" view (closed === false), hide clearly stale
+  // markets whose scheduled end time is already in the past. This mirrors
+  // how Polymarket keeps old matches/series out of the primary sports
+  // listings even if the low-level "closed" flag has not been flipped yet.
+  if (params.closed === false) {
+    markets = filterUpcomingAndLiveMarkets(markets);
+  }
 
   // Cache the result
   await marketsListCacheService.set(cacheKey, markets);
@@ -522,3 +530,30 @@ function calculateTrendingScore(market: Market): number {
 
   return Math.min(score, 1); // Cap at 1.0
 }
+
+/**
+ * Filters out stale markets whose end time is clearly in the past.
+ *
+ * Behaviour:
+ * - If no endDate is present or it cannot be parsed, we keep the market
+ *   (to avoid accidentally hiding data when Polymarket omits timestamps).
+ * - When endDate is a valid date, we only keep markets whose end is
+ *   in the future relative to "now".
+ */
+function filterUpcomingAndLiveMarkets(markets: Market[]): Market[] {
+  const now = Date.now();
+
+  return markets.filter((market) => {
+    if (!market.endDate) {
+      return true;
+    }
+
+    const endTime = Date.parse(market.endDate);
+    if (Number.isNaN(endTime)) {
+      return true;
+    }
+
+    return endTime >= now;
+  });
+}
+

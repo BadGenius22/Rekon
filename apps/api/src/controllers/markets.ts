@@ -33,6 +33,10 @@ const GetMarketsQuerySchema = z.object({
     .string()
     .transform((val) => val === "true")
     .optional(),
+  includeResolved: z
+    .string()
+    .transform((val) => val === "true")
+    .optional(),
   limit: z
     .string()
     .transform((val) => parseInt(val, 10))
@@ -64,7 +68,26 @@ export async function getMarketsController(c: Context) {
     offset: query.offset,
   };
 
-  const markets = await getMarkets(params);
+  // Rekon is an esports terminal; /markets should only return esports markets.
+  // Delegate to getEsportsMarkets so we use the Gamma sports/tag-based logic
+  // (CS2, LoL, Dota 2, Valorant) instead of the broader text heuristic.
+  const { getEsportsMarkets } = await import("../services/markets");
+  const includeResolved = query.includeResolved ?? false;
+
+  // By default, only show non-closed (unresolved) markets.
+  // When includeResolved=true, let the service include both open and resolved.
+  const { esportsOnly: _ignore, ...rest } = params;
+  let markets = await getEsportsMarkets({
+    ...rest,
+    closed: includeResolved ? undefined : false,
+  });
+
+  if (!includeResolved) {
+    // Extra safety: filter out any markets that are still marked as resolved
+    // even if the underlying events are not closed, so the default view only
+    // shows live / tradable esports markets.
+    markets = markets.filter((m) => !m.isResolved);
+  }
   return c.json(markets);
 }
 

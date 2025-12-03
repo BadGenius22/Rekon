@@ -1,15 +1,22 @@
 import type { Market } from "@rekon/types";
+import Link from "next/link";
 import { API_CONFIG } from "@rekon/config";
 import { formatPrice, formatVolume, formatPercentage } from "@rekon/utils";
+import { groupMatchMarkets } from "../../lib/markets";
 
 // Use ISR (Incremental Static Regeneration) for better performance
 // Revalidates every 10 seconds - good balance between freshness and performance
 // For real-time updates, use WebSocket or client-side polling (future enhancement)
 export const revalidate = 10; // Revalidate every 10 seconds
 
-async function getMarkets(): Promise<Market[]> {
+async function getMarkets(includeResolved: boolean): Promise<Market[]> {
   try {
-    const response = await fetch(`${API_CONFIG.baseUrl}/markets`, {
+    const url = new URL(`${API_CONFIG.baseUrl}/markets`);
+    if (includeResolved) {
+      url.searchParams.set("includeResolved", "true");
+    }
+
+    const response = await fetch(url.toString(), {
       next: { revalidate: 10 }, // ISR: Cache for 10 seconds, then revalidate
     });
 
@@ -26,8 +33,27 @@ async function getMarkets(): Promise<Market[]> {
   }
 }
 
-export default async function MarketsPage() {
-  const markets = await getMarkets();
+export default async function MarketsPage(props: {
+  searchParams: Promise<{ includeResolved?: string }>;
+}) {
+  const searchParams = await props.searchParams;
+  const includeResolved = searchParams.includeResolved === "true";
+  const markets = await getMarkets(includeResolved);
+
+  const dotaMarkets = markets.filter((market) =>
+    market.question.toLowerCase().includes("dota 2")
+  );
+  const groupedMatches = groupMatchMarkets(dotaMarkets);
+  const groupedIds = new Set(
+    groupedMatches
+      .flatMap((g) => [
+        g.moneyline?.id,
+        ...g.games.map((m) => m.id),
+        ...g.others.map((m) => m.id),
+      ])
+      .filter((id): id is string => Boolean(id))
+  );
+  const remainingMarkets = markets.filter((m) => !groupedIds.has(m.id));
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -37,6 +63,21 @@ export default async function MarketsPage() {
           <p className="text-foreground/60">
             Professional trading terminal for prediction markets
           </p>
+          <div className="mt-4 flex items-center justify-between gap-4">
+            <span className="text-sm text-foreground/60">
+              {includeResolved
+                ? "Showing live and resolved esports markets"
+                : "Showing only live (unresolved) esports markets"}
+            </span>
+            <Link
+              href={
+                includeResolved ? "/markets" : "/markets?includeResolved=true"
+              }
+              className="text-xs px-3 py-1 rounded border border-neon-cyan/60 text-neon-cyan hover:bg-neon-cyan/10 transition-colors"
+            >
+              {includeResolved ? "Hide resolved" : "Include resolved"}
+            </Link>
+          </div>
         </div>
 
         {markets.length === 0 ? (
@@ -44,18 +85,109 @@ export default async function MarketsPage() {
             <p className="text-foreground/60">No markets found</p>
           </div>
         ) : (
-          <div className="grid gap-4">
-            {markets.map((market) => (
-              <MarketCard key={market.id} market={market} />
-            ))}
-          </div>
+          <>
+            {groupedMatches.length > 0 && (
+              <section className="mb-10 space-y-4">
+                <h2 className="text-2xl font-semibold text-foreground">
+                  Dota 2 Matches
+                </h2>
+                <p className="text-sm text-foreground/60">
+                  Polymarket-style layout: match moneyline, then individual game
+                  markets.
+                </p>
+                <div className="space-y-6">
+                  {groupedMatches.map((group) => (
+                    <div
+                      key={group.key}
+                      className="rounded-lg border border-border bg-card/60 p-4"
+                    >
+                      <div className="mb-3 flex items-center justify-between gap-4">
+                        <h3 className="text-lg font-semibold text-foreground">
+                          {group.title}
+                        </h3>
+                        {group.moneyline && (
+                          <span className="text-xs rounded-full border border-neon-cyan/60 px-2 py-0.5 text-neon-cyan">
+                            Moneyline
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+                        {group.moneyline && (
+                          <div>
+                            <MarketCard market={group.moneyline} />
+                          </div>
+                        )}
+
+                        {(group.games.length > 0 ||
+                          group.others.length > 0) && (
+                          <div className="space-y-3">
+                            {group.games.length > 0 && (
+                              <div>
+                                <div className="mb-2 text-xs font-medium uppercase tracking-wide text-foreground/60">
+                                  Games
+                                </div>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                  {group.games.map((market) => (
+                                    <MarketCard
+                                      key={market.id}
+                                      market={market}
+                                      compact
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {group.others.length > 0 && (
+                              <div>
+                                <div className="mb-2 text-xs font-medium uppercase tracking-wide text-foreground/60">
+                                  Other Markets
+                                </div>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                  {group.others.map((market) => (
+                                    <MarketCard
+                                      key={market.id}
+                                      market={market}
+                                      compact
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <section className="space-y-4">
+              <h2 className="text-2xl font-semibold text-foreground">
+                All Markets
+              </h2>
+              <div className="grid gap-4">
+                {remainingMarkets.map((market) => (
+                  <MarketCard key={market.id} market={market} />
+                ))}
+              </div>
+            </section>
+          </>
         )}
       </div>
     </div>
   );
 }
 
-function MarketCard({ market }: { market: Market }) {
+function MarketCard({
+  market,
+  compact,
+}: {
+  market: Market;
+  compact?: boolean;
+}) {
   const yesOutcome = market.outcomes.find(
     (o) => o.name.toLowerCase() === "yes"
   );
@@ -63,10 +195,18 @@ function MarketCard({ market }: { market: Market }) {
   const primaryOutcome = yesOutcome || market.outcomes[0];
 
   return (
-    <div className="border border-border rounded-lg p-6 bg-card hover:border-neon-cyan/50 transition-colors">
+    <div
+      className={`border border-border rounded-lg bg-card hover:border-neon-cyan/50 transition-colors ${
+        compact ? "p-4" : "p-6"
+      }`}
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
-          <h3 className="text-xl font-semibold text-foreground mb-2">
+          <h3
+            className={`font-semibold text-foreground mb-2 ${
+              compact ? "text-base" : "text-xl"
+            }`}
+          >
             {market.question}
           </h3>
           <div className="flex items-center gap-4 text-sm text-foreground/60">

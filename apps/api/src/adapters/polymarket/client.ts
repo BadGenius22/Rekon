@@ -561,10 +561,10 @@ export async function fetchPolymarketCondition(
     const error = new Error(
       `Polymarket API error: ${response.status} ${response.statusText}`
     );
-
+    
     // Track Polymarket API failure
     trackPolymarketApiFailure(url, response.status, error);
-
+    
     throw error;
   }
 
@@ -588,10 +588,10 @@ export async function fetchPolymarketOrderBook(
     const error = new Error(
       `Polymarket API error: ${response.status} ${response.statusText}`
     );
-
+    
     // Track Polymarket API failure
     trackPolymarketApiFailure(url, response.status, error);
-
+    
     throw error;
   }
 
@@ -617,10 +617,10 @@ export async function fetchPolymarketTrades(
     const error = new Error(
       `Polymarket API error: ${response.status} ${response.statusText}`
     );
-
+    
     // Track Polymarket API failure
     trackPolymarketApiFailure(url, response.status, error);
-
+    
     throw error;
   }
 
@@ -642,10 +642,10 @@ export async function fetchPolymarketPrice(tokenId: string): Promise<unknown> {
     const error = new Error(
       `Polymarket API error: ${response.status} ${response.statusText}`
     );
-
+    
     // Track Polymarket API failure
     trackPolymarketApiFailure(url, response.status, error);
-
+    
     throw error;
   }
 
@@ -670,10 +670,10 @@ export async function fetchPolymarketPrices(
     const error = new Error(
       `Polymarket API error: ${response.status} ${response.statusText}`
     );
-
+    
     // Track Polymarket API failure
     trackPolymarketApiFailure(url, response.status, error);
-
+    
     throw error;
   }
 

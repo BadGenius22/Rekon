@@ -43,11 +43,25 @@ export function mapPolymarketMarket(pmMarket: PolymarketMarket): Market {
   const impliedProbabilities =
     outcomePrices.length > 0 ? outcomePrices : undefined;
 
-  // Determine if market is resolved
-  const isResolved =
-    pmMarket.closed ||
-    pmMarket.automaticallyResolved ||
-    Boolean(pmMarket.resolvedBy);
+  // Determine if market is resolved.
+  //
+  // We want to be conservative here because premature "resolved" flags
+  // will cause the UI to hide live markets (the `/markets` controller
+  // filters out resolved markets by default).
+  //
+  // Heuristic:
+  // - Prefer explicit Polymarket resolution signals (closed + resolvedBy)
+  // - Augment with Gamma event status when clearly finished (ended=true)
+  // - Ignore finishedTimestamp alone, as it can be populated for
+  //   scheduled / in-progress events and was causing live markets to be
+  //   incorrectly marked as resolved.
+  const primaryEvent = pmMarket.events?.[0];
+  const eventEnded = primaryEvent?.ended === true;
+
+  const hasExplicitResolution =
+    pmMarket.closed === true && Boolean(pmMarket.resolvedBy);
+
+  const isResolved = hasExplicitResolution || eventEnded;
 
   // Get best image URL (prefer optimized, fallback to regular)
   const imageUrl =
