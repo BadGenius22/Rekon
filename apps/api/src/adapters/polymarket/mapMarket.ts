@@ -50,7 +50,9 @@ export function mapPolymarketMarket(pmMarket: PolymarketMarket): Market {
   // filters out resolved markets by default).
   //
   // Heuristic:
-  // - Prefer explicit Polymarket resolution signals (closed + resolvedBy)
+  // - Prefer explicit Polymarket resolution signals:
+  //   - automaticallyResolved === true, or
+  //   - closed === true AND resolvedBy set
   // - Augment with Gamma event status when clearly finished (ended=true)
   // - Ignore finishedTimestamp alone, as it can be populated for
   //   scheduled / in-progress events and was causing live markets to be
@@ -58,10 +60,13 @@ export function mapPolymarketMarket(pmMarket: PolymarketMarket): Market {
   const primaryEvent = pmMarket.events?.[0];
   const eventEnded = primaryEvent?.ended === true;
 
+  const hasAutomaticResolution = pmMarket.automaticallyResolved === true;
+
   const hasExplicitResolution =
     pmMarket.closed === true && Boolean(pmMarket.resolvedBy);
 
-  const isResolved = hasExplicitResolution || eventEnded;
+  const isResolved =
+    hasAutomaticResolution || hasExplicitResolution || eventEnded;
 
   // Get best image URL (prefer optimized, fallback to regular)
   const imageUrl =

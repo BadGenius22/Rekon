@@ -21,6 +21,7 @@ import { getChartData } from "../services/chart";
 
 const GetMarketsQuerySchema = z.object({
   category: z.string().optional(),
+  game: z.enum(["cs2", "lol", "dota2", "valorant"]).optional(),
   active: z
     .string()
     .transform((val) => val === "true")
@@ -61,6 +62,7 @@ export async function getMarketsController(c: Context) {
   const query = GetMarketsQuerySchema.parse(c.req.query());
   const params: GetMarketsParams = {
     category: query.category,
+    gameSlug: query.game,
     active: query.active,
     closed: query.closed,
     featured: query.featured,
@@ -88,6 +90,22 @@ export async function getMarketsController(c: Context) {
     // shows live / tradable esports markets.
     markets = markets.filter((m) => !m.isResolved);
   }
+
+  // Sort so that live / tradable markets appear first. A market is treated
+  // as "live" when it is not resolved or closed and is actively accepting
+  // orders.
+  markets = markets.sort((a, b) => {
+    const aLive =
+      !a.isResolved && !a.closed && a.active && a.acceptingOrders && !a.tradingPaused;
+    const bLive =
+      !b.isResolved && !b.closed && b.active && b.acceptingOrders && !b.tradingPaused;
+
+    if (aLive === bLive) {
+      return 0;
+    }
+    return aLive ? -1 : 1;
+  });
+
   return c.json(markets);
 }
 

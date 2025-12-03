@@ -252,12 +252,39 @@ export async function getEsportsMarkets(
   // esports games: CS2, LoL, Dota 2, Valorant. Each has its own tag.
   if (marketSource === "gamma") {
     const { gameTagIds } = POLYMARKET_CONFIG;
-    const tagIds = [
-      gameTagIds.cs2,
-      gameTagIds.lol,
-      gameTagIds.dota2,
-      gameTagIds.valorant,
-    ].filter((id): id is string => Boolean(id));
+    const gameSlug = params.gameSlug;
+
+    // If a specific game is requested, narrow down to that game's tag.
+    if (gameSlug) {
+      const tagId = gameTagIds[gameSlug as keyof typeof gameTagIds];
+
+      // If we don't have a configured tag for this game yet, fall back to the
+      // generic esports pipeline and let the text-based filters do the work.
+      if (!tagId) {
+        return getMarkets({
+          ...params,
+          esportsOnly: true,
+        });
+      }
+
+      const baseParams: GetMarketsParams = {
+        ...params,
+        esportsOnly: false,
+        closed: params.closed ?? false,
+        tagId,
+      };
+
+      return getMarkets(baseParams);
+    }
+
+    const tagIds = (
+      [
+        gameTagIds.cs2,
+        gameTagIds.lol,
+        gameTagIds.dota2,
+        gameTagIds.valorant,
+      ] as Array<string | undefined>
+    ).filter((id): id is string => Boolean(id));
 
     // If no game tags are configured yet, fall back to the legacy
     // text-based esports filter for now.
@@ -298,10 +325,16 @@ export async function getEsportsMarkets(
   }
 
   // Legacy / Builder path: use text-based esports detection.
-  return getMarkets({
+  const esportsMarkets = await getMarkets({
     ...params,
     esportsOnly: true,
   });
+
+  if (!params.gameSlug) {
+    return esportsMarkets;
+  }
+
+  return filterMarketsByGameSlug(esportsMarkets, params.gameSlug);
 }
 
 /**
@@ -529,6 +562,51 @@ function calculateTrendingScore(market: Market): number {
   }
 
   return Math.min(score, 1); // Cap at 1.0
+}
+
+/**
+ * Filters esports markets down to a specific game (cs2, lol, dota2, valorant)
+ * using keyword heuristics when we don't have Gamma game tags available.
+ */
+function filterMarketsByGameSlug(
+  markets: Market[],
+  gameSlug: string
+): Market[] {
+  const slug = gameSlug.toLowerCase();
+
+  const gameKeywords: Record<string, string[]> = {
+    cs2: ["cs2", "cs:go", "csgo", "counter-strike", "counter strike"],
+    lol: [
+      "league of legends",
+      "lol",
+      "lcs",
+      "lec",
+      "lpl",
+      "lck",
+      "worlds",
+      "msi",
+    ],
+    dota2: ["dota", "dota 2", "dota2", "the international", "ti"],
+    valorant: ["valorant", "vct", "champions", "masters"],
+  };
+
+  const keywords = gameKeywords[slug];
+  if (!keywords) {
+    return markets;
+  }
+
+  return markets.filter((market) => {
+    const category = market.category?.toLowerCase() || "";
+    const subcategory = market.subcategory?.toLowerCase() || "";
+    const question = market.question.toLowerCase();
+
+    return keywords.some(
+      (keyword) =>
+        category.includes(keyword) ||
+        subcategory.includes(keyword) ||
+        question.includes(keyword)
+    );
+  });
 }
 
 /**

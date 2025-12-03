@@ -9,11 +9,17 @@ import { groupMatchMarkets } from "../../lib/markets";
 // For real-time updates, use WebSocket or client-side polling (future enhancement)
 export const revalidate = 10; // Revalidate every 10 seconds
 
-async function getMarkets(includeResolved: boolean): Promise<Market[]> {
+async function getMarkets(
+  includeResolved: boolean,
+  game?: string
+): Promise<Market[]> {
   try {
     const url = new URL(`${API_CONFIG.baseUrl}/markets`);
     if (includeResolved) {
       url.searchParams.set("includeResolved", "true");
+    }
+    if (game) {
+      url.searchParams.set("game", game);
     }
 
     const response = await fetch(url.toString(), {
@@ -34,11 +40,12 @@ async function getMarkets(includeResolved: boolean): Promise<Market[]> {
 }
 
 export default async function MarketsPage(props: {
-  searchParams: Promise<{ includeResolved?: string }>;
+  searchParams: Promise<{ includeResolved?: string; game?: string }>;
 }) {
   const searchParams = await props.searchParams;
   const includeResolved = searchParams.includeResolved === "true";
-  const markets = await getMarkets(includeResolved);
+  const game = searchParams.game;
+  const markets = await getMarkets(includeResolved, game);
 
   const dotaMarkets = markets.filter((market) =>
     market.question.toLowerCase().includes("dota 2")
