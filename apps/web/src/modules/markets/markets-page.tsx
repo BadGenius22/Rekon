@@ -80,9 +80,10 @@ export async function MarketsPage(props: {
     <div className="min-h-screen bg-[#030711] text-white">
       <div className="min-h-screen bg-gradient-to-b from-[#050816] via-[#030711] to-black">
         <AppHeader />
-        <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-5 px-4 pb-10 pt-6 md:px-6 xl:px-10">
+        <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-5 px-4 pb-10 pt-4 md:px-6 xl:px-10">
           <div className="max-w-7xl mx-auto w-full">
-            <div className="mb-8">
+            {/* Sticky markets summary bar, offset below the global navbar (AppHeader h-16) */}
+            <div className="sticky top-16 z-10 mb-6 border-b border-white/5 bg-[#050816]/95 pb-4 pt-2 backdrop-blur">
               <div className="flex items-center gap-4 mb-3">
                 <h1 className="text-3xl font-bold text-white sm:text-4xl">
                   Markets
@@ -94,7 +95,7 @@ export async function MarketsPage(props: {
                   </span>
                 )}
               </div>
-              <p className="text-sm text-white/65 mb-6">
+              <p className="text-sm text-white/65 mb-4">
                 Professional trading terminal for prediction markets
               </p>
               <div className="flex flex-col gap-3">
@@ -182,13 +183,25 @@ export async function MarketsPage(props: {
             </div>
 
             {markets.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-foreground/60">No markets found</p>
+              <div className="flex justify-center py-16">
+                <div className="inline-flex max-w-md flex-col items-center gap-3 rounded-2xl border border-dashed border-white/15 bg-white/5 px-6 py-6 text-sm text-white/70">
+                  <p className="font-medium">No markets found for this filter.</p>
+                  <p className="text-xs text-white/55">
+                    Try switching game or status, or go back to all live esports markets.
+                  </p>
+                  <Link
+                    href="/markets"
+                    className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:border-white/40"
+                  >
+                    Back to all markets
+                    <span aria-hidden>↺</span>
+                  </Link>
+                </div>
               </div>
             ) : (
               <>
                 {categorized.cs2.length > 0 && (
-                  <section className="space-y-4 mb-12">
+                  <section className="space-y-4 mb-12 border-t border-white/5 pt-6">
                     <SectionHeader
                       title="CS2 Markets"
                       markets={categorized.cs2}
@@ -202,7 +215,7 @@ export async function MarketsPage(props: {
                 )}
 
                 {categorized.lol.length > 0 && (
-                  <section className="space-y-4 mb-12">
+                  <section className="space-y-4 mb-12 border-t border-white/5 pt-6">
                     <SectionHeader
                       title="League of Legends Markets"
                       markets={categorized.lol}
@@ -216,7 +229,7 @@ export async function MarketsPage(props: {
                 )}
 
                 {categorized.dota2.length > 0 && (
-                  <section className="space-y-4 mb-12">
+                  <section className="space-y-4 mb-12 border-t border-white/5 pt-6">
                     <SectionHeader
                       title="Dota 2 Markets"
                       markets={categorized.dota2}
@@ -230,7 +243,7 @@ export async function MarketsPage(props: {
                 )}
 
                 {categorized.valorant.length > 0 && (
-                  <section className="space-y-4 mb-12">
+                  <section className="space-y-4 mb-12 border-t border-white/5 pt-6">
                     <SectionHeader
                       title="Valorant Markets"
                       markets={categorized.valorant}
@@ -618,6 +631,11 @@ function MarketCard({
     ? getTimeBadge(market.createdAt, market.endDate)
     : undefined;
 
+  const volume24h = market.volume24h ?? 0;
+  const priceChange24h = market.priceChange24h ?? 0;
+  const hasPriceChange = priceChange24h !== 0;
+  const priceChangePct = priceChange24h * 100;
+
   return (
     <div
       className={`group border border-white/10 rounded-xl bg-[#121A30] hover:border-white/20 transition-all hover:shadow-[0_8px_24px_rgba(15,23,42,0.8)] ${
@@ -706,6 +724,27 @@ function MarketCard({
           </span>
           <OutcomeChip label={team2.name} value={team2.price} />
         </div>
+        {(volume24h > 0 || hasPriceChange) && (
+          <div className="mt-2 flex items-center justify-between text-[11px] text-white/55">
+            <span>
+              24h Vol{" "}
+              <span className="font-mono text-[11px] font-semibold text-emerald-300">
+                {formatVolume(volume24h)}
+              </span>
+            </span>
+            {hasPriceChange && (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 font-mono text-[11px] font-semibold",
+                  priceChangePct > 0 ? "text-emerald-400" : "text-red-400"
+                )}
+              >
+                <span aria-hidden>{priceChangePct > 0 ? "↑" : "↓"}</span>
+                <span>{Math.abs(priceChangePct).toFixed(2)}%</span>
+              </span>
+            )}
+          </div>
+        )}
       </div>
       <div className="mt-5 flex items-center justify-between text-xs text-white/60">
         <span className="inline-flex items-center gap-1.5">
