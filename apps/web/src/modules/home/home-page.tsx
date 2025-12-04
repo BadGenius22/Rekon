@@ -6,6 +6,9 @@ import { formatVolume } from "@rekon/utils";
 import { cn } from "@rekon/ui";
 import { AppHeader } from "@/components/app-header";
 import { HomePageClient } from "./home-page-client";
+import { PortfolioSnapshot } from "@/components/portfolio-snapshot";
+import { WatchlistPanel } from "@/components/watchlist-panel";
+import { RecentActivityPanel } from "@/components/recent-activity-panel";
 
 async function getHighlightedMarkets(): Promise<Market[]> {
   try {
@@ -164,77 +167,56 @@ export async function HomePage() {
           </section>
 
           {/* Right column panels */}
-          <aside className="w-full flex flex-col gap-4 md:w-72 shrink-0">
-            <Panel>
-              <PanelHeader title="Portfolio snapshot" action="Open terminal" />
-              <div className="space-y-4 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-white/65">Net exposure</span>
-                  <span className="font-mono text-sm font-semibold text-white">
-                    $12,430.25
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-white/55">Unrealized PnL</span>
-                  <span className="font-mono text-sm font-semibold text-emerald-400">
-                    +$1,023.15
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-white/55">Realized PnL (30d)</span>
-                  <span className="font-mono text-sm font-semibold text-emerald-300">
-                    +$3,210.88
-                  </span>
-                </div>
-                <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                <div className="flex items-center justify-between text-white/60">
-                  <span>Positions</span>
-                  <span className="font-mono text-xs">
-                    8 open • 23 lifetime
-                  </span>
-                </div>
-              </div>
-            </Panel>
+          <aside className="w-full flex flex-col gap-4 md:w-72 shrink-0 min-h-0">
+            <PortfolioSnapshot
+              netExposure={12430.25}
+              unrealizedPnL={1023.15}
+              realizedPnL={3210.88}
+              openPositions={8}
+              lifetimePositions={23}
+              action="Open terminal"
+            />
 
-            <Panel>
-              <PanelHeader title="Watchlist" action="View all" />
-              <div className="space-y-2.5 text-xs">
-                <WatchlistRow
-                  label="Will FaZe win the CS2 Major?"
-                  yesPrice={0.58}
-                  noPrice={0.42}
-                />
-                <WatchlistRow
-                  label="Will Gen.G win VCT Pacific?"
-                  yesPrice={0.47}
-                  noPrice={0.53}
-                />
-                <WatchlistRow
-                  label="Will Liquid qualify for playoffs?"
-                  yesPrice={0.66}
-                  noPrice={0.34}
-                />
-              </div>
-            </Panel>
+            <WatchlistPanel
+              items={[
+                {
+                  label: "Will FaZe win the CS2 Major?",
+                  yesPrice: 0.58,
+                  noPrice: 0.42,
+                },
+                {
+                  label: "Will Gen.G win VCT Pacific?",
+                  yesPrice: 0.47,
+                  noPrice: 0.53,
+                },
+                {
+                  label: "Will Liquid qualify for playoffs?",
+                  yesPrice: 0.66,
+                  noPrice: 0.34,
+                },
+              ]}
+              action="View all"
+            />
 
-            <Panel>
-              <PanelHeader title="Recent Activity" />
-              <div className="space-y-2.5 text-xs text-white/70">
-                <ActivityRow
-                  label="User filled 1.2k YES on CS2 Grand Final"
-                  meta="2m ago • $680 filled • 1.3% move"
-                  positive
-                />
-                <ActivityRow
-                  label="Large NO block on Valorant DRX semifinals"
-                  meta="9m ago • $3.4k filled • 4.8% move"
-                />
-                <ActivityRow
-                  label="Portfolio rebalance across Worlds futures"
-                  meta="21m ago • 6 markets touched"
-                />
-              </div>
-            </Panel>
+            <div className="flex-1 min-h-0 flex flex-col">
+              <RecentActivityPanel
+                items={[
+                  {
+                    label: "User filled 1.2k YES on CS2 Grand Final",
+                    meta: "2m ago • $680 filled • 1.3% move",
+                    positive: true,
+                  },
+                  {
+                    label: "Large NO block on Valorant DRX semifinals",
+                    meta: "9m ago • $3.4k filled • 4.8% move",
+                  },
+                  {
+                    label: "Portfolio rebalance across Worlds futures",
+                    meta: "21m ago • 6 markets touched",
+                  },
+                ]}
+              />
+            </div>
           </aside>
         </div>
       </div>
@@ -243,80 +225,6 @@ export async function HomePage() {
 }
 
 
-function Panel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-[#0C1224] p-5 shadow-[0_8px_24px_rgba(15,23,42,0.8)]">
-      {children}
-    </div>
-  );
-}
-
-function PanelHeader({ title, action }: { title: string; action?: string }) {
-  return (
-    <div className="mb-4 flex items-center justify-between">
-      <span className="text-sm font-semibold text-white/80">{title}</span>
-      {action ? (
-        <button className="text-xs font-medium text-[#3B82F6] transition-colors hover:text-[#60A5FA]">
-          {action}
-        </button>
-      ) : null}
-    </div>
-  );
-}
-
-
-function WatchlistRow({
-  label,
-  yesPrice,
-  noPrice,
-}: {
-  label: string;
-  yesPrice: number;
-  noPrice: number;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-[#090E1C] px-3.5 py-2.5 transition-colors hover:border-white/15 hover:bg-white/5">
-      <div className="flex-1 text-xs">
-        <div className="line-clamp-1 font-medium text-white/80">{label}</div>
-        <div className="mt-1.5 flex items-center gap-3 text-[11px] text-white/55">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            YES {(yesPrice * 100).toFixed(0)}%
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
-            NO {(noPrice * 100).toFixed(0)}%
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ActivityRow({
-  label,
-  meta,
-  positive,
-}: {
-  label: string;
-  meta: string;
-  positive?: boolean;
-}) {
-  return (
-    <div className="rounded-lg border border-white/10 bg-[#050816] px-3 py-2.5 transition-colors hover:border-white/15 hover:bg-white/5">
-      <div className="flex items-center gap-2 text-xs">
-        <span
-          className={cn(
-            "h-1.5 w-1.5 shrink-0 rounded-full",
-            positive ? "bg-emerald-400" : "bg-sky-400"
-          )}
-        />
-        <span className="line-clamp-1 text-white/80">{label}</span>
-      </div>
-      <div className="mt-1.5 pl-3.5 text-[11px] text-white/50">{meta}</div>
-    </div>
-  );
-}
 
 function GameVolumeItem({ game, volume }: { game: string; volume: number }) {
   return (
