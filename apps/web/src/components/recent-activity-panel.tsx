@@ -7,9 +7,9 @@ interface RecentActivityPanelProps {
 
 export function RecentActivityPanel({ items }: RecentActivityPanelProps) {
   return (
-    <Panel className="flex-1 flex flex-col min-h-0">
+    <Panel className="flex flex-col h-full">
       <PanelHeader title="Recent Activity" />
-      <div className="flex-1 min-h-0 flex flex-col justify-start gap-2.5 text-xs text-white/70">
+      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col justify-start gap-2.5 text-xs text-white/70 pr-1">
         {items.map((item) => (
           <ActivityRow
             key={item.id}
@@ -32,8 +32,13 @@ function ActivityRow({
   meta: string;
   positive?: boolean;
 }) {
+  const metaParts = meta
+    .split("•")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
   return (
-    <div className="flex flex-col justify-center rounded-lg border border-white/10 bg-[#050816] px-3 py-2.5 transition-colors hover:border-white/15 hover:bg-white/5">
+    <div className="flex flex-col justify-center rounded-lg border border-white/10 bg-gradient-to-r from-white/5 via-[#050816] to-transparent px-3 py-2.5 shadow-[0_4px_16px_rgba(15,23,42,0.6)] transition-colors hover:border-white/20 hover:from-emerald-500/10 hover:via-[#050816] hover:to-sky-500/10">
       <div className="flex items-center gap-2 text-[11px] leading-snug">
         <span
           className={cn(
@@ -41,9 +46,21 @@ function ActivityRow({
             positive ? "bg-emerald-400" : "bg-sky-400"
           )}
         />
-        <span className="line-clamp-2 text-white/80">{label}</span>
+        <span className="line-clamp-2 text-[11px] font-medium text-white/85">
+          {label}
+        </span>
       </div>
-      <div className="mt-1.5 pl-3.5 text-[11px] text-white/50">{meta}</div>
+      <div className="mt-1.5 pl-3.5 flex flex-wrap gap-1.5 text-[11px] text-white/60">
+        {metaParts.map((part, index) => (
+          <span
+            // eslint-disable-next-line react/no-array-index-key
+            key={index}
+            className="inline-flex items-center rounded-full bg-white/5 px-2 py-0.5"
+          >
+            {part}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

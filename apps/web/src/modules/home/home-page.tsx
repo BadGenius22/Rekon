@@ -1,14 +1,12 @@
 import Link from "next/link";
 import { TrendingUp, ArrowRight } from "lucide-react";
-import type { Market, Activity, Portfolio } from "@rekon/types";
+import type { Market } from "@rekon/types";
 import { API_CONFIG } from "@rekon/config";
 import { formatVolume } from "@rekon/utils";
 import { cn } from "@rekon/ui";
 import { AppHeader } from "@/components/app-header";
 import { HomePageClient } from "./home-page-client";
-import { PortfolioSnapshot } from "@/components/portfolio-snapshot";
 import { WatchlistPanel } from "@/components/watchlist-panel";
-import { RecentActivityPanel } from "@/components/recent-activity-panel";
 
 async function getHighlightedMarkets(): Promise<Market[]> {
   try {
@@ -37,75 +35,8 @@ async function getHighlightedMarkets(): Promise<Market[]> {
   }
 }
 
-async function getRecentActivity(): Promise<Activity[]> {
-  try {
-    // For now, use hardcoded address. Later, this will be replaced with connected wallet
-    const userAddress = "0x14ac84b66a27fc30e56ed620ebfa61cd8105cb21";
-    const url = new URL(`${API_CONFIG.baseUrl}/activity`);
-    url.searchParams.set("user", userAddress);
-    // Let the API use its own default limit (currently 100) so we get a full
-    // window of recent activity and only limit in the UI layer.
-    url.searchParams.set("sortBy", "TIMESTAMP");
-    url.searchParams.set("sortDirection", "DESC");
-    // Fetch all activity here and apply a focused esports filter in the
-    // homepage module so we have full control over what appears.
-    url.searchParams.set("esportsOnly", "false");
-
-    const response = await fetch(url.toString(), {
-      // Cache for 10 seconds, then revalidate in the background.
-      next: { revalidate: 10 },
-    });
-
-    if (!response.ok) {
-      console.warn("Failed to fetch recent activity:", response.status);
-      return [];
-    }
-
-    const data = (await response.json()) as { data: Activity[]; count: number };
-    return data.data || [];
-  } catch (error) {
-    console.warn("Failed to fetch recent activity:", error);
-    return [];
-  }
-}
-
-async function getPortfolio(): Promise<Portfolio | null> {
-  try {
-    // For now, use hardcoded address. Later, this will be replaced with connected wallet
-    const userAddress = "0x14ac84b66a27fc30e56ed620ebfa61cd8105cb21";
-    const url = new URL(`${API_CONFIG.baseUrl}/portfolio`);
-    url.searchParams.set("user", userAddress);
-    // Request esports-only scope so all metrics in the snapshot card
-    // (net exposure, PnL, open & lifetime positions) share the same scope.
-    url.searchParams.set("scope", "esports");
-
-    const response = await fetch(url.toString(), {
-      // Cache for 10 seconds, then revalidate in the background.
-      next: { revalidate: 10 },
-    });
-
-    if (!response.ok) {
-      console.warn("Failed to fetch portfolio:", response.status);
-      return null;
-    }
-
-    const portfolio = (await response.json()) as Portfolio;
-    return portfolio;
-  } catch (error) {
-    console.warn("Failed to fetch portfolio:", error);
-    return null;
-  }
-}
-
 export async function HomePage() {
   const markets = await getHighlightedMarkets();
-  const activities = await getRecentActivity();
-  const portfolio = await getPortfolio();
-  // Filter activities down to esports-only and cap at 3 rows for the panel.
-  const esportsActivities = activities.filter(
-    (activity) => activity.isEsports === true || isEsportsQuestion(activity)
-  );
-  const recentEsportsActivities = esportsActivities.slice(0, 3);
   const liveMarketsCount = markets.length;
   const totalVolume = markets.reduce(
     (sum, market) => sum + (market.volume24h ?? market.volume ?? 0),
@@ -232,16 +163,8 @@ export async function HomePage() {
             <HomePageClient markets={markets} gameCounts={gameCounts} />
           </section>
 
-          {/* Right column panels */}
+          {/* Right column panels – public, no wallet required */}
           <aside className="w-full flex flex-col gap-4 md:w-72 shrink-0 min-h-0">
-            <PortfolioSnapshot
-              netExposure={portfolio?.totalValue ?? 0}
-              totalPnL={portfolio?.totalPnL ?? 0}
-              openPositions={portfolio?.openPositions ?? 0}
-              lifetimePositions={portfolio?.lifetimePositions ?? 0}
-              action="Open portfolio"
-            />
-
             <WatchlistPanel
               items={[
                 {
@@ -262,67 +185,11 @@ export async function HomePage() {
               ]}
               action="View all"
             />
-
-            <div className="flex-1 min-h-0 flex flex-col">
-              <RecentActivityPanel items={recentEsportsActivities} />
-            </div>
           </aside>
         </div>
       </div>
     </main>
   );
-}
-
-function isEsportsQuestion(activity: Activity): boolean {
-  const question = (
-    activity.marketQuestion ||
-    activity.label ||
-    ""
-  ).toLowerCase();
-
-  const esportsKeywords = [
-    // General esports / gaming
-    "esports",
-    "e-sports",
-    "gaming",
-    "competitive gaming",
-    "pro gaming",
-    // League of Legends
-    "league of legends",
-    "lol",
-    "lcs",
-    "lec",
-    "lpl",
-    "lck",
-    "worlds",
-    "msi",
-    "riot games",
-    // Dota 2
-    "dota",
-    "dota 2",
-    "dota2",
-    "the international",
-    "ti",
-    "valve",
-    // Counter-Strike / CS2
-    "csgo",
-    "cs:go",
-    "cs2",
-    "counter-strike",
-    "counter strike",
-    "cs go",
-    "cs 2",
-    "iem",
-    "blast",
-    "esl",
-    // Valorant
-    "valorant",
-    "vct",
-    "champions",
-    "masters",
-  ];
-
-  return esportsKeywords.some((keyword) => question.includes(keyword));
 }
 
 function GameVolumeItem({ game, volume }: { game: string; volume: number }) {

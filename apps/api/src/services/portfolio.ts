@@ -281,7 +281,22 @@ export async function getPortfolioBySession(
     if (allFills.length > 0) {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      realizedPnL30d = calculateRealizedPnLFromFills(allFills, thirtyDaysAgo);
+
+      // When scope is "esports", restrict realized PnL to fills from esports
+      // markets only, using the same scoped conditionIds that we use for
+      // lifetimePositions and positionsForScope.
+      const conditionIdsForScope = new Set(
+        positionsForScope.map((pos) => pos.conditionId)
+      );
+      const scopedFills =
+        scope === "esports"
+          ? allFills.filter((fill) => conditionIdsForScope.has(fill.marketId))
+          : allFills;
+
+      realizedPnL30d = calculateRealizedPnLFromFills(
+        scopedFills,
+        thirtyDaysAgo
+      );
     } else {
       // Fallback: use activity API to calculate 30-day realized PnL
       try {
@@ -292,6 +307,13 @@ export async function getPortfolioBySession(
           sortBy: "TIMESTAMP",
           sortDirection: "ASC", // Oldest first to process chronologically
         });
+
+        // Apply esports scope here as well so that 30-day realized PnL is
+        // consistent with the rest of the esports portfolio metrics.
+        const scopedActivities =
+          scope === "esports"
+            ? pmActivities.filter(isEsportsActivity)
+            : pmActivities;
 
         // Filter activities from last 30 days (for sells that closed positions)
         const thirtyDaysAgo = new Date();
@@ -320,7 +342,7 @@ export async function getPortfolioBySession(
         >();
 
         // Process all activities chronologically
-        for (const activity of pmActivities) {
+        for (const activity of scopedActivities) {
           const key = `${activity.conditionId}-${activity.outcome}`;
           if (!positionMap.has(key)) {
             positionMap.set(key, { buys: [], sells: [] });
@@ -485,7 +507,35 @@ export async function getPortfolioBySession(
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const realizedPnL30d = calculateRealizedPnLFromFills(allFills, thirtyDaysAgo);
+  // When scope is "esports", restrict realized PnL to fills from esports
+  // markets only by leveraging esports activity detection to infer which
+  // conditionIds are esports-related.
+  let scopedFills = allFills;
+  if (scope === "esports" && allFills.length > 0) {
+    try {
+      const pmActivities = await fetchPolymarketActivity(walletAddress, {
+        limit: 50000,
+        sortBy: "TIMESTAMP",
+        sortDirection: "ASC",
+      });
+      const esportsActivities = pmActivities.filter(isEsportsActivity);
+      const esportsConditionIds = new Set(
+        esportsActivities
+          .map((a) => a.conditionId)
+          .filter((id): id is string => Boolean(id))
+      );
+      scopedFills = allFills.filter((fill) =>
+        esportsConditionIds.has(fill.marketId)
+      );
+    } catch (error) {
+      console.error(
+        "[Portfolio] Error fetching activity for esports 30d PnL scope:",
+        error
+      );
+    }
+  }
+
+  const realizedPnL30d = calculateRealizedPnLFromFills(scopedFills, thirtyDaysAgo);
 
   // Calculate lifetime positions count
   // Count unique market+outcome combinations that had a positive net position at some point
