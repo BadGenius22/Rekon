@@ -43,9 +43,13 @@ async function getRecentActivity(): Promise<Activity[]> {
     const userAddress = "0x14ac84b66a27fc30e56ed620ebfa61cd8105cb21";
     const url = new URL(`${API_CONFIG.baseUrl}/activity`);
     url.searchParams.set("user", userAddress);
-    url.searchParams.set("limit", "3");
+    // Let the API use its own default limit (currently 100) so we get a full
+    // window of recent activity and only limit in the UI layer.
     url.searchParams.set("sortBy", "TIMESTAMP");
     url.searchParams.set("sortDirection", "DESC");
+    // Fetch all activity here and apply a focused esports filter in the
+    // homepage module so we have full control over what appears.
+    url.searchParams.set("esportsOnly", "false");
 
     const response = await fetch(url.toString(), {
       // Cache for 10 seconds, then revalidate in the background.
@@ -97,6 +101,11 @@ export async function HomePage() {
   const markets = await getHighlightedMarkets();
   const activities = await getRecentActivity();
   const portfolio = await getPortfolio();
+  // Filter activities down to esports-only and cap at 3 rows for the panel.
+  const esportsActivities = activities.filter(
+    (activity) => activity.isEsports === true || isEsportsQuestion(activity)
+  );
+  const recentEsportsActivities = esportsActivities.slice(0, 3);
   const liveMarketsCount = markets.length;
   const totalVolume = markets.reduce(
     (sum, market) => sum + (market.volume24h ?? market.volume ?? 0),
@@ -255,13 +264,65 @@ export async function HomePage() {
             />
 
             <div className="flex-1 min-h-0 flex flex-col">
-              <RecentActivityPanel items={activities} />
+              <RecentActivityPanel items={recentEsportsActivities} />
             </div>
           </aside>
         </div>
       </div>
     </main>
   );
+}
+
+function isEsportsQuestion(activity: Activity): boolean {
+  const question = (
+    activity.marketQuestion ||
+    activity.label ||
+    ""
+  ).toLowerCase();
+
+  const esportsKeywords = [
+    // General esports / gaming
+    "esports",
+    "e-sports",
+    "gaming",
+    "competitive gaming",
+    "pro gaming",
+    // League of Legends
+    "league of legends",
+    "lol",
+    "lcs",
+    "lec",
+    "lpl",
+    "lck",
+    "worlds",
+    "msi",
+    "riot games",
+    // Dota 2
+    "dota",
+    "dota 2",
+    "dota2",
+    "the international",
+    "ti",
+    "valve",
+    // Counter-Strike / CS2
+    "csgo",
+    "cs:go",
+    "cs2",
+    "counter-strike",
+    "counter strike",
+    "cs go",
+    "cs 2",
+    "iem",
+    "blast",
+    "esl",
+    // Valorant
+    "valorant",
+    "vct",
+    "champions",
+    "masters",
+  ];
+
+  return esportsKeywords.some((keyword) => question.includes(keyword));
 }
 
 function GameVolumeItem({ game, volume }: { game: string; volume: number }) {

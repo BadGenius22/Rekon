@@ -9,7 +9,7 @@ export function RecentActivityPanel({ items }: RecentActivityPanelProps) {
   return (
     <Panel className="flex-1 flex flex-col min-h-0">
       <PanelHeader title="Recent Activity" />
-      <div className="flex-1 min-h-0 flex flex-col justify-start space-y-2.5 text-xs text-white/70">
+      <div className="flex-1 min-h-0 flex flex-col justify-start gap-2.5 text-xs text-white/70">
         {items.map((item) => (
           <ActivityRow
             key={item.id}
@@ -33,15 +33,15 @@ function ActivityRow({
   positive?: boolean;
 }) {
   return (
-    <div className="rounded-lg border border-white/10 bg-[#050816] px-3 py-2.5 transition-colors hover:border-white/15 hover:bg-white/5">
-      <div className="flex items-center gap-2 text-xs">
+    <div className="flex flex-col justify-center rounded-lg border border-white/10 bg-[#050816] px-3 py-2.5 transition-colors hover:border-white/15 hover:bg-white/5">
+      <div className="flex items-center gap-2 text-[11px] leading-snug">
         <span
           className={cn(
             "h-1.5 w-1.5 shrink-0 rounded-full",
             positive ? "bg-emerald-400" : "bg-sky-400"
           )}
         />
-        <span className="line-clamp-1 text-white/80">{label}</span>
+        <span className="line-clamp-2 text-white/80">{label}</span>
       </div>
       <div className="mt-1.5 pl-3.5 text-[11px] text-white/50">{meta}</div>
     </div>

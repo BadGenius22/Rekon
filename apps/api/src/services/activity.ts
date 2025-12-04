@@ -48,24 +48,49 @@ export function isEsportsActivity(activity: PolymarketActivityItem): boolean {
     /^vct-/,
   ];
 
-  // Esports keywords in title (only for the 4 main games)
+  // Esports keywords in title; aligned with the broader esports detection
+  // used in the markets service so that tournaments like IEM / BLAST / ESL
+  // are also recognized even if "cs2" or "dota" are not explicitly present.
   const esportsKeywords = [
-    // Counter-Strike
-    "counter-strike",
-    "counter strike",
-    "cs2",
-    "cs:go",
-    "csgo",
+    // General esports / gaming
+    "esports",
+    "e-sports",
+    "gaming",
+    "competitive gaming",
+    "pro gaming",
     // League of Legends
     "league of legends",
     "lol",
+    "lcs",
+    "lec",
+    "lpl",
+    "lck",
+    "worlds",
+    "msi",
+    "riot games",
     // Dota 2
+    "dota",
     "dota 2",
     "dota2",
-    "dota",
+    "the international",
+    "ti",
+    "valve",
+    // Counter-Strike / CS2
+    "csgo",
+    "cs:go",
+    "cs2",
+    "counter-strike",
+    "counter strike",
+    "cs go",
+    "cs 2",
+    "iem",
+    "blast",
+    "esl",
     // Valorant
     "valorant",
     "vct",
+    "champions",
+    "masters",
   ];
 
   // Check slug patterns
@@ -109,11 +134,26 @@ export async function getActivity(
     ? pmActivities.filter(isEsportsActivity)
     : pmActivities;
 
-  // Take only the requested limit after filtering
-  const limitedActivities = filteredActivities.slice(0, limit);
+  // If we asked for esports-only activity but our heuristic did not match
+  // anything, fall back to unfiltered activity so the UI does not look empty
+  // for wallets that do have recent trades.
+  const effectiveActivities =
+    esportsOnly && filteredActivities.length === 0
+      ? pmActivities
+      : filteredActivities;
 
-  // Map to normalized Activity type
-  const activities = limitedActivities.map(mapPolymarketActivity);
+  // Take only the requested limit after filtering
+  const limitedActivities = effectiveActivities.slice(0, limit);
+
+  // Map to normalized Activity type and annotate esports flag so that
+  // frontends can reliably distinguish esports vs non-esports activity.
+  const activities = limitedActivities.map((pmActivity) => {
+    const base = mapPolymarketActivity(pmActivity);
+    return {
+      ...base,
+      isEsports: isEsportsActivity(pmActivity),
+    };
+  });
 
   return activities;
 }

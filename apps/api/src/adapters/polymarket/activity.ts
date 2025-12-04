@@ -132,15 +132,16 @@ export function mapPolymarketActivity(
   // Convert Unix timestamp (seconds) to ISO string
   const timestamp = new Date(pmActivity.timestamp * 1000).toISOString();
 
-  // Build label - use outcome name and side
+  // Build label – focus on the market/question so it reads well in tight UI.
+  const label = pmActivity.title;
+
+  // Build meta – concise trade summary + time ago.
   const sideLabel = pmActivity.side === "BUY" ? "YES" : "NO";
   const amountFormatted =
     pmActivity.usdcSize >= 1000
       ? `${(pmActivity.usdcSize / 1000).toFixed(1)}k`
       : pmActivity.usdcSize.toFixed(0);
-  const label = `User filled ${amountFormatted} ${sideLabel} on ${pmActivity.title}`;
 
-  // Build meta
   const metaParts: string[] = [];
   
   // Time ago
@@ -162,12 +163,12 @@ export function mapPolymarketActivity(
   }
   metaParts.push(timeAgo);
 
-  // Amount filled
+  // Amount + side
   const amountFormattedMeta =
     pmActivity.usdcSize >= 1000
       ? `$${(pmActivity.usdcSize / 1000).toFixed(1)}k`
       : `$${pmActivity.usdcSize.toFixed(0)}`;
-  metaParts.push(`${amountFormattedMeta} filled`);
+  metaParts.push(`${sideLabel} • ${amountFormattedMeta} filled`);
 
   // Price change (we don't have this in the API response, so we'll skip it)
   // If we had price change data, we could add it here

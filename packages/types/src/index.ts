@@ -166,6 +166,9 @@ export interface Activity {
   amount?: number;
   price?: number;
   priceChange?: number;
+  // Optional esports flag – set by backend when the underlying market is
+  // detected as one of the core esports (CS2, LoL, Dota 2, Valorant).
+  isEsports?: boolean;
 }
 
 // Fill types
