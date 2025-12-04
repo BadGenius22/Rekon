@@ -35,11 +35,13 @@ export function HomePageClient({
       />
 
       {/* Markets grid */}
-      <MarketGrid
-        markets={markets}
-        gameFilter={gameFilter}
-        sortOption={sortOption}
-      />
+      <div className="mt-4">
+        <MarketGrid
+          markets={markets}
+          gameFilter={gameFilter}
+          sortOption={sortOption}
+        />
+      </div>
     </div>
   );
 }

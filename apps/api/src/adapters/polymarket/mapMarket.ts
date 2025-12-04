@@ -13,9 +13,21 @@ import type { PolymarketMarket } from "./types";
  * - Selecting the best image URL
  */
 export function mapPolymarketMarket(pmMarket: PolymarketMarket): Market {
-  // Parse outcomes from comma-separated string
+  // Parse outcomes from JSON string or comma-separated string
   const outcomeNames = parseOutcomes(pmMarket.outcomes);
   const outcomePrices = parseOutcomePrices(pmMarket.outcomePrices);
+
+  // Debug: log if prices are missing or zero
+  if (outcomePrices.length === 0 || outcomePrices.every((p) => p === 0)) {
+    console.warn("No prices parsed for market:", {
+      marketId: pmMarket.id,
+      question: pmMarket.question,
+      outcomesRaw: pmMarket.outcomes,
+      outcomePricesRaw: pmMarket.outcomePrices,
+      outcomeNames,
+      outcomePrices,
+    });
+  }
 
   // Parse outcome tokens from clobTokenIds (comma-separated)
   const outcomeTokens = pmMarket.clobTokenIds
@@ -29,9 +41,12 @@ export function mapPolymarketMarket(pmMarket: PolymarketMarket): Market {
   const outcomes: MarketOutcome[] = outcomeNames.map((name, index) => {
     const price = outcomePrices[index] ?? 0;
     const tokenAddress = outcomeTokens?.[index];
+    // Clean the name: remove quotes, brackets, and trim
+    let cleanedName = name.trim();
+    cleanedName = cleanedName.replace(/^["'\[]+|["'\]]+$/g, '').trim();
     return {
       id: `${pmMarket.conditionId}-${index}`,
-      name: name.trim(),
+      name: cleanedName,
       price,
       volume: 0, // Volume per outcome not available in raw response
       tokenAddress,
@@ -161,18 +176,46 @@ export function mapPolymarketMarket(pmMarket: PolymarketMarket): Market {
 }
 
 /**
- * Parses comma-separated outcomes string into array of outcome names.
- * Handles various formats Polymarket might use.
+ * Parses outcomes string into array of outcome names.
+ * Handles JSON array format (e.g., "[\"EYEBALLERS\", \"BetBoom Team\"]") and comma-separated format.
  */
 function parseOutcomes(outcomesStr: string): string[] {
   if (!outcomesStr || typeof outcomesStr !== "string") {
     return ["Yes", "No"]; // Default binary market outcomes
   }
 
-  // Split by comma and clean up
+  // Try parsing as JSON array first (e.g., "[\"EYEBALLERS\", \"BetBoom Team\"]")
+  try {
+    const parsed = JSON.parse(outcomesStr);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((outcome) => {
+          // Convert to string and clean up quotes and brackets
+          let cleaned = String(outcome).trim();
+          // Remove surrounding quotes if present
+          if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || 
+              (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+            cleaned = cleaned.slice(1, -1);
+          }
+          // Remove brackets if somehow included
+          cleaned = cleaned.replace(/^\[|\]$/g, '');
+          return cleaned.trim();
+        })
+        .filter((outcome) => outcome.length > 0);
+    }
+  } catch {
+    // Not JSON, fall through to comma-separated parsing
+  }
+
+  // Fallback: Split by comma and clean up
   return outcomesStr
     .split(",")
-    .map((outcome) => outcome.trim())
+    .map((outcome) => {
+      let cleaned = outcome.trim();
+      // Remove surrounding quotes and brackets
+      cleaned = cleaned.replace(/^["'\[]+|["'\]]+$/g, '');
+      return cleaned.trim();
+    })
     .filter((outcome) => outcome.length > 0);
 }
 
@@ -185,6 +228,22 @@ function parseOutcomePrices(pricesStr: string): number[] {
     return [];
   }
 
+  // Try parsing as JSON array first (e.g., "[\"0.39\", \"0.61\"]")
+  try {
+    const parsed = JSON.parse(pricesStr);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((price) => {
+          const num = typeof price === "string" ? parseFloat(price) : price;
+          return isNaN(num) ? 0 : Math.max(0, Math.min(1, num)); // Clamp to [0, 1]
+        })
+        .filter((price) => !isNaN(price));
+    }
+  } catch {
+    // Not JSON, fall through to comma-separated parsing
+  }
+
+  // Fallback: parse as comma-separated string
   return pricesStr
     .split(",")
     .map((price) => {
