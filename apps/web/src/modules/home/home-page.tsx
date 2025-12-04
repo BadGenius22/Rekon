@@ -70,6 +70,34 @@ export async function HomePage() {
     0
   );
 
+  // Calculate volume per game
+  const gameVolumes = {
+    cs2: markets
+      .filter((m) => m.game === "cs2")
+      .reduce(
+        (sum, market) => sum + (market.volume24h ?? market.volume ?? 0),
+        0
+      ),
+    lol: markets
+      .filter((m) => m.game === "lol")
+      .reduce(
+        (sum, market) => sum + (market.volume24h ?? market.volume ?? 0),
+        0
+      ),
+    dota2: markets
+      .filter((m) => m.game === "dota2")
+      .reduce(
+        (sum, market) => sum + (market.volume24h ?? market.volume ?? 0),
+        0
+      ),
+    valorant: markets
+      .filter((m) => m.game === "valorant")
+      .reduce(
+        (sum, market) => sum + (market.volume24h ?? market.volume ?? 0),
+        0
+      ),
+  };
+
   return (
     <main className="min-h-screen bg-[#030711] text-white">
       {/* App shell background */}
@@ -166,7 +194,7 @@ export async function HomePage() {
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-col gap-2 rounded-2xl bg-black/15 p-3 text-xs text-white/85 backdrop-blur-sm md:mt-0 md:w-64">
+                <div className="mt-4 flex flex-col gap-3 rounded-2xl bg-black/15 p-4 text-xs text-white/85 backdrop-blur-sm md:mt-0 md:w-72">
                   <div className="flex items-center justify-between text-[11px] text-white/70">
                     <span>24h Volume</span>
                     <span className="font-mono font-semibold text-emerald-300">
@@ -178,6 +206,21 @@ export async function HomePage() {
                     <span className="font-mono font-semibold">
                       {liveMarketsCount}
                     </span>
+                  </div>
+                  <div className="h-px bg-white/10" />
+                  <div className="space-y-2">
+                    <div className="text-[10px] font-medium text-white/60 uppercase tracking-wider">
+                      Volume by Game
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <GameVolumeItem game="CS2" volume={gameVolumes.cs2} />
+                      <GameVolumeItem game="LoL" volume={gameVolumes.lol} />
+                      <GameVolumeItem game="Dota2" volume={gameVolumes.dota2} />
+                      <GameVolumeItem
+                        game="Valorant"
+                        volume={gameVolumes.valorant}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -530,4 +573,13 @@ function ActivityRow({
   );
 }
 
-
+function GameVolumeItem({ game, volume }: { game: string; volume: number }) {
+  return (
+    <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-2 py-1.5">
+      <span className="text-[10px] font-medium text-white/70">{game}</span>
+      <span className="font-mono text-[10px] font-semibold text-emerald-300">
+        {formatVolume(volume)}
+      </span>
+    </div>
+  );
+}

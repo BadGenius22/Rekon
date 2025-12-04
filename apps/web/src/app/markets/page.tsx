@@ -49,6 +49,13 @@ export default async function MarketsPage(props: {
   const game = searchParams.game;
   const markets = await getMarkets(includeResolved, game);
 
+  // Calculate totals (same as home page)
+  const liveMarketsCount = markets.length;
+  const total24hVolume = markets.reduce(
+    (sum, market) => sum + (market.volume24h ?? market.volume ?? 0),
+    0
+  );
+
   // Debug: Log CS2 markets specifically
   if (process.env.NODE_ENV === "development") {
     const cs2Markets = markets.filter((m) => m.game === "cs2");
@@ -143,16 +150,34 @@ export default async function MarketsPage(props: {
             {markets.length > 0 && (
               <span className="inline-flex items-center gap-2 rounded-full bg-neon-cyan/10 border border-neon-cyan/30 px-3 py-1 text-sm font-semibold text-neon-cyan">
                 <span className="h-2 w-2 rounded-full bg-neon-cyan animate-pulse" />
-                {markets.length} live
+                {liveMarketsCount} live
               </span>
             )}
           </div>
           <p className="text-foreground/60">
             Professional trading terminal for prediction markets
           </p>
-          <div className="mt-4 text-sm text-foreground/60">
-            Showing live esports game markets (matches/maps) across CS2, LoL,
-            Dota 2, and Valorant.
+          <div className="mt-4 flex items-center gap-4 text-sm">
+            <div className="text-foreground/60">
+              Showing live esports game markets (matches/maps) across CS2, LoL,
+              Dota 2, and Valorant.
+            </div>
+            {markets.length > 0 && (
+              <div className="flex items-center gap-4 text-xs">
+                <div className="flex items-center gap-2 rounded-full bg-foreground/5 border border-foreground/10 px-3 py-1.5">
+                  <span className="text-foreground/60">24h Volume</span>
+                  <span className="font-mono font-semibold text-neon-cyan">
+                    {formatVolume(total24hVolume)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 rounded-full bg-foreground/5 border border-foreground/10 px-3 py-1.5">
+                  <span className="text-foreground/60">Live Markets</span>
+                  <span className="font-mono font-semibold text-neon-cyan">
+                    {liveMarketsCount}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
           {/* Debug info - remove in production */}
           {process.env.NODE_ENV === "development" && (
