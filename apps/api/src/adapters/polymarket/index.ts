@@ -92,3 +92,11 @@ export {
 
 // Export fills functions
 export { fetchUserFills } from "./fills";
+
+// Export activity functions
+export {
+  fetchPolymarketActivity,
+  mapPolymarketActivity,
+  type PolymarketActivityItem,
+  type PolymarketActivityResponse,
+} from "./activity";

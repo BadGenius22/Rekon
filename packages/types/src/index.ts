@@ -98,131 +98,69 @@ export interface Order {
   triggerPrice?: number; // For stop-loss and take-profit orders
 }
 
-export interface OrderBookEntry {
-  price: number;
-  amount: number;
-  total: number;
-}
-
-export interface OrderBook {
-  bids: OrderBookEntry[];
-  asks: OrderBookEntry[];
-}
-
 // Trade types
 export interface Trade {
   id: string;
   marketId: string;
   outcome: string;
-  side: "buy" | "sell";
+  side: "yes" | "no";
   price: number;
   amount: number;
   timestamp: string;
-  taker: string;
-  maker: string;
+  taker: string; // Taker wallet address
+  maker: string; // Maker wallet address
+  txHash?: string; // Transaction hash
+  blockNumber?: number; // Block number
+}
+
+// OrderBook types
+export interface OrderBookEntry {
+  price: number;
+  size: number;
+}
+
+export interface OrderBook {
+  bids: OrderBookEntry[];
+  asks: OrderBookEntry[];
+  marketId: string;
+  lastUpdate?: string;
 }
 
 // Position types
-export type RiskRating = "low" | "medium" | "high" | "very-high";
-
 export interface Position {
   id: string;
   marketId: string;
-  market: Market;
   outcome: string;
   side: "yes" | "no";
-  size: number;
-  entryPrice: number;
-  currentPrice: number;
-  unrealizedPnL: number;
-  realizedPnL: number;
+  size: number; // Position size (positive = long, negative = short)
+  averagePrice: number; // Average entry price
+  unrealizedPnL: number; // Current unrealized profit/loss
+  realizedPnL: number; // Realized profit/loss from closed positions
   createdAt: string;
-  // Advanced trader analytics
-  averageEntryPrice: number; // Average entry price across multiple fills
-  maxFavorableExcursion: number; // MFE: Highest unrealized profit during position lifetime
-  maxAdverseExcursion: number; // MAE: Worst unrealized loss during position lifetime
-  currentExposure: number; // Total value at risk (size * currentPrice)
-  winProbability: number; // Probability of profit based on current price (0-1)
-  riskRating: RiskRating; // Risk assessment: low, medium, high, very-high
+  updatedAt: string;
 }
 
 // Portfolio types
 export interface Portfolio {
   totalValue: number;
-  availableBalance: number;
-  positions: Position[];
   totalPnL: number;
-  totalRealizedPnL: number;
   totalUnrealizedPnL: number;
+  totalRealizedPnL: number;
+  positions: Position[];
 }
 
-// Chart types
-export interface OHLCV {
-  timestamp: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
-
-export interface ChartData {
-  marketId: string;
-  timeframe: "1m" | "5m" | "15m" | "1h" | "4h" | "1d";
-  data: OHLCV[];
-}
-
-// WebSocket message types
-export type WebSocketMessage =
-  | { type: "price"; marketId: string; outcome: string; price: number }
-  | { type: "trade"; trade: Trade }
-  | { type: "orderbook"; marketId: string; orderbook: OrderBook }
-  | { type: "order"; order: Order }
-  | { type: "position"; position: Position };
-
-// Notification types
-export type NotificationType =
-  | "order_filled"
-  | "order_partially_filled"
-  | "order_failed"
-  | "position_in_profit"
-  | "position_closed"
-  | "new_market"
-  | "system";
-
-export type NotificationStatus = "unread" | "read";
-
-export interface Notification {
+// Activity types
+export interface Activity {
   id: string;
-  sessionId: string;
-  userId?: string;
-  type: NotificationType;
-  title: string;
-  message: string;
-  createdAt: string;
-  readAt?: string;
-  status: NotificationStatus;
-  // Optional metadata for deep linking (e.g., marketId, orderId)
-  metadata?: Record<string, unknown>;
+  type: "trade" | "order" | "position" | "market";
+  label: string;
+  meta: string;
+  timestamp: string;
+  positive?: boolean;
+  // Optional details
+  marketId?: string;
+  marketQuestion?: string;
+  amount?: number;
+  price?: number;
+  priceChange?: number;
 }
-
-// Session types
-export * from "./session";
-
-// Trade placement types
-export * from "./trade";
-
-// Fill types
-export * from "./fill";
-
-// Simulation types
-export * from "./simulation";
-
-// Watchlist types
-export * from "./watchlist";
-
-// Alert types
-export * from "./alert";
-
-// Market full types
-export * from "./market-full";

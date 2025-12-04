@@ -1,23 +1,18 @@
 import { cn } from "@rekon/ui";
-
-interface ActivityItem {
-  label: string;
-  meta: string;
-  positive?: boolean;
-}
+import type { Activity } from "@rekon/types";
 
 interface RecentActivityPanelProps {
-  items: ActivityItem[];
+  items: Activity[];
 }
 
 export function RecentActivityPanel({ items }: RecentActivityPanelProps) {
   return (
     <Panel className="flex-1 flex flex-col min-h-0">
       <PanelHeader title="Recent Activity" />
-      <div className="flex-1 min-h-0 flex flex-col justify-end space-y-2.5 text-xs text-white/70">
-        {items.map((item, index) => (
+      <div className="flex-1 min-h-0 flex flex-col justify-start space-y-2.5 text-xs text-white/70">
+        {items.map((item) => (
           <ActivityRow
-            key={index}
+            key={item.id}
             label={item.label}
             meta={item.meta}
             positive={item.positive}

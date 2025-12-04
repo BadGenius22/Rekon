@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { TrendingUp, ArrowRight } from "lucide-react";
-import type { Market } from "@rekon/types";
+import type { Market, Activity } from "@rekon/types";
 import { API_CONFIG } from "@rekon/config";
 import { formatVolume } from "@rekon/utils";
 import { cn } from "@rekon/ui";
@@ -37,9 +37,38 @@ async function getHighlightedMarkets(): Promise<Market[]> {
   }
 }
 
+async function getRecentActivity(): Promise<Activity[]> {
+  try {
+    // For now, use hardcoded address. Later, this will be replaced with connected wallet
+    const userAddress = "0x14ac84b66a27fc30e56ed620ebfa61cd8105cb21";
+    const url = new URL(`${API_CONFIG.baseUrl}/activity`);
+    url.searchParams.set("user", userAddress);
+    url.searchParams.set("limit", "3");
+    url.searchParams.set("sortBy", "TIMESTAMP");
+    url.searchParams.set("sortDirection", "DESC");
+
+    const response = await fetch(url.toString(), {
+      // Cache for 10 seconds, then revalidate in the background.
+      next: { revalidate: 10 },
+    });
+
+    if (!response.ok) {
+      console.warn("Failed to fetch recent activity:", response.status);
+      return [];
+    }
+
+    const data = (await response.json()) as { data: Activity[]; count: number };
+    return data.data || [];
+  } catch (error) {
+    console.warn("Failed to fetch recent activity:", error);
+    return [];
+  }
+}
+
 
 export async function HomePage() {
   const markets = await getHighlightedMarkets();
+  const activities = await getRecentActivity();
   const liveMarketsCount = markets.length;
   const totalVolume = markets.reduce(
     (sum, market) => sum + (market.volume24h ?? market.volume ?? 0),
@@ -199,23 +228,7 @@ export async function HomePage() {
             />
 
             <div className="flex-1 min-h-0 flex flex-col">
-              <RecentActivityPanel
-                items={[
-                  {
-                    label: "User filled 1.2k YES on CS2 Grand Final",
-                    meta: "2m ago • $680 filled • 1.3% move",
-                    positive: true,
-                  },
-                  {
-                    label: "Large NO block on Valorant DRX semifinals",
-                    meta: "9m ago • $3.4k filled • 4.8% move",
-                  },
-                  {
-                    label: "Portfolio rebalance across Worlds futures",
-                    meta: "21m ago • 6 markets touched",
-                  },
-                ]}
-              />
+              <RecentActivityPanel items={activities} />
             </div>
           </aside>
         </div>
@@ -232,7 +245,7 @@ function GameVolumeItem({ game, volume }: { game: string; volume: number }) {
       <span className="text-xs font-medium text-white/75">{game}</span>
       <span className="font-mono text-xs font-semibold text-emerald-300">
         {formatVolume(volume)}
-      </span>
+          </span>
     </div>
   );
 }
