@@ -1,5 +1,5 @@
 import { HomePage } from "@/modules/home/home-page";
 
-export default function Home() {
+export default async function Home() {
   return <HomePage />;
 }
