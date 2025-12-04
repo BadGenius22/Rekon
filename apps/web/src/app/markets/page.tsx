@@ -2,6 +2,7 @@ import type { Market } from "@rekon/types";
 import Link from "next/link";
 import { API_CONFIG } from "@rekon/config";
 import { formatPrice, formatVolume, formatPercentage } from "@rekon/utils";
+import { AppHeader } from "@/components/app-header";
 
 // Use ISR (Incremental Static Regeneration) for better performance
 // Revalidates every 10 seconds - good balance between freshness and performance
@@ -56,269 +57,165 @@ export default async function MarketsPage(props: {
     0
   );
 
-  // Debug: Log CS2 markets specifically
-  if (process.env.NODE_ENV === "development") {
-    const cs2Markets = markets.filter((m) => m.game === "cs2");
-    console.log(
-      `CS2 markets received: ${cs2Markets.length}`,
-      cs2Markets.slice(0, 3).map((m) => ({
-        id: m.id,
-        question: m.question.substring(0, 60),
-        game: m.game,
-        slug: m.slug,
-      }))
-    );
-  }
   // Use game field from API instead of frontend categorization
   const categorized = categorizeByGame(markets);
 
-  // Calculate uncategorized count for debug
-  const uncategorizedMarkets = markets.filter(
-    (m) =>
-      !categorized.cs2.includes(m) &&
-      !categorized.lol.includes(m) &&
-      !categorized.dota2.includes(m) &&
-      !categorized.valorant.includes(m)
-  );
-
-  // Debug: Log categorization results (remove in production)
-  if (process.env.NODE_ENV === "development") {
-    console.log("Markets categorization:", {
-      total: markets.length,
-      cs2: categorized.cs2.length,
-      lol: categorized.lol.length,
-      dota2: categorized.dota2.length,
-      valorant: categorized.valorant.length,
-      uncategorized: uncategorizedMarkets.length,
-    });
-    // Log first few markets to see their structure
-    if (markets.length > 0) {
-      console.log(
-        "Sample markets:",
-        markets.slice(0, 5).map((m) => ({
-          id: m.id,
-          question: m.question.substring(0, 80),
-          category: m.category,
-          subcategory: m.subcategory,
-          detected: getGameSlug(m),
-        }))
-      );
-    }
-    // Check for CS2-like markets that aren't being detected
-    const potentialCS2 = markets.filter((m) => {
-      const text = `${m.category ?? ""} ${m.subcategory ?? ""} ${
-        m.question
-      }`.toLowerCase();
-      return (
-        text.includes("cs") ||
-        text.includes("counter") ||
-        text.includes("mouz") ||
-        text.includes("iem") ||
-        text.includes("blast")
-      );
-    });
-    if (potentialCS2.length > 0) {
-      console.log(
-        "Potential CS2 markets not detected:",
-        potentialCS2.slice(0, 5).map((m) => ({
-          question: m.question.substring(0, 80),
-          category: m.category,
-          subcategory: m.subcategory,
-          detected: getGameSlug(m),
-        }))
-      );
-    }
-    // Log uncategorized markets to see why they're not matching
-    if (uncategorizedMarkets.length > 0) {
-      console.log(
-        "Uncategorized markets:",
-        uncategorizedMarkets.slice(0, 5).map((m) => ({
-          question: m.question.substring(0, 80),
-          category: m.category,
-          subcategory: m.subcategory,
-        }))
-      );
-    }
-  }
-
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-2">
-            <h1 className="text-4xl font-bold text-neon-cyan">Markets</h1>
-            {markets.length > 0 && (
-              <span className="inline-flex items-center gap-2 rounded-full bg-neon-cyan/10 border border-neon-cyan/30 px-3 py-1 text-sm font-semibold text-neon-cyan">
-                <span className="h-2 w-2 rounded-full bg-neon-cyan animate-pulse" />
-                {liveMarketsCount} live
-              </span>
-            )}
-          </div>
-          <p className="text-foreground/60">
-            Professional trading terminal for prediction markets
-          </p>
-          <div className="mt-4 flex items-center gap-4 text-sm">
-            <div className="text-foreground/60">
-              Showing live esports game markets (matches/maps) across CS2, LoL,
-              Dota 2, and Valorant.
-            </div>
-            {markets.length > 0 && (
-              <div className="flex items-center gap-4 text-xs">
-                <div className="flex items-center gap-2 rounded-full bg-foreground/5 border border-foreground/10 px-3 py-1.5">
-                  <span className="text-foreground/60">24h Volume</span>
-                  <span className="font-mono font-semibold text-neon-cyan">
-                    {formatVolume(total24hVolume)}
+    <div className="min-h-screen bg-[#030711] text-white">
+      <div className="min-h-screen bg-gradient-to-b from-[#050816] via-[#030711] to-black">
+        <AppHeader />
+        <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-5 px-4 pb-10 pt-6 md:px-6 xl:px-10">
+          <div className="max-w-7xl mx-auto w-full">
+            <div className="mb-10">
+              <div className="flex items-center gap-4 mb-3">
+                <h1 className="text-3xl font-bold text-white sm:text-4xl">
+                  Markets
+                </h1>
+                {markets.length > 0 && (
+                  <span className="inline-flex items-center gap-2 rounded-full bg-emerald-400/10 border border-emerald-400/30 px-3 py-1.5 text-xs font-semibold text-emerald-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    {liveMarketsCount} live
                   </span>
-                </div>
-                <div className="flex items-center gap-2 rounded-full bg-foreground/5 border border-foreground/10 px-3 py-1.5">
-                  <span className="text-foreground/60">Live Markets</span>
-                  <span className="font-mono font-semibold text-neon-cyan">
-                    {liveMarketsCount}
-                  </span>
-                </div>
+                )}
               </div>
-            )}
-          </div>
-          {/* Debug info - remove in production */}
-          {process.env.NODE_ENV === "development" && (
-            <div className="mt-4 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-4 text-xs text-yellow-200">
-              <div className="font-semibold mb-2">Debug Info:</div>
-              <div>Total markets: {markets.length}</div>
-              <div>
-                CS2: {categorized.cs2.length} | LoL: {categorized.lol.length} |
-                Dota2: {categorized.dota2.length} | Valorant:{" "}
-                {categorized.valorant.length}
-              </div>
-              <div>Uncategorized: {uncategorizedMarkets.length}</div>
-              {uncategorizedMarkets.length > 0 && (
-                <details className="mt-2">
-                  <summary className="cursor-pointer">
-                    Uncategorized markets (first 3)
-                  </summary>
-                  <pre className="mt-2 overflow-auto text-[10px]">
-                    {JSON.stringify(
-                      uncategorizedMarkets.slice(0, 3).map((m) => ({
-                        question: m.question.substring(0, 100),
-                        category: m.category,
-                        subcategory: m.subcategory,
-                      })),
-                      null,
-                      2
-                    )}
-                  </pre>
-                </details>
-              )}
-            </div>
-          )}
-        </div>
-
-        {markets.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-foreground/60">No markets found</p>
-          </div>
-        ) : (
-          <>
-            {categorized.cs2.length > 0 && (
-              <section className="space-y-4 mb-10">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-semibold text-foreground">
-                    CS2 Markets
-                  </h2>
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-foreground/5 border border-foreground/10 px-2.5 py-0.5 text-xs font-medium text-foreground/70">
-                    {categorized.cs2.length}
-                  </span>
+              <p className="text-sm text-white/65 mb-6">
+                Professional trading terminal for prediction markets
+              </p>
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="text-sm text-white/60">
+                  Showing live esports game markets (matches/maps) across CS2,
+                  LoL, Dota 2, and Valorant.
                 </div>
-                <div className="grid gap-4">
-                  {categorized.cs2.map((market) => (
-                    <MarketCard key={market.id} market={market} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {categorized.lol.length > 0 && (
-              <section className="space-y-4 mb-10">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-semibold text-foreground">
-                    League of Legends Markets
-                  </h2>
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-foreground/5 border border-foreground/10 px-2.5 py-0.5 text-xs font-medium text-foreground/70">
-                    {categorized.lol.length}
-                  </span>
-                </div>
-                <div className="grid gap-4">
-                  {categorized.lol.map((market) => (
-                    <MarketCard key={market.id} market={market} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {categorized.dota2.length > 0 && (
-              <section className="space-y-4 mb-10">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-semibold text-foreground">
-                    Dota 2 Markets
-                  </h2>
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-foreground/5 border border-foreground/10 px-2.5 py-0.5 text-xs font-medium text-foreground/70">
-                    {categorized.dota2.length}
-                  </span>
-                </div>
-                <div className="grid gap-4">
-                  {categorized.dota2.map((market) => (
-                    <MarketCard key={market.id} market={market} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {categorized.valorant.length > 0 && (
-              <section className="space-y-4 mb-10">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-semibold text-foreground">
-                    Valorant Markets
-                  </h2>
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-foreground/5 border border-foreground/10 px-2.5 py-0.5 text-xs font-medium text-foreground/70">
-                    {categorized.valorant.length}
-                  </span>
-                </div>
-                <div className="grid gap-4">
-                  {categorized.valorant.map((market) => (
-                    <MarketCard key={market.id} market={market} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Show uncategorized markets if any */}
-            {(() => {
-              const uncategorized = markets.filter(
-                (m) =>
-                  !categorized.cs2.includes(m) &&
-                  !categorized.lol.includes(m) &&
-                  !categorized.dota2.includes(m) &&
-                  !categorized.valorant.includes(m)
-              );
-              return uncategorized.length > 0 ? (
-                <section className="space-y-4">
+                {markets.length > 0 && (
                   <div className="flex items-center gap-3">
-                    <h2 className="text-2xl font-semibold text-foreground">
-                      Other Markets
-                    </h2>
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-foreground/5 border border-foreground/10 px-2.5 py-0.5 text-xs font-medium text-foreground/70">
-                      {uncategorized.length}
-                    </span>
+                    <div className="flex items-center gap-2.5 rounded-lg bg-white/5 border border-white/10 px-4 py-2">
+                      <span className="text-xs text-white/60">24h Volume</span>
+                      <span className="font-mono text-sm font-semibold text-emerald-300">
+                        {formatVolume(total24hVolume)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2.5 rounded-lg bg-white/5 border border-white/10 px-4 py-2">
+                      <span className="text-xs text-white/60">
+                        Live Markets
+                      </span>
+                      <span className="font-mono text-sm font-semibold text-emerald-300">
+                        {liveMarketsCount}
+                      </span>
+                    </div>
                   </div>
-                  <div className="grid gap-4">
-                    {uncategorized.map((market) => (
-                      <MarketCard key={market.id} market={market} />
-                    ))}
-                  </div>
-                </section>
-              ) : null;
-            })()}
-          </>
-        )}
+                )}
+              </div>
+            </div>
+
+            {markets.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-foreground/60">No markets found</p>
+              </div>
+            ) : (
+              <>
+                {categorized.cs2.length > 0 && (
+                  <section className="space-y-5 mb-12">
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-2xl font-bold text-white">
+                        CS2 Markets
+                      </h2>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs font-semibold text-white/70">
+                        {categorized.cs2.length}
+                      </span>
+                    </div>
+                    <div className="grid gap-4">
+                      {categorized.cs2.map((market) => (
+                        <MarketCard key={market.id} market={market} />
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {categorized.lol.length > 0 && (
+                  <section className="space-y-5 mb-12">
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-2xl font-bold text-white">
+                        League of Legends Markets
+                      </h2>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs font-semibold text-white/70">
+                        {categorized.lol.length}
+                      </span>
+                    </div>
+                    <div className="grid gap-4">
+                      {categorized.lol.map((market) => (
+                        <MarketCard key={market.id} market={market} />
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {categorized.dota2.length > 0 && (
+                  <section className="space-y-5 mb-12">
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-2xl font-bold text-white">
+                        Dota 2 Markets
+                      </h2>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs font-semibold text-white/70">
+                        {categorized.dota2.length}
+                      </span>
+                    </div>
+                    <div className="grid gap-4">
+                      {categorized.dota2.map((market) => (
+                        <MarketCard key={market.id} market={market} />
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {categorized.valorant.length > 0 && (
+                  <section className="space-y-5 mb-12">
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-2xl font-bold text-white">
+                        Valorant Markets
+                      </h2>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs font-semibold text-white/70">
+                        {categorized.valorant.length}
+                      </span>
+                    </div>
+                    <div className="grid gap-4">
+                      {categorized.valorant.map((market) => (
+                        <MarketCard key={market.id} market={market} />
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {/* Show uncategorized markets if any */}
+                {(() => {
+                  const uncategorized = markets.filter(
+                    (m) =>
+                      !categorized.cs2.includes(m) &&
+                      !categorized.lol.includes(m) &&
+                      !categorized.dota2.includes(m) &&
+                      !categorized.valorant.includes(m)
+                  );
+                  return uncategorized.length > 0 ? (
+                    <section className="space-y-5">
+                      <div className="flex items-center gap-3">
+                        <h2 className="text-2xl font-bold text-white">
+                          Other Markets
+                        </h2>
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs font-semibold text-white/70">
+                          {uncategorized.length}
+                        </span>
+                      </div>
+                      <div className="grid gap-4">
+                        {uncategorized.map((market) => (
+                          <MarketCard key={market.id} market={market} />
+                        ))}
+                      </div>
+                    </section>
+                  ) : null;
+                })()}
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -488,34 +385,40 @@ function MarketCard({
 
   return (
     <div
-      className={`border border-border rounded-lg bg-card hover:border-neon-cyan/50 transition-colors ${
-        compact ? "p-4" : "p-6"
+      className={`group border border-white/10 rounded-xl bg-[#121A30] hover:border-white/20 transition-all hover:shadow-[0_8px_24px_rgba(15,23,42,0.8)] ${
+        compact ? "p-5" : "p-6"
       }`}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1">
+      <div className="flex items-start justify-between gap-5">
+        <div className="flex-1 min-w-0">
           <h3
-            className={`font-semibold text-foreground mb-2 ${
-              compact ? "text-base" : "text-xl"
+            className={`font-semibold text-white mb-3 leading-snug ${
+              compact ? "text-base" : "text-lg"
             }`}
           >
             {market.question}
           </h3>
-          <div className="flex items-center gap-4 text-sm text-foreground/60">
-            <span>Volume: {formatVolume(market.volume)}</span>
-            <span>Liquidity: {formatVolume(market.liquidity)}</span>
+          <div className="flex flex-wrap items-center gap-4 text-sm text-white/60">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              Vol {formatVolume(market.volume)}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
+              Liq {formatVolume(market.liquidity)}
+            </span>
             {market.isResolved && (
-              <span className="text-warning">Resolved</span>
+              <span className="text-orange-400 font-medium">Resolved</span>
             )}
           </div>
         </div>
 
         {primaryOutcome && (
-          <div className="text-right">
-            <div className="text-2xl font-bold text-neon-cyan">
+          <div className="text-right shrink-0">
+            <div className="text-2xl font-bold text-emerald-300">
               {formatPrice(primaryOutcome.price)}
             </div>
-            <div className="text-sm text-foreground/60">
+            <div className="text-sm text-white/60 font-medium">
               {formatPercentage(primaryOutcome.price)}
             </div>
           </div>
@@ -523,17 +426,17 @@ function MarketCard({
       </div>
 
       {market.outcomes.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-border">
-          <div className="flex gap-4">
+        <div className="mt-5 pt-5 border-t border-white/10">
+          <div className="flex gap-3">
             {market.outcomes.map((outcome) => (
               <div
                 key={outcome.id}
-                className="flex-1 p-3 rounded bg-muted/50 border border-border"
+                className="flex-1 p-4 rounded-lg bg-white/5 border border-white/10"
               >
-                <div className="text-sm text-foreground/60 mb-1">
+                <div className="text-xs text-white/60 mb-2 font-medium">
                   {outcome.name}
                 </div>
-                <div className="text-lg font-semibold text-foreground">
+                <div className="text-lg font-bold text-white">
                   {formatPrice(outcome.price)}
                 </div>
               </div>

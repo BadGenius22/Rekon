@@ -157,15 +157,23 @@
   },
   "components": {
     "app_shell": {
-      "description": "Global shell containing top navigation, main content, and right-side utility column. Everything sits on a very dark gradient background with slightly lighter surfaces for panels.",
+      "description": "Global shell containing top navigation, main content, and right-side utility column. Everything sits on a very dark gradient background with slightly lighter surfaces for panels. Uses full viewport height with no scrolling.",
       "layout": {
+        "height": "100vh",
+        "overflow": "hidden",
         "max_width": 1440,
         "padding_x": "spacing.lg",
-        "padding_y": "spacing.md",
-        "gutter": "spacing.lg",
+        "padding_y": "spacing.sm",
+        "gutter": "spacing.md",
         "columns": {
-          "main": "2.5fr",
-          "right": "1fr"
+          "main": "flex-1",
+          "right": 288
+        },
+        "structure": {
+          "main_container": "h-full flex flex-col",
+          "content_area": "flex-1 flex flex-row gap-5 overflow-hidden",
+          "left_section": "flex-1 flex flex-col gap-4 min-w-0 overflow-hidden",
+          "right_section": "flex flex-col gap-4 shrink-0"
         }
       },
       "style": {
@@ -362,26 +370,29 @@
     "panel": {
       "description": "Generic right-side or dashboard panel for portfolio, watchlist, trending topics, or recent activity.",
       "layout": {
-        "padding": "spacing.lg",
+        "padding": "spacing.xl",
         "border_radius": "radii.lg",
-        "gap": "spacing.md"
+        "gap": "spacing.md",
+        "width": 288
       },
       "style": {
         "background": "colors.background.surface",
-        "border": "borders.subtle",
+        "border": "borders.strong",
         "shadow": "tokens.elevation.low"
       }
     },
     "hero_banner": {
-      "description": "Large hero tiles at the top of the markets page showcasing featured events or promotions.",
+      "description": "Large hero tiles at the top of the home page showcasing featured events or promotions with stats panel. Uses shrink-0 to maintain fixed size in flex layout.",
       "layout": {
-        "height": 220,
-        "border_radius": "radii.xl",
-        "padding": "spacing.lg",
-        "gap": "spacing.md",
+        "border_radius": "radii.lg",
+        "padding": "spacing.xl",
+        "padding_mobile": "spacing.lg",
+        "gap": "spacing.xl",
+        "flex_shrink": 0,
+        "overflow": "hidden",
         "content_structure": [
-          "Left: main title and subtitle",
-          "Right or center: big emblem or illustrative graphic"
+          "Left: main title, subtitle, and CTA button",
+          "Right: stats panel with 24h volume, live markets count, and volume by game breakdown"
         ]
       },
       "style": {
@@ -390,56 +401,82 @@
         "tertiary_background": "gradients.hero_red",
         "overlay_blur": "tokens.blur.subtle_glass",
         "title": {
-          "font_size": "typography.sizes.2xl",
+          "font_size": "typography.sizes.3xl",
+          "font_size_mobile": "typography.sizes.2xl",
           "font_weight": "typography.weights.bold",
           "color": "colors.text.on_accent"
         },
         "subtitle": {
           "font_size": "typography.sizes.sm",
-          "color": "rgba(11, 16, 32, 0.8)"
+          "color": "rgba(255, 255, 255, 0.85)"
+        },
+        "stats_panel": {
+          "width": 320,
+          "padding": "spacing.xl",
+          "background": "rgba(0, 0, 0, 0.2)",
+          "backdrop_blur": true
         }
       }
     },
     "market_grid": {
-      "description": "Dense, scrollable grid of market cards with consistent card width and gutter.",
+      "description": "Grid of market cards for home page. Uses flex-1 to fill remaining space and content-end to align cards at bottom, matching sidebar panels.",
       "layout": {
-        "columns_desktop": 3,
-        "gap_x": "spacing.md",
-        "gap_y": "spacing.md",
-        "margin_top": "spacing.lg"
+        "columns_desktop": 2,
+        "columns_mobile": 1,
+        "gap": 12,
+        "flex": "flex-1",
+        "alignment": "content-end",
+        "min_height": 0,
+        "overflow": "hidden"
+      },
+      "style": {
+        "grid_template": "grid",
+        "responsive": "sm:grid-cols-2"
       }
     },
     "market_card_horizontal": {
-      "description": "Wide horizontal card summarizing a market with title, outcomes, and quick stats.",
+      "description": "Vertical market card for home page grid showing title, YES/NO outcomes, and volume/liquidity stats.",
       "layout": {
-        "height": 136,
-        "padding": "spacing.lg",
+        "min_height": 192,
+        "padding": "spacing.xl",
         "border_radius": "radii.lg",
         "sections": [
-          "Top: market question/title",
-          "Middle: outcome summary with percentages",
-          "Bottom: stats row (liquidity, volume, comments count, badges)"
-        ]
+          "Top: market question/title with badge (Trending/New)",
+          "Middle: YES/NO outcome chips with percentages",
+          "Bottom: volume and liquidity stats with colored indicators"
+        ],
+        "spacing": {
+          "title_subtitle": "spacing.sm",
+          "outcome_margin": "spacing.xl",
+          "stats_margin": "spacing.xl"
+        }
       },
       "style": {
         "background": "colors.background.surface_high",
-        "border": "borders.subtle",
+        "border": "borders.strong",
         "shadow": "tokens.elevation.low",
         "title": {
           "font_size": "typography.sizes.sm",
           "line_height": "typography.line_heights.snug",
+          "font_weight": "typography.weights.semibold",
           "color": "colors.text.primary"
         },
         "subtitle": {
           "font_size": "typography.sizes.xs",
-          "color": "colors.text.muted"
+          "color": "rgba(255, 255, 255, 0.55)"
+        },
+        "badge": {
+          "height": 20,
+          "padding_x": 10,
+          "font_size": 10,
+          "font_weight": "typography.weights.semibold"
         }
       },
       "states": {
         "hover": {
-          "border": "borders.strong",
+          "border": "rgba(255, 255, 255, 0.2)",
           "shadow": "tokens.elevation.medium",
-          "translate_y": -2
+          "translate_y": -4
         },
         "selected": {
           "border_color": "colors.accent.blue",
@@ -468,22 +505,28 @@
     "outcome_chip": {
       "description": "Rectangular chip showing the price/probability of a YES or NO outcome.",
       "layout": {
-        "height": 40,
+        "flex": "flex-1",
         "border_radius": "radii.md",
         "padding_x": "spacing.md",
-        "padding_y": "spacing.xs",
+        "padding_y": 10,
         "gap": "spacing.xs"
       },
       "style": {
         "yes": {
-          "background": "rgba(34, 197, 94, 0.16)",
-          "border": "rgba(34, 197, 94, 0.65)",
-          "text_color": "colors.semantic.success"
+          "background": "rgba(34, 197, 94, 0.12)",
+          "border": "rgba(34, 197, 94, 0.5)",
+          "text_color": "rgba(34, 197, 94, 1)",
+          "label_font_weight": "typography.weights.semibold",
+          "value_font": "typography.font_family_mono",
+          "value_font_size": "typography.sizes.xs"
         },
         "no": {
-          "background": "rgba(239, 68, 68, 0.16)",
-          "border": "rgba(239, 68, 68, 0.65)",
-          "text_color": "colors.semantic.danger"
+          "background": "rgba(239, 68, 68, 0.12)",
+          "border": "rgba(239, 68, 68, 0.5)",
+          "text_color": "rgba(239, 68, 68, 1)",
+          "label_font_weight": "typography.weights.semibold",
+          "value_font": "typography.font_family_mono",
+          "value_font_size": "typography.sizes.xs"
         }
       }
     },
@@ -581,23 +624,40 @@
       }
     },
     "recent_activity_item": {
-      "description": "Row item summarizing a recent trade or action.",
+      "description": "Row item summarizing a recent trade or action in the Recent Activity panel.",
       "layout": {
-        "padding_y": "spacing.sm",
-        "gap": "spacing.sm"
+        "padding_x": 14,
+        "padding_y": 10,
+        "gap": "spacing.sm",
+        "spacing_between": "spacing.sm",
+        "border_radius": "radii.md"
       },
       "style": {
+        "background": "colors.background.shell",
+        "border": "borders.strong",
         "primary_text": {
           "font_size": "typography.sizes.xs",
-          "color": "colors.text.secondary"
+          "color": "rgba(255, 255, 255, 0.8)",
+          "line_clamp": 1
         },
         "meta_text": {
-          "font_size": "typography.sizes.xs",
-          "color": "colors.text.muted"
+          "font_size": 11,
+          "color": "rgba(255, 255, 255, 0.5)",
+          "padding_left": 14
+        },
+        "indicator": {
+          "size": 6,
+          "border_radius": "radii.pill"
         },
         "highlight_value": {
           "color_yes": "colors.semantic.success",
           "color_no": "colors.semantic.danger"
+        }
+      },
+      "states": {
+        "hover": {
+          "border": "rgba(255, 255, 255, 0.15)",
+          "background": "rgba(255, 255, 255, 0.05)"
         }
       }
     },
@@ -618,24 +678,76 @@
     "watchlist_panel": {
       "description": "Panel listing markets the user is tracking, each as a compact row with price chips.",
       "layout": {
-        "padding": "spacing.lg",
+        "padding": "spacing.xl",
         "border_radius": "radii.lg",
-        "gap": "spacing.sm"
+        "gap": 10,
+        "item_spacing": "spacing.sm"
       },
       "style": {
         "background": "colors.background.surface",
-        "border": "borders.subtle"
+        "border": "borders.strong",
+        "item": {
+          "padding_x": 14,
+          "padding_y": 10,
+          "border_radius": "radii.md",
+          "background": "colors.background.surface_low",
+          "border": "borders.strong"
+        }
+      },
+      "states": {
+        "item_hover": {
+          "border": "rgba(255, 255, 255, 0.15)",
+          "background": "rgba(255, 255, 255, 0.05)"
+        }
       }
     },
     "shortcut_bar": {
-      "description": "Small auxiliary row under nav showing quick filters like LIVE, category chips, and settings toggles.",
+      "description": "Small auxiliary row under nav showing quick filters like LIVE, category chips, and settings toggles. Uses shrink-0 to maintain fixed size in flex layout.",
       "layout": {
-        "height": 40,
-        "gap": "spacing.md",
-        "padding_y": "spacing.sm"
+        "gap": "spacing.sm",
+        "padding_y": 0,
+        "flex_shrink": 0
       },
       "style": {
-        "background": "transparent"
+        "background": "transparent",
+        "font_size": "typography.sizes.xs",
+        "color": "rgba(255, 255, 255, 0.6)"
+      },
+      "pill": {
+        "padding_x": 12,
+        "padding_y": 6,
+        "border_radius": "radii.md",
+        "font_size": "typography.sizes.xs",
+        "font_weight": "typography.weights.medium",
+        "border": "borders.strong",
+        "background_default": "colors.background.surface_low",
+        "background_active": "rgba(255, 255, 255, 0.1)",
+        "text_default": "rgba(255, 255, 255, 0.65)",
+        "text_active": "colors.text.primary"
+      }
+    },
+    "game_volume_item": {
+      "description": "Small card showing volume breakdown by game in the hero stats panel.",
+      "layout": {
+        "padding_x": 12,
+        "padding_y": 8,
+        "border_radius": "radii.md",
+        "gap": "spacing.sm"
+      },
+      "style": {
+        "background": "rgba(255, 255, 255, 0.05)",
+        "border": "borders.strong",
+        "label": {
+          "font_size": "typography.sizes.xs",
+          "font_weight": "typography.weights.medium",
+          "color": "rgba(255, 255, 255, 0.75)"
+        },
+        "value": {
+          "font_family": "typography.font_family_mono",
+          "font_size": "typography.sizes.xs",
+          "font_weight": "typography.weights.semibold",
+          "color": "colors.semantic.success"
+        }
       }
     }
   }

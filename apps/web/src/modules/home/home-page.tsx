@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { TrendingUp, Bell, Wallet, Search, ArrowRight } from "lucide-react";
+import { TrendingUp, ArrowRight } from "lucide-react";
 import type { Market } from "@rekon/types";
 import { API_CONFIG } from "@rekon/config";
 import { formatVolume } from "@rekon/utils";
 import { cn } from "@rekon/ui";
+import { AppHeader } from "@/components/app-header";
 
 async function getHighlightedMarkets(): Promise<Market[]> {
   try {
@@ -99,120 +100,72 @@ export async function HomePage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#030711] text-white">
+    <main className="h-screen overflow-hidden bg-[#030711] text-white">
       {/* App shell background */}
-      <div className="min-h-screen bg-gradient-to-b from-[#050816] via-[#030711] to-black">
+      <div className="h-full flex flex-col bg-gradient-to-b from-[#050816] via-[#030711] to-black">
         {/* Top navigation */}
-        <header className="sticky top-0 z-20 border-b border-white/5 bg-[#050816]/95 backdrop-blur">
-          <div className="mx-auto flex w-full max-w-screen-2xl items-center justify-between gap-3 px-4 py-3 sm:gap-6 sm:px-6 xl:px-10">
-            {/* Logo + name */}
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#3B82F6] via-[#22D3EE] to-[#8B5CF6] shadow-[0_0_30px_rgba(59,130,246,0.6)]" />
-              <div className="flex flex-col leading-tight">
-                <span className="truncate text-sm font-semibold tracking-wide text-white">
-                  Rekon
-                </span>
-                <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/50 sm:text-[11px]">
-                  Esports Markets
-                </span>
-              </div>
-            </div>
-
-            {/* Primary nav */}
-            <nav className="hidden flex-1 items-center gap-5 text-xs font-medium text-white/60 md:flex">
-              <NavItem active>Markets</NavItem>
-              <NavItem>Dashboards</NavItem>
-              <NavItem>Activity</NavItem>
-              <NavItem>Ranks</NavItem>
-              <NavItem>Rewards</NavItem>
-            </nav>
-
-            {/* Search + actions */}
-            <div className="flex flex-shrink-0 items-center justify-end gap-2 sm:gap-3">
-              <div className="hidden max-w-xs flex-1 items-center gap-2 rounded-full border border-white/10 bg-[#0C1224] px-3 py-1.5 text-xs text-white/60 shadow-[0_0_25px_rgba(15,23,42,0.9)] md:flex">
-                <Search className="h-3.5 w-3.5 text-white/40" />
-                <input
-                  placeholder="Search teams, events, markets"
-                  className="w-full bg-transparent text-xs text-white placeholder:text-white/40 focus:outline-none"
-                />
-                <kbd className="rounded-md bg-[#121A30] px-1.5 py-0.5 text-[10px] text-white/45">
-                  ⌘K
-                </kbd>
-              </div>
-
-              <button className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-[#090E1C] text-white/60 hover:border-white/30 hover:text-white transition-colors">
-                <Bell className="h-3.5 w-3.5" />
-              </button>
-
-              <button className="hidden items-center gap-2 rounded-full bg-[#FACC15] px-3 py-1.5 text-xs font-semibold text-[#020617] shadow-[0_8px_24px_rgba(250,204,21,0.45)] hover:brightness-105 active:scale-[0.98] transition-all md:inline-flex">
-                <Wallet className="h-3.5 w-3.5" />
-                <span>Connect wallet</span>
-              </button>
-            </div>
-          </div>
-        </header>
+        <AppHeader />
 
         {/* Main grid */}
-        <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-5 px-4 pb-10 pt-6 md:flex-row md:gap-6 md:px-6 xl:px-10">
+        <div className="flex-1 mx-auto flex w-full max-w-screen-2xl flex-col gap-4 px-4 pt-4 pb-4 md:flex-row md:gap-5 md:px-6 xl:px-10 overflow-hidden">
           {/* Left: hero + markets */}
-          <section className="flex-1 space-y-5">
+          <section className="flex-1 flex flex-col gap-4 min-w-0 overflow-hidden">
             {/* Hero banner */}
-            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#1D4ED8] via-[#22D3EE] to-[#8B5CF6] shadow-[0_18px_45px_rgba(15,23,42,0.9)]">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(15,23,42,0.85),transparent_55%)]" />
-              <div className="relative flex flex-col gap-4 p-4 sm:p-6 md:flex-row md:items-center md:justify-between">
-                <div className="space-y-3 md:max-w-md">
-                  <div className="inline-flex items-center gap-2 rounded-full bg-black/10 px-2 py-1 text-[11px] font-medium text-white/80 backdrop-blur">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(16,185,129,0.35)]" />
-                    Live esports probabilities
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1D4ED8] via-[#22D3EE] to-[#8B5CF6] shadow-[0_12px_40px_rgba(15,23,42,0.8)] shrink-0">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(15,23,42,0.8),transparent_50%)]" />
+              <div className="relative flex flex-col gap-5 p-6 sm:p-8 md:flex-row md:items-center md:justify-between">
+                <div className="space-y-4 md:max-w-lg">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-black/20 px-3 py-1.5 text-xs font-medium text-white/90 backdrop-blur-sm">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_0_3px_rgba(16,185,129,0.3)]" />
+                    Professional trading terminal
                   </div>
-                  <h1 className="text-balance text-xl font-bold leading-tight text-white sm:text-2xl md:text-3xl">
-                    Live hub for{" "}
+                  <h1 className="text-balance text-2xl font-bold leading-tight text-white sm:text-3xl md:text-4xl">
+                    Trade esports markets{" "}
                     <span className="underline decoration-white/70 decoration-wavy underline-offset-4">
-                      esports prediction markets
+                      in real-time
                     </span>
                   </h1>
-                  <p className="text-sm text-white/80">
-                    See the most active markets right now with live odds across
-                    CS2, League, and Valorant. Streamlined tickets, depth-aware
-                    pricing, and portfolio intelligence on top of Polymarket
-                    liquidity.
+                  <p className="text-sm leading-relaxed text-white/85">
+                    Access live odds, depth-aware pricing, and portfolio
+                    analytics across CS2, League of Legends, Dota 2, and
+                    Valorant. Built for traders on Polymarket liquidity.
                   </p>
                   <div className="flex flex-wrap items-center gap-3 pt-1">
                     <Link
                       href="/markets"
-                      className="inline-flex items-center gap-2 rounded-full bg-[#0B1020] px-4 py-2 text-xs font-semibold text-white shadow-[0_8px_28px_rgba(15,23,42,0.8)] hover:bg-black transition-colors"
+                      className="inline-flex items-center gap-2 rounded-lg bg-[#0B1020]/90 px-5 py-2.5 text-xs font-semibold text-white shadow-[0_4px_16px_rgba(15,23,42,0.6)] backdrop-blur-sm transition-all hover:bg-[#0B1020] hover:shadow-[0_6px_20px_rgba(15,23,42,0.8)]"
                     >
-                      <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
+                      <TrendingUp className="h-4 w-4 text-emerald-400" />
                       <span>Browse live markets</span>
-                      <ArrowRight className="h-3 w-3" />
+                      <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
-                    <div className="flex items-center gap-2 text-[11px] text-white/80">
-                      <span className="inline-flex h-5 items-center rounded-full bg-black/20 px-2 font-medium">
-                        CS2 Major • Valorant Champs • Worlds Qualifiers
+                    <div className="flex items-center gap-2 text-xs text-white/80">
+                      <span className="inline-flex h-6 items-center rounded-full bg-black/25 px-3 font-medium backdrop-blur-sm">
+                        CS2 • LoL • Dota 2 • Valorant
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-col gap-3 rounded-2xl bg-black/15 p-4 text-xs text-white/85 backdrop-blur-sm md:mt-0 md:w-72">
-                  <div className="flex items-center justify-between text-[11px] text-white/70">
+                <div className="mt-4 flex flex-col gap-4 rounded-xl bg-black/20 p-5 text-xs text-white/90 backdrop-blur-sm md:mt-0 md:w-80">
+                  <div className="flex items-center justify-between text-xs text-white/75">
                     <span>24h Volume</span>
-                    <span className="font-mono font-semibold text-emerald-300">
+                    <span className="font-mono text-sm font-semibold text-emerald-300">
                       {formatVolume(totalVolume)}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-[11px] text-white/70">
+                  <div className="flex items-center justify-between text-xs text-white/75">
                     <span>Live markets</span>
-                    <span className="font-mono font-semibold">
+                    <span className="font-mono text-sm font-semibold text-white">
                       {liveMarketsCount}
                     </span>
                   </div>
                   <div className="h-px bg-white/10" />
-                  <div className="space-y-2">
-                    <div className="text-[10px] font-medium text-white/60 uppercase tracking-wider">
+                  <div className="space-y-2.5">
+                    <div className="text-[10px] font-semibold text-white/60 uppercase tracking-wider">
                       Volume by Game
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2.5">
                       <GameVolumeItem game="CS2" volume={gameVolumes.cs2} />
                       <GameVolumeItem game="LoL" volume={gameVolumes.lol} />
                       <GameVolumeItem game="Dota2" volume={gameVolumes.dota2} />
@@ -227,7 +180,7 @@ export async function HomePage() {
             </div>
 
             {/* Shortcut bar */}
-            <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/60">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-white/60 shrink-0">
               <ShortcutPill active>LIVE</ShortcutPill>
               <ShortcutPill>Today</ShortcutPill>
               <ShortcutPill>This week</ShortcutPill>
@@ -237,7 +190,7 @@ export async function HomePage() {
             </div>
 
             {/* Markets grid – highlights current live esports markets */}
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2 flex-1 min-h-0 content-end">
               {highlighted.length === 0 ? (
                 <>
                   <MarketCard
@@ -298,39 +251,41 @@ export async function HomePage() {
           </section>
 
           {/* Right column panels */}
-          <aside className="mt-2 w-full space-y-4 md:mt-0 md:w-72">
+          <aside className="w-full flex flex-col gap-4 md:w-72 shrink-0">
             <Panel>
               <PanelHeader title="Portfolio snapshot" action="Open terminal" />
-              <div className="space-y-3 text-xs">
+              <div className="space-y-4 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-white/60">Net exposure</span>
+                  <span className="text-white/65">Net exposure</span>
                   <span className="font-mono text-sm font-semibold text-white">
                     $12,430.25
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-white/50">Unrealized PnL</span>
-                  <span className="font-mono font-semibold text-emerald-400">
+                <div className="flex items-center justify-between">
+                  <span className="text-white/55">Unrealized PnL</span>
+                  <span className="font-mono text-sm font-semibold text-emerald-400">
                     +$1,023.15
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-white/50">Realized PnL (30d)</span>
-                  <span className="font-mono font-semibold text-emerald-300">
+                <div className="flex items-center justify-between">
+                  <span className="text-white/55">Realized PnL (30d)</span>
+                  <span className="font-mono text-sm font-semibold text-emerald-300">
                     +$3,210.88
                   </span>
                 </div>
-                <div className="mt-3 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                <div className="flex items-center justify-between text-[11px] text-white/55">
+                <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                <div className="flex items-center justify-between text-white/60">
                   <span>Positions</span>
-                  <span className="font-mono">8 open • 23 lifetime</span>
+                  <span className="font-mono text-xs">
+                    8 open • 23 lifetime
+                  </span>
                 </div>
               </div>
             </Panel>
 
             <Panel>
               <PanelHeader title="Watchlist" action="View all" />
-              <div className="space-y-2 text-xs">
+              <div className="space-y-2.5 text-xs">
                 <WatchlistRow
                   label="Will FaZe win the CS2 Major?"
                   yesPrice={0.58}
@@ -350,8 +305,8 @@ export async function HomePage() {
             </Panel>
 
             <Panel>
-              <PanelHeader title="Recent builder activity" />
-              <div className="space-y-2 text-[11px] text-white/70">
+              <PanelHeader title="Recent Activity" />
+              <div className="space-y-2.5 text-xs text-white/70">
                 <ActivityRow
                   label="User filled 1.2k YES on CS2 Grand Final"
                   meta="2m ago • $680 filled • 1.3% move"
@@ -374,28 +329,6 @@ export async function HomePage() {
   );
 }
 
-function NavItem({
-  children,
-  active,
-}: {
-  children: React.ReactNode;
-  active?: boolean;
-}) {
-  return (
-    <button
-      className={cn(
-        "relative px-1.5 py-1 text-xs transition-colors",
-        active ? "text-white" : "text-white/55 hover:text-white"
-      )}
-    >
-      {children}
-      {active ? (
-        <span className="absolute inset-x-0 -bottom-1 h-0.5 rounded-full bg-gradient-to-r from-[#3B82F6] via-[#22D3EE] to-[#8B5CF6]" />
-      ) : null}
-    </button>
-  );
-}
-
 function ShortcutPill({
   children,
   active,
@@ -406,10 +339,10 @@ function ShortcutPill({
   return (
     <button
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] transition-colors",
+        "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all",
         active
-          ? "border-white/40 bg-white/10 text-white"
-          : "border-white/10 bg-[#090E1C] text-white/65 hover:border-white/30 hover:text-white"
+          ? "border-white/30 bg-white/10 text-white shadow-sm"
+          : "border-white/10 bg-[#090E1C] text-white/65 hover:border-white/20 hover:bg-white/5 hover:text-white/85"
       )}
     >
       {children}
@@ -419,7 +352,7 @@ function ShortcutPill({
 
 function Panel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#0C1224] p-4 shadow-[0_10px_30px_rgba(15,23,42,0.9)]">
+    <div className="rounded-xl border border-white/10 bg-[#0C1224] p-5 shadow-[0_8px_24px_rgba(15,23,42,0.8)]">
       {children}
     </div>
   );
@@ -427,10 +360,10 @@ function Panel({ children }: { children: React.ReactNode }) {
 
 function PanelHeader({ title, action }: { title: string; action?: string }) {
   return (
-    <div className="mb-3 flex items-center justify-between text-xs">
-      <span className="font-medium text-white/70">{title}</span>
+    <div className="mb-4 flex items-center justify-between">
+      <span className="text-sm font-semibold text-white/80">{title}</span>
       {action ? (
-        <button className="text-[11px] font-medium text-[#3B82F6] hover:text-[#60A5FA]">
+        <button className="text-xs font-medium text-[#3B82F6] transition-colors hover:text-[#60A5FA]">
           {action}
         </button>
       ) : null}
@@ -456,18 +389,18 @@ function MarketCard({
   badge?: "New" | "Trending";
 }) {
   return (
-    <button className="group flex h-40 flex-col justify-between rounded-2xl border border-white/10 bg-[#121A30] p-4 text-left text-xs shadow-[0_16px_40px_rgba(15,23,42,0.95)] transition-all hover:-translate-y-0.5 hover:border-white/25 hover:shadow-[0_22px_60px_rgba(15,23,42,1)]">
-      <div className="flex items-start justify-between gap-2">
-        <div className="space-y-1">
-          <h2 className="line-clamp-2 text-[13px] font-semibold text-white">
+    <button className="group flex min-h-[192px] flex-col justify-between rounded-xl border border-white/10 bg-[#121A30] p-5 text-left shadow-[0_8px_24px_rgba(15,23,42,0.8)] transition-all hover:-translate-y-1 hover:border-white/20 hover:shadow-[0_12px_32px_rgba(15,23,42,0.95)]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-2 flex-1 min-w-0">
+          <h2 className="line-clamp-2 text-sm font-semibold leading-snug text-white">
             {title}
           </h2>
-          <p className="text-[11px] text-white/55">{subtitle}</p>
+          <p className="text-xs text-white/55">{subtitle}</p>
         </div>
         {badge ? (
           <span
             className={cn(
-              "inline-flex h-5 items-center rounded-full px-2 text-[10px] font-semibold",
+              "inline-flex h-5 shrink-0 items-center rounded-full px-2.5 text-[10px] font-semibold",
               badge === "New"
                 ? "bg-emerald-400 text-black"
                 : "bg-orange-400 text-black"
@@ -477,16 +410,16 @@ function MarketCard({
           </span>
         ) : null}
       </div>
-      <div className="mt-3 flex items-center justify-between gap-3">
+      <div className="mt-5 flex items-center justify-between gap-2.5">
         <OutcomeChip label="YES" value={yesPrice} positive />
         <OutcomeChip label="NO" value={noPrice} />
       </div>
-      <div className="mt-3 flex items-center justify-between text-[11px] text-white/55">
-        <span className="inline-flex items-center gap-1">
+      <div className="mt-5 flex items-center justify-between text-xs text-white/60">
+        <span className="inline-flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
           <span>Vol {volume}</span>
         </span>
-        <span className="inline-flex items-center gap-1">
+        <span className="inline-flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
           <span>Liq {liquidity}</span>
         </span>
@@ -508,14 +441,14 @@ function OutcomeChip({
   return (
     <div
       className={cn(
-        "flex flex-1 items-center justify-between rounded-xl border px-3 py-2 text-[11px]",
+        "flex flex-1 items-center justify-between rounded-lg border px-3 py-2.5 text-xs",
         positive
-          ? "border-emerald-500/60 bg-emerald-500/15 text-emerald-300"
-          : "border-red-500/60 bg-red-500/10 text-red-300"
+          ? "border-emerald-500/50 bg-emerald-500/12 text-emerald-300"
+          : "border-red-500/50 bg-red-500/12 text-red-300"
       )}
     >
-      <span className="font-medium">{label}</span>
-      <span className="font-mono text-xs">{pct}%</span>
+      <span className="font-semibold">{label}</span>
+      <span className="font-mono text-xs font-semibold">{pct}%</span>
     </div>
   );
 }
@@ -530,15 +463,15 @@ function WatchlistRow({
   noPrice: number;
 }) {
   return (
-    <div className="flex items-center justify-between gap-2 rounded-xl border border-white/5 bg-[#090E1C] px-3 py-2">
-      <div className="flex-1 text-[11px]">
-        <div className="line-clamp-1 font-medium text-white/75">{label}</div>
-        <div className="mt-0.5 flex items-center gap-2 text-[10px] text-white/45">
-          <span className="inline-flex items-center gap-0.5">
+    <div className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-[#090E1C] px-3.5 py-2.5 transition-colors hover:border-white/15 hover:bg-white/5">
+      <div className="flex-1 text-xs">
+        <div className="line-clamp-1 font-medium text-white/80">{label}</div>
+        <div className="mt-1.5 flex items-center gap-3 text-[11px] text-white/55">
+          <span className="inline-flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
             YES {(yesPrice * 100).toFixed(0)}%
           </span>
-          <span className="inline-flex items-center gap-0.5">
+          <span className="inline-flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
             NO {(noPrice * 100).toFixed(0)}%
           </span>
@@ -558,26 +491,26 @@ function ActivityRow({
   positive?: boolean;
 }) {
   return (
-    <div className="rounded-lg border border-white/5 bg-[#050816] px-3 py-2">
-      <div className="flex items-center gap-2 text-[11px]">
+    <div className="rounded-lg border border-white/10 bg-[#050816] px-3 py-2.5 transition-colors hover:border-white/15 hover:bg-white/5">
+      <div className="flex items-center gap-2 text-xs">
         <span
           className={cn(
-            "h-1.5 w-1.5 rounded-full",
+            "h-1.5 w-1.5 shrink-0 rounded-full",
             positive ? "bg-emerald-400" : "bg-sky-400"
           )}
         />
-        <span className="line-clamp-2 text-white/80">{label}</span>
+        <span className="line-clamp-1 text-white/80">{label}</span>
       </div>
-      <div className="mt-1 pl-3 text-[10px] text-white/45">{meta}</div>
+      <div className="mt-1.5 pl-3.5 text-[11px] text-white/50">{meta}</div>
     </div>
   );
 }
 
 function GameVolumeItem({ game, volume }: { game: string; volume: number }) {
   return (
-    <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-2 py-1.5">
-      <span className="text-[10px] font-medium text-white/70">{game}</span>
-      <span className="font-mono text-[10px] font-semibold text-emerald-300">
+    <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+      <span className="text-xs font-medium text-white/75">{game}</span>
+      <span className="font-mono text-xs font-semibold text-emerald-300">
         {formatVolume(volume)}
       </span>
     </div>
