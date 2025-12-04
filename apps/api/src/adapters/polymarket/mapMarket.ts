@@ -122,6 +122,7 @@ export function mapPolymarketMarket(pmMarket: PolymarketMarket): Market {
     conditionId: pmMarket.conditionId,
     resolutionSource: pmMarket.resolutionSource,
     endDate,
+    createdAt: pmMarket.createdAt || undefined,
     imageUrl,
     outcomes,
     volume,

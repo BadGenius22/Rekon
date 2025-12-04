@@ -9,6 +9,7 @@ export interface Market {
   conditionId: string;
   resolutionSource: string;
   endDate: string;
+  createdAt?: string;
   imageUrl?: string;
   outcomes: MarketOutcome[];
   volume: number;

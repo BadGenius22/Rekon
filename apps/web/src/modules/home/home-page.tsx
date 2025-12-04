@@ -5,6 +5,7 @@ import { API_CONFIG } from "@rekon/config";
 import { formatVolume } from "@rekon/utils";
 import { cn } from "@rekon/ui";
 import { AppHeader } from "@/components/app-header";
+import { HomePageClient } from "./home-page-client";
 
 async function getHighlightedMarkets(): Promise<Market[]> {
   try {
@@ -33,38 +34,9 @@ async function getHighlightedMarkets(): Promise<Market[]> {
   }
 }
 
-function getYesNoPrices(market: Market): { yesPrice: number; noPrice: number } {
-  const yesOutcome = market.outcomes.find(
-    (o) => o.name.toLowerCase() === "yes"
-  );
-  const noOutcome = market.outcomes.find((o) => o.name.toLowerCase() === "no");
-
-  if (yesOutcome && noOutcome) {
-    return { yesPrice: yesOutcome.price, noPrice: noOutcome.price };
-  }
-
-  if (yesOutcome) {
-    return { yesPrice: yesOutcome.price, noPrice: 1 - yesOutcome.price };
-  }
-
-  if (noOutcome) {
-    return { yesPrice: 1 - noOutcome.price, noPrice: noOutcome.price };
-  }
-
-  if (market.outcomes.length >= 2) {
-    return {
-      yesPrice: market.outcomes[0].price,
-      noPrice: market.outcomes[1].price,
-    };
-  }
-
-  const fallback = market.outcomes[0]?.price ?? 0.5;
-  return { yesPrice: fallback, noPrice: 1 - fallback };
-}
 
 export async function HomePage() {
   const markets = await getHighlightedMarkets();
-  const highlighted = markets.slice(0, 4);
   const liveMarketsCount = markets.length;
   const totalVolume = markets.reduce(
     (sum, market) => sum + (market.volume24h ?? market.volume ?? 0),
@@ -97,6 +69,14 @@ export async function HomePage() {
         (sum, market) => sum + (market.volume24h ?? market.volume ?? 0),
         0
       ),
+  };
+
+  // Calculate market counts per game
+  const gameCounts = {
+    cs2: markets.filter((m) => m.game === "cs2").length,
+    lol: markets.filter((m) => m.game === "lol").length,
+    dota2: markets.filter((m) => m.game === "dota2").length,
+    valorant: markets.filter((m) => m.game === "valorant").length,
   };
 
   return (
@@ -179,75 +159,8 @@ export async function HomePage() {
               </div>
             </div>
 
-            {/* Shortcut bar */}
-            <div className="flex flex-wrap items-center gap-2 text-xs text-white/60 shrink-0">
-              <ShortcutPill active>LIVE</ShortcutPill>
-              <ShortcutPill>Today</ShortcutPill>
-              <ShortcutPill>This week</ShortcutPill>
-              <ShortcutPill>CS2</ShortcutPill>
-              <ShortcutPill>League</ShortcutPill>
-              <ShortcutPill>Valorant</ShortcutPill>
-            </div>
-
-            {/* Markets grid – highlights current live esports markets */}
-            <div className="grid gap-3 sm:grid-cols-2 flex-1 min-h-0 content-end">
-              {highlighted.length === 0 ? (
-                <>
-                  <MarketCard
-                    title="Will Team A win the CS2 Grand Final?"
-                    subtitle="IEM Katowice • Match winner"
-                    yesPrice={0.64}
-                    noPrice={0.36}
-                    volume="$842k"
-                    liquidity="$210k"
-                    badge="Trending"
-                  />
-                  <MarketCard
-                    title="Will DRX reach Valorant Champions semifinals?"
-                    subtitle="Valorant Champions • Advancement"
-                    yesPrice={0.42}
-                    noPrice={0.58}
-                    volume="$421k"
-                    liquidity="$98k"
-                    badge="New"
-                  />
-                  <MarketCard
-                    title="Will G2 win at least 2 maps vs Vitality?"
-                    subtitle="CS2 • Map handicap"
-                    yesPrice={0.31}
-                    noPrice={0.69}
-                    volume="$190k"
-                    liquidity="$55k"
-                  />
-                  <MarketCard
-                    title="Will T1 qualify for Worlds 2025?"
-                    subtitle="League of Legends • Season futures"
-                    yesPrice={0.72}
-                    noPrice={0.28}
-                    volume="$603k"
-                    liquidity="$154k"
-                  />
-                </>
-              ) : (
-                highlighted.map((market, index) => {
-                  const { yesPrice, noPrice } = getYesNoPrices(market);
-                  const badge = index === 0 ? ("Trending" as const) : undefined;
-
-                  return (
-                    <MarketCard
-                      key={market.id}
-                      title={market.question}
-                      subtitle="Live esports market"
-                      yesPrice={yesPrice}
-                      noPrice={noPrice}
-                      volume={formatVolume(market.volume24h ?? market.volume)}
-                      liquidity={formatVolume(market.liquidity)}
-                      badge={badge}
-                    />
-                  );
-                })
-              )}
-            </div>
+            {/* Market filters and grid */}
+            <HomePageClient markets={markets} gameCounts={gameCounts} />
           </section>
 
           {/* Right column panels */}
@@ -329,26 +242,6 @@ export async function HomePage() {
   );
 }
 
-function ShortcutPill({
-  children,
-  active,
-}: {
-  children: React.ReactNode;
-  active?: boolean;
-}) {
-  return (
-    <button
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all",
-        active
-          ? "border-white/30 bg-white/10 text-white shadow-sm"
-          : "border-white/10 bg-[#090E1C] text-white/65 hover:border-white/20 hover:bg-white/5 hover:text-white/85"
-      )}
-    >
-      {children}
-    </button>
-  );
-}
 
 function Panel({ children }: { children: React.ReactNode }) {
   return (
@@ -371,87 +264,6 @@ function PanelHeader({ title, action }: { title: string; action?: string }) {
   );
 }
 
-function MarketCard({
-  title,
-  subtitle,
-  yesPrice,
-  noPrice,
-  volume,
-  liquidity,
-  badge,
-}: {
-  title: string;
-  subtitle: string;
-  yesPrice: number;
-  noPrice: number;
-  volume: string;
-  liquidity: string;
-  badge?: "New" | "Trending";
-}) {
-  return (
-    <button className="group flex min-h-[192px] flex-col justify-between rounded-xl border border-white/10 bg-[#121A30] p-5 text-left shadow-[0_8px_24px_rgba(15,23,42,0.8)] transition-all hover:-translate-y-1 hover:border-white/20 hover:shadow-[0_12px_32px_rgba(15,23,42,0.95)]">
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-2 flex-1 min-w-0">
-          <h2 className="line-clamp-2 text-sm font-semibold leading-snug text-white">
-            {title}
-          </h2>
-          <p className="text-xs text-white/55">{subtitle}</p>
-        </div>
-        {badge ? (
-          <span
-            className={cn(
-              "inline-flex h-5 shrink-0 items-center rounded-full px-2.5 text-[10px] font-semibold",
-              badge === "New"
-                ? "bg-emerald-400 text-black"
-                : "bg-orange-400 text-black"
-            )}
-          >
-            {badge}
-          </span>
-        ) : null}
-      </div>
-      <div className="mt-5 flex items-center justify-between gap-2.5">
-        <OutcomeChip label="YES" value={yesPrice} positive />
-        <OutcomeChip label="NO" value={noPrice} />
-      </div>
-      <div className="mt-5 flex items-center justify-between text-xs text-white/60">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-          <span>Vol {volume}</span>
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
-          <span>Liq {liquidity}</span>
-        </span>
-      </div>
-    </button>
-  );
-}
-
-function OutcomeChip({
-  label,
-  value,
-  positive,
-}: {
-  label: string;
-  value: number;
-  positive?: boolean;
-}) {
-  const pct = (value * 100).toFixed(0);
-  return (
-    <div
-      className={cn(
-        "flex flex-1 items-center justify-between rounded-lg border px-3 py-2.5 text-xs",
-        positive
-          ? "border-emerald-500/50 bg-emerald-500/12 text-emerald-300"
-          : "border-red-500/50 bg-red-500/12 text-red-300"
-      )}
-    >
-      <span className="font-semibold">{label}</span>
-      <span className="font-mono text-xs font-semibold">{pct}%</span>
-    </div>
-  );
-}
 
 function WatchlistRow({
   label,

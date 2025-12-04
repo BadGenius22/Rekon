@@ -790,34 +790,38 @@ function enrichMarket(market: Market): Market {
 
 /**
  * Calculates trending score based on:
- * - 24h volume (higher = more trending)
- * - Price change (significant moves = trending)
+ * - Price change (significant moves = trending) - PRIMARY SIGNAL
+ * - 24h volume (recent activity = trending)
  * - Liquidity (more liquidity = more reliable)
  * - Recency (active markets = trending)
  *
  * Returns score between 0 and 1.
+ *
+ * Trending prioritizes markets with MOVEMENT (price changes) over just high volume.
+ * This makes it distinct from pure volume sorting.
  */
 function calculateTrendingScore(market: Market): number {
   let score = 0;
 
-  // Volume component (0-0.4)
-  const volume24h = market.volume24h || 0;
-  const volumeScore = Math.min(volume24h / 100000, 0.4); // Normalize to 0-0.4
-  score += volumeScore;
-
-  // Price change component (0-0.3)
+  // Price change component (0-0.5) - PRIMARY SIGNAL for trending
+  // Markets with significant price moves are "trending" regardless of volume
   const priceChange24h = Math.abs(market.priceChange24h || 0);
-  const priceChangeScore = Math.min(priceChange24h * 10, 0.3); // Normalize to 0-0.3
+  const priceChangeScore = Math.min(priceChange24h * 20, 0.5); // More sensitive: 0.025 = 0.5 score
   score += priceChangeScore;
 
-  // Liquidity component (0-0.2)
+  // Volume component (0-0.3) - Recent activity matters but less than price movement
+  const volume24h = market.volume24h || 0;
+  const volumeScore = Math.min(volume24h / 150000, 0.3); // Normalize to 0-0.3
+  score += volumeScore;
+
+  // Liquidity component (0-0.15) - Ensures tradability
   const liquidity = market.liquidity || 0;
-  const liquidityScore = Math.min(liquidity / 50000, 0.2); // Normalize to 0-0.2
+  const liquidityScore = Math.min(liquidity / 70000, 0.15); // Normalize to 0-0.15
   score += liquidityScore;
 
-  // Activity component (0-0.1)
+  // Activity component (0-0.05) - Small boost for active markets
   if (market.active && market.acceptingOrders && !market.tradingPaused) {
-    score += 0.1;
+    score += 0.05;
   }
 
   return Math.min(score, 1); // Cap at 1.0
