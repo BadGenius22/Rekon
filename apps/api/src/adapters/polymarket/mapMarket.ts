@@ -58,7 +58,11 @@ export function mapPolymarketMarket(pmMarket: PolymarketMarket): Market {
   //   scheduled / in-progress events and was causing live markets to be
   //   incorrectly marked as resolved.
   const primaryEvent = pmMarket.events?.[0];
-  const eventEnded = primaryEvent?.ended === true;
+  // Check both the event's ended status and the attached _eventEnded field
+  // (which is set when flattening markets from events in getMarkets)
+  const eventEnded =
+    primaryEvent?.ended === true ||
+    (pmMarket as { _eventEnded?: boolean })._eventEnded === true;
 
   const hasAutomaticResolution = pmMarket.automaticallyResolved === true;
 

@@ -45,6 +45,8 @@ export interface Market {
   priceChange1w?: number;
   isTrending?: boolean;
   trendingScore?: number;
+  // Game categorization (cs2, lol, dota2, valorant)
+  game?: "cs2" | "lol" | "dota2" | "valorant";
 }
 
 export interface MarketOutcome {

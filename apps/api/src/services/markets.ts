@@ -111,37 +111,68 @@ export async function getMarkets(
     };
 
     const events = await fetchGammaEvents(gammaParams);
-    const rawMarkets = events.flatMap((event: { markets?: unknown[] }) =>
-      Array.isArray(event.markets) ? event.markets : []
+
+    // Filter out ended events when closed=false (live markets only)
+    // This ensures we don't include markets from events that have ended
+    // even if the market itself hasn't been marked as closed yet.
+    // The Gamma API can return events with ended=true but closed=false,
+    // so we need to filter them out explicitly.
+    const activeEvents =
+      params.closed === false
+        ? events.filter(
+            (event: { ended?: boolean | null }) => event.ended !== true
+          )
+        : events;
+
+    // Flatten markets from events and attach event context
+    const rawMarkets = activeEvents.flatMap(
+      (event: { markets?: unknown[]; ended?: boolean }) => {
+        const eventMarkets = Array.isArray(event.markets) ? event.markets : [];
+        // Attach event ended status to each market so mapPolymarketMarket can use it
+        return eventMarkets.map((market: unknown) => ({
+          ...(market as object),
+          _eventEnded: event.ended,
+        }));
+      }
     ) as unknown[];
 
-    const mapped = rawMarkets.map((m) =>
-      mapPolymarketMarket(m as never)
-    );
+    const mapped = rawMarkets.map((m) => mapPolymarketMarket(m as never));
     markets = mapped;
   } else {
     // Legacy: use Builder markets endpoint
-  const rawMarkets = await fetchPolymarketMarkets(params);
+    const rawMarkets = await fetchPolymarketMarkets(params);
     markets = rawMarkets.map(mapPolymarketMarket);
   }
 
-  // Filter esports markets if requested
-  if (params.esportsOnly) {
-    markets = filterEsportsMarkets(markets);
+  // When using tag-based filtering (Gamma API with tagId), we rely on Polymarket's
+  // tag system to provide the correct markets. Only filter by closed status.
+  // When NOT using tag-based filtering, apply additional filters.
+  const isTagBasedFiltering = marketSource === "gamma" && params.tagId;
+
+  if (!isTagBasedFiltering) {
+    // Filter esports markets if requested (only when not using tag-based filtering)
+    if (params.esportsOnly) {
+      markets = filterEsportsMarkets(markets);
+    }
+
+    // For the default "live" view (closed === false), hide clearly stale
+    // markets whose scheduled end time is already in the past. This mirrors
+    // how Polymarket keeps old matches/series out of the primary sports
+    // listings even if the low-level "closed" flag has not been flipped yet.
+    // Only apply this when NOT using tag-based filtering, as Polymarket's
+    // closed filter should be sufficient.
+    if (params.closed === false) {
+      markets = filterUpcomingAndLiveMarkets(markets);
+    }
   }
 
   // Enrich with derived fields
   markets = markets.map(enrichMarket);
 
-  // For the default "live" view (closed === false), hide clearly stale
-  // markets whose scheduled end time is already in the past. This mirrors
-  // how Polymarket keeps old matches/series out of the primary sports
-  // listings even if the low-level "closed" flag has not been flipped yet.
-  if (params.closed === false) {
-    markets = filterUpcomingAndLiveMarkets(markets);
-  }
-
   // Apply market type filter (games vs outrights) when requested.
+  // This filter is always needed because Polymarket's tag system doesn't
+  // distinguish between "game" markets (individual matches) and "outright"
+  // markets (season winners, futures). Both can have the same tag.
   if (params.marketType === "game") {
     markets = markets.filter(isGameMarket);
   } else if (params.marketType === "outright") {
@@ -323,6 +354,7 @@ export async function getEsportsMarkets(
       closed: params.closed ?? false,
     };
 
+    // Fetch markets by tag for games that have tags configured
     const resultsByTag = await Promise.all(
       tagIds.map((tagId) =>
         getMarkets({
@@ -332,8 +364,25 @@ export async function getEsportsMarkets(
       )
     );
 
+    // For games without tags, fall back to text-based filtering
+    const gamesWithoutTags: Array<"cs2" | "lol" | "dota2" | "valorant"> = [];
+    if (!gameTagIds.cs2) gamesWithoutTags.push("cs2");
+    if (!gameTagIds.lol) gamesWithoutTags.push("lol");
+    if (!gameTagIds.dota2) gamesWithoutTags.push("dota2");
+    if (!gameTagIds.valorant) gamesWithoutTags.push("valorant");
+
+    const resultsByText = await Promise.all(
+      gamesWithoutTags.map((gameSlug) => {
+        // Fetch all esports markets, then filter by game slug using text heuristics
+        return getMarkets({
+          ...baseParams,
+          esportsOnly: true,
+        }).then((markets) => filterMarketsByGameSlug(markets, gameSlug));
+      })
+    );
+
     // Merge and de-duplicate by market id
-    const combined = resultsByTag.flat();
+    const combined = [...resultsByTag, ...resultsByText].flat();
     const uniqueById = new Map<string, Market>();
     for (const market of combined) {
       if (!uniqueById.has(market.id)) {
@@ -532,9 +581,32 @@ function filterEsportsMarkets(markets: Market[]): Market[] {
  * Heuristic to detect "game" markets (individual matches/maps) versus
  * long-dated outrights or futures. This is used to approximate Polymarket's
  * /games views for CS2, LoL, Dota 2, Valorant.
+ *
+ * When type=game is requested, we want ONLY main match markets (Team A vs Team B),
+ * NOT child markets like "Game 1 Winner", "Map 2 Winner", "Games Total: O/U 2.5", etc.
  */
 function isGameMarket(market: Market): boolean {
   const q = market.question.toLowerCase();
+
+  // EXCLUDE child markets - these are sub-markets within a match
+  // Examples: "Game 1 Winner", "Map 2 Winner", "Games Total: O/U 2.5"
+  const isChildMarket =
+    q.includes("game 1") ||
+    q.includes("game 2") ||
+    q.includes("game 3") ||
+    q.includes("map 1") ||
+    q.includes("map 2") ||
+    q.includes("map 3") ||
+    /\bgame\s*\d+\s*winner/i.test(q) ||
+    /\bmap\s*\d+\s*winner/i.test(q) ||
+    q.includes("games total") ||
+    q.includes("total games") ||
+    q.includes("o/u") ||
+    q.includes("over/under");
+
+  if (isChildMarket) {
+    return false;
+  }
 
   // Match-style questions with "Team A vs Team B"
   const hasVsPattern =
@@ -545,9 +617,6 @@ function isGameMarket(market: Market): boolean {
 
   // Best-of notation is a strong signal of a specific match/series.
   const hasBestOf = /\(bo\d+\)/i.test(q);
-
-  // Short "Game X" markets, e.g. "Game 1 Winner", "Map 2 Winner".
-  const hasGameOrMap = /\bgame\s*\d+\b/i.test(q) || /\bmap\s*\d+\b/i.test(q);
 
   // Outright-style phrases that usually indicate season/championship futures.
   const outrightPhrases = [
@@ -564,11 +633,13 @@ function isGameMarket(market: Market): boolean {
     "outright",
     "winner of worlds",
   ];
-  const looksLikeOutright = outrightPhrases.some((phrase) => q.includes(phrase));
+  const looksLikeOutright = outrightPhrases.some((phrase) =>
+    q.includes(phrase)
+  );
 
-  // Treat as a game market when it clearly looks like a match/map and not
-  // like an outright/season future.
-  const gameSignals = hasVsPattern || hasBestOf || hasGameOrMap;
+  // Treat as a game market when it clearly looks like a main match and not
+  // like an outright/season future or child market.
+  const gameSignals = hasVsPattern || hasBestOf;
   if (!gameSignals) {
     return false;
   }
@@ -581,6 +652,118 @@ function isGameMarket(market: Market): boolean {
 }
 
 /**
+ * Detects the game for an esports market.
+ * Returns the game slug (cs2, lol, dota2, valorant) or undefined.
+ */
+function detectGame(
+  market: Market
+): "cs2" | "lol" | "dota2" | "valorant" | undefined {
+  const category = (market.category ?? "").toLowerCase();
+  const subcategory = (market.subcategory ?? "").toLowerCase();
+  const question = (market.question ?? "").toLowerCase();
+
+  // Check category/subcategory first (most reliable - matches Polymarket's structure)
+  // Check League of Legends FIRST to avoid false matches
+  if (
+    category.includes("league of legends") ||
+    category.includes("league-of-legends") ||
+    subcategory.includes("league of legends") ||
+    subcategory.includes("league-of-legends") ||
+    question.includes("league of legends") ||
+    question.includes(" lol ") ||
+    question.startsWith("lol:") ||
+    question.includes("lck") ||
+    question.includes("lpl") ||
+    question.includes("lec") ||
+    question.includes("worlds") ||
+    question.includes("msi")
+  ) {
+    return "lol";
+  }
+
+  // Check Dota 2
+  if (
+    category.includes("dota 2") ||
+    category.includes("dota2") ||
+    category.includes("dota-2") ||
+    subcategory.includes("dota 2") ||
+    subcategory.includes("dota2") ||
+    subcategory.includes("dota-2") ||
+    question.includes("dota 2") ||
+    question.includes("dota2") ||
+    (question.includes("dota") && !question.includes("anecdota"))
+  ) {
+    return "dota2";
+  }
+
+  // Check Valorant
+  if (
+    category.includes("valorant") ||
+    subcategory.includes("valorant") ||
+    question.includes("valorant") ||
+    question.includes("vct") ||
+    question.includes("champions") ||
+    question.includes("masters") ||
+    question.includes("challengers")
+  ) {
+    return "valorant";
+  }
+
+  // Check CS2 - category/subcategory or specific CS2 patterns
+  if (
+    category.includes("counter-strike") ||
+    category.includes("counter strike") ||
+    subcategory.includes("counter-strike") ||
+    subcategory.includes("counter strike") ||
+    question.includes("cs2") ||
+    question.includes("cs:go") ||
+    question.includes("csgo") ||
+    question.includes("counter-strike") ||
+    question.includes("counter strike") ||
+    question.includes("cs go") ||
+    question.includes("cs 2") ||
+    // CS-specific tournament patterns
+    question.includes("iem katowice") ||
+    question.includes("iem cologne") ||
+    question.includes("iem dallas") ||
+    (question.includes("iem ") &&
+      (question.includes("cs") || question.includes("counter"))) ||
+    question.includes("blast premier") ||
+    question.includes("blast.tv") ||
+    (question.includes("blast ") &&
+      (question.includes("cs") || question.includes("counter"))) ||
+    question.includes("esl pro league") ||
+    question.includes("esl one") ||
+    (question.includes("pgl major") &&
+      (question.includes("cs") || question.includes("counter"))) ||
+    (question.includes("valve major") &&
+      (question.includes("cs") || question.includes("counter"))) ||
+    // CS2-specific team names with CS context
+    (question.includes("mouz") &&
+      (question.includes("cs") ||
+        question.includes("counter") ||
+        category.includes("counter"))) ||
+    (question.includes("faze") &&
+      (question.includes("cs") ||
+        question.includes("counter") ||
+        category.includes("counter"))) ||
+    (question.includes("navi") &&
+      (question.includes("cs") ||
+        question.includes("counter") ||
+        category.includes("counter"))) ||
+    // CS2 event patterns
+    (question.includes("major") &&
+      (question.includes("cs") ||
+        question.includes("counter") ||
+        category.includes("counter")))
+  ) {
+    return "cs2";
+  }
+
+  return undefined;
+}
+
+/**
  * Enriches a market with derived fields and calculations.
  * This is where Rekon becomes "smart" - adding business intelligence.
  */
@@ -589,10 +772,14 @@ function enrichMarket(market: Market): Market {
   const trendingScore = calculateTrendingScore(market);
   const isTrending = trendingScore > 0.5; // Threshold for trending
 
+  // Detect game for esports markets
+  const game = detectGame(market);
+
   return {
     ...market,
     trendingScore,
     isTrending,
+    game,
     // Ensure derived fields are set (already mapped from raw data, but ensure they exist)
     volume24h: market.volume24h ?? 0,
     priceChange24h: market.priceChange24h ?? 0,
@@ -706,4 +893,3 @@ function filterUpcomingAndLiveMarkets(markets: Market[]): Market[] {
     return endTime >= now;
   });
 }
-

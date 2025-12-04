@@ -80,17 +80,29 @@ export async function getMarketsController(c: Context) {
 
   // By default, only show non-closed (unresolved) markets.
   // When includeResolved=true, let the service include both open and resolved.
+  // When using tag-based filtering, rely on Polymarket's closed filter only.
   const { esportsOnly: _ignore, ...rest } = params;
   let markets = await getEsportsMarkets({
     ...rest,
     closed: includeResolved ? undefined : false,
   });
 
+  // Only filter by resolved status if not using tag-based filtering.
+  // When using tag-based filtering, Polymarket's closed filter should be sufficient.
+  // The isResolved field is derived from Polymarket's closed/ended flags, so
+  // filtering by closed=false should already exclude resolved markets.
   if (!includeResolved) {
-    // Extra safety: filter out any markets that are still marked as resolved
-    // even if the underlying events are not closed, so the default view only
-    // shows live / tradable esports markets.
-    markets = markets.filter((m) => !m.isResolved);
+    // Filter out resolved/ended markets to show only live markets.
+    // Check both isResolved (derived from Polymarket flags) and closed status.
+    markets = markets.filter((m) => {
+      // Exclude if market is resolved
+      if (m.isResolved) return false;
+      // Exclude if market is closed
+      if (m.closed) return false;
+      // Exclude if market is not active or not accepting orders
+      if (!m.active || !m.acceptingOrders) return false;
+      return true;
+    });
   }
 
   // Sort so that live / tradable markets appear first. A market is treated
@@ -98,9 +110,17 @@ export async function getMarketsController(c: Context) {
   // orders.
   markets = markets.sort((a, b) => {
     const aLive =
-      !a.isResolved && !a.closed && a.active && a.acceptingOrders && !a.tradingPaused;
+      !a.isResolved &&
+      !a.closed &&
+      a.active &&
+      a.acceptingOrders &&
+      !a.tradingPaused;
     const bLive =
-      !b.isResolved && !b.closed && b.active && b.acceptingOrders && !b.tradingPaused;
+      !b.isResolved &&
+      !b.closed &&
+      b.active &&
+      b.acceptingOrders &&
+      !b.tradingPaused;
 
     if (aLive === bLive) {
       return 0;
