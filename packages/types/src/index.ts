@@ -146,7 +146,10 @@ export interface Portfolio {
   totalPnL: number;
   totalUnrealizedPnL: number;
   totalRealizedPnL: number;
+  realizedPnL30d: number; // Realized PnL for the last 30 days
   positions: Position[];
+  openPositions: number; // Count of open positions
+  lifetimePositions: number; // Total count of all positions ever opened
 }
 
 // Activity types
@@ -164,3 +167,6 @@ export interface Activity {
   price?: number;
   priceChange?: number;
 }
+
+// Fill types
+export type { Fill } from "./fill";

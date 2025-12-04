@@ -23,7 +23,7 @@ export interface GetActivityParams {
  * Checks if an activity item is one of the 4 main esports games:
  * Counter-Strike, League of Legends, Dota 2, or Valorant.
  */
-function isEsportsActivity(activity: PolymarketActivityItem): boolean {
+export function isEsportsActivity(activity: PolymarketActivityItem): boolean {
   const slug = (activity.slug || "").toLowerCase();
   const title = (activity.title || "").toLowerCase();
   const eventSlug = (activity.eventSlug || "").toLowerCase();

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { TrendingUp, ArrowRight } from "lucide-react";
-import type { Market, Activity } from "@rekon/types";
+import type { Market, Activity, Portfolio } from "@rekon/types";
 import { API_CONFIG } from "@rekon/config";
 import { formatVolume } from "@rekon/utils";
 import { cn } from "@rekon/ui";
@@ -65,10 +65,38 @@ async function getRecentActivity(): Promise<Activity[]> {
   }
 }
 
+async function getPortfolio(): Promise<Portfolio | null> {
+  try {
+    // For now, use hardcoded address. Later, this will be replaced with connected wallet
+    const userAddress = "0x14ac84b66a27fc30e56ed620ebfa61cd8105cb21";
+    const url = new URL(`${API_CONFIG.baseUrl}/portfolio`);
+    url.searchParams.set("user", userAddress);
+    // Request esports-only scope so all metrics in the snapshot card
+    // (net exposure, PnL, open & lifetime positions) share the same scope.
+    url.searchParams.set("scope", "esports");
+
+    const response = await fetch(url.toString(), {
+      // Cache for 10 seconds, then revalidate in the background.
+      next: { revalidate: 10 },
+    });
+
+    if (!response.ok) {
+      console.warn("Failed to fetch portfolio:", response.status);
+      return null;
+    }
+
+    const portfolio = (await response.json()) as Portfolio;
+    return portfolio;
+  } catch (error) {
+    console.warn("Failed to fetch portfolio:", error);
+    return null;
+  }
+}
 
 export async function HomePage() {
   const markets = await getHighlightedMarkets();
   const activities = await getRecentActivity();
+  const portfolio = await getPortfolio();
   const liveMarketsCount = markets.length;
   const totalVolume = markets.reduce(
     (sum, market) => sum + (market.volume24h ?? market.volume ?? 0),
@@ -198,12 +226,11 @@ export async function HomePage() {
           {/* Right column panels */}
           <aside className="w-full flex flex-col gap-4 md:w-72 shrink-0 min-h-0">
             <PortfolioSnapshot
-              netExposure={12430.25}
-              unrealizedPnL={1023.15}
-              realizedPnL={3210.88}
-              openPositions={8}
-              lifetimePositions={23}
-              action="Open terminal"
+              netExposure={portfolio?.totalValue ?? 0}
+              totalPnL={portfolio?.totalPnL ?? 0}
+              openPositions={portfolio?.openPositions ?? 0}
+              lifetimePositions={portfolio?.lifetimePositions ?? 0}
+              action="Open portfolio"
             />
 
             <WatchlistPanel
@@ -237,15 +264,13 @@ export async function HomePage() {
   );
 }
 
-
-
 function GameVolumeItem({ game, volume }: { game: string; volume: number }) {
   return (
     <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2">
       <span className="text-xs font-medium text-white/75">{game}</span>
       <span className="font-mono text-xs font-semibold text-emerald-300">
         {formatVolume(volume)}
-          </span>
+      </span>
     </div>
   );
 }

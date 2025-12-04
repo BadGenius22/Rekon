@@ -88,7 +88,14 @@ async function calculatePositionFromFills(
   fills: Fill[]
 ): Promise<Position | null> {
   // Get market data
-  const market = await getMarketById(marketId);
+  let market: Market | null = null;
+  try {
+    market = await getMarketById(marketId);
+  } catch (error) {
+    console.warn(`[Positions] Failed to fetch market ${marketId}:`, error);
+    return null;
+  }
+  
   if (!market) {
     return null;
   }

@@ -100,3 +100,10 @@ export {
   type PolymarketActivityItem,
   type PolymarketActivityResponse,
 } from "./activity";
+
+// Export positions functions
+export {
+  fetchPolymarketPositions,
+  fetchPolymarketPortfolioValue,
+  type PolymarketPosition,
+} from "./positions";

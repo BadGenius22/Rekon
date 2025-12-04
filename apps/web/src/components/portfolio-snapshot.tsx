@@ -2,8 +2,7 @@ import { cn } from "@rekon/ui";
 
 interface PortfolioSnapshotProps {
   netExposure: number;
-  unrealizedPnL: number;
-  realizedPnL: number;
+  totalPnL: number;
   openPositions: number;
   lifetimePositions: number;
   action?: string;
@@ -12,8 +11,7 @@ interface PortfolioSnapshotProps {
 
 export function PortfolioSnapshot({
   netExposure,
-  unrealizedPnL,
-  realizedPnL,
+  totalPnL,
   openPositions,
   lifetimePositions,
   action,
@@ -21,36 +19,35 @@ export function PortfolioSnapshot({
 }: PortfolioSnapshotProps) {
   return (
     <Panel>
-      <PanelHeader title="Portfolio snapshot" action={action} onActionClick={onActionClick} />
+      <PanelHeader
+        title="Portfolio Snapshot"
+        action={action}
+        onActionClick={onActionClick}
+      />
       <div className="space-y-4 text-xs">
         <div className="flex items-center justify-between">
           <span className="text-white/65">Net exposure</span>
           <span className="font-mono text-sm font-semibold text-white">
-            ${netExposure.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            $
+            {netExposure.toLocaleString("en-US", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
           </span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-white/55">Unrealized PnL</span>
+          <span className="text-white/55">Total PnL</span>
           <span
             className={cn(
               "font-mono text-sm font-semibold",
-              unrealizedPnL >= 0 ? "text-emerald-400" : "text-red-400"
+              totalPnL >= 0 ? "text-emerald-400" : "text-red-400"
             )}
           >
-            {unrealizedPnL >= 0 ? "+" : ""}
-            ${unrealizedPnL.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-white/55">Realized PnL (30d)</span>
-          <span
-            className={cn(
-              "font-mono text-sm font-semibold",
-              realizedPnL >= 0 ? "text-emerald-300" : "text-red-300"
-            )}
-          >
-            {realizedPnL >= 0 ? "+" : ""}
-            ${realizedPnL.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {totalPnL >= 0 ? "+" : ""}$
+            {totalPnL.toLocaleString("en-US", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
           </span>
         </div>
         <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
@@ -107,4 +104,3 @@ function PanelHeader({
     </div>
   );
 }
-
