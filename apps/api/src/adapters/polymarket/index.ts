@@ -27,6 +27,7 @@ export {
   fetchGammaMarketBySlug,
   fetchGammaTags,
   fetchGammaSports,
+  fetchGammaTeams,
   fetchGammaComments,
   fetchGammaCommentById,
   fetchGammaCommentsByUserAddress,

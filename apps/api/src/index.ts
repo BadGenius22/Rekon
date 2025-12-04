@@ -135,6 +135,7 @@ import { watchlistRoutes } from "./routes/watchlist";
 import { alertsRoutes } from "./routes/alerts";
 import { analyticsRoutes } from "./routes/analytics";
 import { notificationsRoutes } from "./routes/notifications";
+import { teamsRoutes } from "./routes/teams";
 import { commentsRoutes } from "./routes/comments";
 import { searchRoutes } from "./routes/search";
 import { activityRoutes } from "./routes/activity";
@@ -173,6 +174,7 @@ app.route("/notifications", notificationsRoutes);
 app.route("/comments", commentsRoutes);
 app.route("/search", searchRoutes);
 app.route("/activity", activityRoutes);
+app.route("/teams", teamsRoutes);
 
 const port = Number(process.env.PORT) || 3001;
 

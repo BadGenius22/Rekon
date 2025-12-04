@@ -47,6 +47,16 @@ export interface FetchMarketsParams {
   offset?: number;
 }
 
+interface GammaTeam {
+  id: number;
+  name?: string;
+  league?: string;
+  logo?: string;
+  abbreviation?: string;
+  alias?: string | null;
+  imageUrl?: string;
+}
+
 /**
  * Fetches markets from Polymarket API.
  * Returns raw PolymarketMarket[] - must be mapped to Market[] in service layer.
@@ -121,6 +131,52 @@ export async function fetchPolymarketMarkets(
     console.error("[Polymarket] Failed to fetch markets:", error);
     console.warn(
       "[Polymarket] fetchPolymarketMarkets: swallowing error and returning [] to keep API responsive"
+    );
+    return [];
+  }
+}
+
+/**
+ * Fetches esports teams metadata from the Gamma API.
+ * Used to decorate markets with team logos.
+ */
+export async function fetchGammaTeams(): Promise<GammaTeam[]> {
+  if (OFFLINE_MODE) {
+    console.warn(
+      "[Polymarket] OFFLINE mode enabled (POLYMARKET_OFFLINE=true) – returning empty teams list"
+    );
+    return [];
+  }
+
+  const searchParams = new URLSearchParams();
+  searchParams.append("limit", "200");
+  searchParams.append("league", "csgo");
+  searchParams.append("league", "lol");
+  searchParams.append("league", "dota2");
+  searchParams.append("league", "valorant");
+
+  const url = `${GAMMA_API_URL}/teams?${searchParams.toString()}`;
+
+  try {
+    const response = await fetch(url, {
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      const error = new Error(
+        `Gamma API error: ${response.status} ${response.statusText}`
+      );
+
+      trackPolymarketApiFailure(url, response.status, error);
+      throw error;
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? (data as GammaTeam[]) : [];
+  } catch (error) {
+    console.error("[Polymarket] Failed to fetch teams from Gamma:", error);
+    console.warn(
+      "[Polymarket] fetchGammaTeams: swallowing error and returning [] to keep API responsive"
     );
     return [];
   }

@@ -213,7 +213,7 @@ function OutcomeChip({
   value: number;
   positive?: boolean;
 }) {
-  const pct = (value * 100).toFixed(1);
+  const pct = (value * 100).toFixed(2);
   const percentage = Math.max(0, Math.min(100, value * 100)); // Clamp to 0-100
 
   return (
