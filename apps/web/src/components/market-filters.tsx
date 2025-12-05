@@ -4,7 +4,12 @@ import { useState } from "react";
 import { cn } from "@rekon/ui";
 
 export type GameFilter = "cs2" | "lol" | "dota2" | "valorant" | null;
-export type SortOption = "volume" | "trending" | "newest";
+export type SortOption =
+  | "upcoming"
+  | "volume"
+  | "ending-soon"
+  | "trending"
+  | "newest";
 
 interface MarketFiltersProps {
   gameFilter: GameFilter;
@@ -34,7 +39,9 @@ export function MarketFilters({
   ];
 
   const sortOptions: Array<{ value: SortOption; label: string }> = [
-    { value: "volume", label: "Volume" },
+    { value: "upcoming", label: "Upcoming" },
+    { value: "volume", label: "High Volume" },
+    { value: "ending-soon", label: "Ending Soon" },
     { value: "trending", label: "Trending" },
     { value: "newest", label: "Newest" },
   ];
@@ -110,4 +117,3 @@ export function MarketFilters({
     </div>
   );
 }
-

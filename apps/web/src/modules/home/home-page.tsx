@@ -3,10 +3,11 @@ import { TrendingUp, ArrowRight } from "lucide-react";
 import type { Market } from "@rekon/types";
 import { API_CONFIG } from "@rekon/config";
 import { formatVolume } from "@rekon/utils";
-import { cn } from "@rekon/ui";
 import { AppHeader } from "@/components/app-header";
 import { HomePageClient } from "./home-page-client";
-import { WatchlistPanel } from "@/components/watchlist-panel";
+import { GameCategories } from "./game-categories";
+import { HowItWorks } from "./how-it-works";
+import { HomeFooter } from "./home-footer";
 
 async function getHighlightedMarkets(): Promise<Market[]> {
   try {
@@ -79,114 +80,112 @@ export async function HomePage() {
     valorant: markets.filter((m) => m.game === "valorant").length,
   };
 
+  // Extract game icons from market metadata (use first market's imageUrl for each game)
+  const gameIcons = {
+    cs2: markets.find((m) => m.game === "cs2" && m.imageUrl)?.imageUrl,
+    lol: markets.find((m) => m.game === "lol" && m.imageUrl)?.imageUrl,
+    dota2: markets.find((m) => m.game === "dota2" && m.imageUrl)?.imageUrl,
+    valorant: markets.find((m) => m.game === "valorant" && m.imageUrl)
+      ?.imageUrl,
+  };
+
   return (
-    <main className="h-screen overflow-hidden bg-[#030711] text-white">
+    <main className="min-h-screen bg-[#030711] text-white">
       {/* App shell background */}
-      <div className="h-full flex flex-col bg-gradient-to-b from-[#050816] via-[#030711] to-black">
+      <div className="flex flex-col bg-gradient-to-b from-[#050816] via-[#030711] to-black">
         {/* Top navigation */}
         <AppHeader />
 
-        {/* Main grid */}
-        <div className="flex-1 mx-auto flex w-full max-w-screen-2xl flex-col gap-4 px-4 pt-4 pb-4 md:flex-row md:gap-5 md:px-6 xl:px-10 overflow-hidden">
-          {/* Left: hero + markets */}
-          <section className="flex-1 flex flex-col gap-4 min-w-0 overflow-hidden">
-            {/* Hero banner */}
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1D4ED8] via-[#22D3EE] to-[#8B5CF6] shadow-[0_12px_40px_rgba(15,23,42,0.8)] shrink-0">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(15,23,42,0.8),transparent_50%)]" />
-              <div className="relative flex flex-col gap-5 p-6 sm:p-8 md:flex-row md:items-center md:justify-between">
-                <div className="space-y-4 md:max-w-lg">
-                  <div className="inline-flex items-center gap-2 rounded-full bg-black/20 px-3 py-1.5 text-xs font-medium text-white/90 backdrop-blur-sm">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_0_3px_rgba(16,185,129,0.3)]" />
-                    Professional trading terminal
-                  </div>
-                  <h1 className="text-balance text-2xl font-bold leading-tight text-white sm:text-3xl md:text-4xl">
-                    Trade esports markets{" "}
-                    <span className="underline decoration-white/70 decoration-wavy underline-offset-4">
-                      in real-time
-                    </span>
-                  </h1>
-                  <p className="text-sm leading-relaxed text-white/85">
-                    Access live odds, depth-aware pricing, and portfolio
-                    analytics across CS2, League of Legends, Dota 2, and
-                    Valorant. Built for traders on Polymarket liquidity.
-                  </p>
-                  <div className="flex flex-wrap items-center gap-3 pt-1">
-                    <Link
-                      href="/markets"
-                      className="inline-flex items-center gap-2 rounded-lg bg-[#0B1020]/90 px-5 py-2.5 text-xs font-semibold text-white shadow-[0_4px_16px_rgba(15,23,42,0.6)] backdrop-blur-sm transition-all hover:bg-[#0B1020] hover:shadow-[0_6px_20px_rgba(15,23,42,0.8)]"
-                    >
-                      <TrendingUp className="h-4 w-4 text-emerald-400" />
-                      <span>Browse live markets</span>
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </Link>
-                    <div className="flex items-center gap-2 text-xs text-white/80">
-                      <span className="inline-flex h-6 items-center rounded-full bg-black/25 px-3 font-medium backdrop-blur-sm">
-                        CS2 • LoL • Dota 2 • Valorant
-                      </span>
-                    </div>
-                  </div>
+        {/* Hero Section */}
+        <section className="mx-auto w-full max-w-screen-2xl px-4 pt-8 pb-12 md:px-6 xl:px-10">
+          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1D4ED8] via-[#22D3EE] to-[#8B5CF6] shadow-[0_12px_40px_rgba(15,23,42,0.8)]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(15,23,42,0.8),transparent_50%)]" />
+            <div className="relative flex flex-col gap-6 p-8 sm:p-10 md:flex-row md:items-center md:justify-between">
+              <div className="space-y-5 md:max-w-2xl">
+                <h1 className="text-balance text-3xl font-bold leading-tight text-white sm:text-4xl md:text-5xl">
+                  Predict esports match outcomes{" "}
+                  <span className="underline decoration-white/70 decoration-wavy underline-offset-4">
+                    in real time
+                  </span>
+                </h1>
+                <p className="text-base leading-relaxed text-white/90 sm:text-lg">
+                  Live odds, instant settlement, powered by Polymarket.
+                  <br />
+                  <span className="text-sm text-white/75">
+                    No gas. No wallet needed.
+                  </span>
+                </p>
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <Link
+                    href="/markets"
+                    className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-semibold text-[#030711] shadow-[0_4px_16px_rgba(255,255,255,0.3)] transition-all hover:bg-white/95 hover:shadow-[0_6px_20px_rgba(255,255,255,0.4)]"
+                  >
+                    <TrendingUp className="h-4 w-4" />
+                    <span>Browse Esports Markets</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
                 </div>
+              </div>
 
-                <div className="mt-4 flex flex-col gap-4 rounded-xl bg-black/20 p-5 text-xs text-white/90 backdrop-blur-sm md:mt-0 md:w-80">
-                  <div className="flex items-center justify-between text-xs text-white/75">
-                    <span>24h Volume</span>
-                    <span className="font-mono text-sm font-semibold text-emerald-300">
-                      {formatVolume(totalVolume)}
-                    </span>
+              {/* Stats Panel */}
+              <div className="mt-4 flex flex-col gap-4 rounded-xl bg-black/20 p-5 text-xs text-white/90 backdrop-blur-sm md:mt-0 md:w-80">
+                <div className="flex items-center justify-between text-xs text-white/75">
+                  <span>24h Volume</span>
+                  <span className="font-mono text-sm font-semibold text-emerald-300">
+                    {formatVolume(totalVolume)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-white/75">
+                  <span>Markets</span>
+                  <span className="font-mono text-sm font-semibold text-white">
+                    {liveMarketsCount}
+                  </span>
+                </div>
+                <div className="h-px bg-white/10" />
+                <div className="space-y-2.5">
+                  <div className="text-[10px] font-semibold text-white/60 uppercase tracking-wider">
+                    Volume by Game
                   </div>
-                  <div className="flex items-center justify-between text-xs text-white/75">
-                    <span>Live markets</span>
-                    <span className="font-mono text-sm font-semibold text-white">
-                      {liveMarketsCount}
-                    </span>
-                  </div>
-                  <div className="h-px bg-white/10" />
-                  <div className="space-y-2.5">
-                    <div className="text-[10px] font-semibold text-white/60 uppercase tracking-wider">
-                      Volume by Game
-                    </div>
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <GameVolumeItem game="CS2" volume={gameVolumes.cs2} />
-                      <GameVolumeItem game="LoL" volume={gameVolumes.lol} />
-                      <GameVolumeItem game="Dota2" volume={gameVolumes.dota2} />
-                      <GameVolumeItem
-                        game="Valorant"
-                        volume={gameVolumes.valorant}
-                      />
-                    </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <GameVolumeItem game="CS2" volume={gameVolumes.cs2} />
+                    <GameVolumeItem game="LoL" volume={gameVolumes.lol} />
+                    <GameVolumeItem game="Dota2" volume={gameVolumes.dota2} />
+                    <GameVolumeItem
+                      game="Valorant"
+                      volume={gameVolumes.valorant}
+                    />
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+        </section>
 
-            {/* Market filters and grid */}
-            <HomePageClient markets={markets} gameCounts={gameCounts} />
-          </section>
+        {/* Game Categories */}
+        <section className="mx-auto w-full max-w-screen-2xl px-4 pb-12 md:px-6 xl:px-10">
+          <GameCategories gameCounts={gameCounts} gameIcons={gameIcons} />
+        </section>
 
-          {/* Right column panels – public, no wallet required */}
-          <aside className="w-full flex flex-col gap-4 md:w-72 shrink-0 min-h-0">
-            <WatchlistPanel
-              items={[
-                {
-                  label: "Will FaZe win the CS2 Major?",
-                  yesPrice: 0.58,
-                  noPrice: 0.42,
-                },
-                {
-                  label: "Will Gen.G win VCT Pacific?",
-                  yesPrice: 0.47,
-                  noPrice: 0.53,
-                },
-                {
-                  label: "Will Liquid qualify for playoffs?",
-                  yesPrice: 0.66,
-                  noPrice: 0.34,
-                },
-              ]}
-              action="View all"
-            />
-          </aside>
-        </div>
+        {/* Featured Esports Matches */}
+        <section className="mx-auto w-full max-w-screen-2xl px-4 pb-12 md:px-6 xl:px-10">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-white">
+              Featured Esports Matches
+            </h2>
+            <p className="mt-2 text-sm text-white/60">
+              Active markets with real-time updates
+            </p>
+          </div>
+          <HomePageClient markets={markets} gameCounts={gameCounts} />
+        </section>
+
+        {/* How It Works */}
+        <section className="mx-auto w-full max-w-screen-2xl px-4 pb-12 md:px-6 xl:px-10">
+          <HowItWorks />
+        </section>
+
+        {/* Footer */}
+        <HomeFooter />
       </div>
     </main>
   );

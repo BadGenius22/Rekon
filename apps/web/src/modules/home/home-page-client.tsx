@@ -16,10 +16,7 @@ interface HomePageClientProps {
   };
 }
 
-export function HomePageClient({
-  markets,
-  gameCounts,
-}: HomePageClientProps) {
+export function HomePageClient({ markets, gameCounts }: HomePageClientProps) {
   const [gameFilter, setGameFilter] = useState<GameFilter>(null);
   const [sortOption, setSortOption] = useState<SortOption>("volume");
 
@@ -45,4 +42,3 @@ export function HomePageClient({
     </div>
   );
 }
-

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { Market } from "@rekon/types";
 import { formatVolume } from "@rekon/utils";
 import { cn } from "@rekon/ui";
@@ -80,12 +81,26 @@ export function MarketGrid({
   // Sort markets
   const sortedMarkets = [...filteredMarkets].sort((a, b) => {
     switch (sortOption) {
+      case "upcoming":
+        // Upcoming: endDate in the future, sort by endDate ascending
+        const aEndDate = new Date(a.endDate).getTime();
+        const bEndDate = new Date(b.endDate).getTime();
+        const now = Date.now();
+        const aIsUpcoming = aEndDate > now;
+        const bIsUpcoming = bEndDate > now;
+        if (aIsUpcoming !== bIsUpcoming) return bIsUpcoming ? 1 : -1;
+        return aEndDate - bEndDate;
       case "volume":
         // Sort by 24h volume (current activity) for trading terminal best practice
         // Falls back to total volume if 24h not available
         const volumeA = a.volume24h ?? a.volume ?? 0;
         const volumeB = b.volume24h ?? b.volume ?? 0;
         return volumeB - volumeA;
+      case "ending-soon":
+        // Ending soon: sort by endDate ascending (closest to resolution first)
+        const endDateA = new Date(a.endDate).getTime();
+        const endDateB = new Date(b.endDate).getTime();
+        return endDateA - endDateB;
       case "trending":
         const trendingA = a.trendingScore ?? (a.isTrending ? 1 : 0);
         const trendingB = b.trendingScore ?? (b.isTrending ? 1 : 0);
@@ -107,8 +122,8 @@ export function MarketGrid({
     }
   });
 
-  // Take first 4 for display
-  const displayedMarkets = sortedMarkets.slice(0, 4);
+  // Take first 12 for display (6-12 range as per MVP spec)
+  const displayedMarkets = sortedMarkets.slice(0, 12);
 
   if (displayedMarkets.length === 0) {
     return (
@@ -119,17 +134,47 @@ export function MarketGrid({
   }
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 flex-1 min-h-0 content-start items-stretch">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 flex-1 min-h-0 content-start items-stretch">
       {displayedMarkets.map((market) => {
         const { team1, team2 } = getTeamPrices(market);
         const badge = market.isTrending ? ("Trending" as const) : undefined;
         const has24hVolume = market.volume24h !== undefined;
 
+        // Determine if market is live
+        const isLive = market.active && !market.isResolved && !market.closed;
+        const endDate = new Date(market.endDate);
+        const now = new Date();
+        const isUpcoming = endDate > now;
+        const timeUntilEnd = endDate.getTime() - now.getTime();
+        const hoursUntilEnd = timeUntilEnd / (1000 * 60 * 60);
+
+        // Format game name
+        const gameName = market.game
+          ? {
+              cs2: "CS2",
+              lol: "LoL",
+              dota2: "Dota 2",
+              valorant: "Valorant",
+            }[market.game] ?? market.game.toUpperCase()
+          : undefined;
+
+        // Format match info (Team A vs Team B)
+        const matchInfo =
+          team1.name !== "YES" && team2.name !== "NO"
+            ? `${team1.name} vs ${team2.name}`
+            : undefined;
+
         return (
           <MarketCard
             key={market.id}
+            marketId={market.id}
             title={market.question}
-            subtitle="Live esports market"
+            game={gameName}
+            matchInfo={matchInfo}
+            isLive={isLive}
+            hoursUntilEnd={hoursUntilEnd}
+            endDate={market.endDate}
+            createdAt={market.createdAt}
             team1={team1}
             team2={team2}
             volume={formatVolume(market.volume24h ?? market.volume)}
@@ -144,8 +189,14 @@ export function MarketGrid({
 }
 
 function MarketCard({
+  marketId,
   title,
-  subtitle,
+  game,
+  matchInfo,
+  isLive,
+  hoursUntilEnd,
+  endDate,
+  createdAt,
   team1,
   team2,
   volume,
@@ -153,8 +204,14 @@ function MarketCard({
   liquidity,
   badge,
 }: {
+  marketId: string;
   title: string;
-  subtitle: string;
+  game?: string;
+  matchInfo?: string;
+  isLive?: boolean;
+  hoursUntilEnd?: number;
+  endDate: string;
+  createdAt?: string;
   team1: { name: string; price: number };
   team2: { name: string; price: number };
   volume: string;
@@ -162,27 +219,111 @@ function MarketCard({
   liquidity: string;
   badge?: "New" | "Trending";
 }) {
+  // Format date/time for display
+  const formatDateTime = (isoDate: string): string => {
+    const date = new Date(isoDate);
+    if (Number.isNaN(date.getTime())) return isoDate;
+
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const isTomorrow =
+      date.toDateString() ===
+      new Date(now.getTime() + 24 * 60 * 60 * 1000).toDateString();
+
+    if (isToday) {
+      return date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+    }
+
+    if (isTomorrow) {
+      return `Tomorrow, ${date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })}`;
+    }
+
+    // More than 1 day away - show date and time
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  // Smart time status display based on market state
+  let timeStatus: string | undefined;
+  const minutesUntilEnd = hoursUntilEnd ? hoursUntilEnd * 60 : undefined;
+
+  if (isLive) {
+    // Live: Just show end date (Live badge already shown separately)
+    timeStatus = `Ends ${formatDateTime(endDate)}`;
+  } else if (hoursUntilEnd !== undefined && hoursUntilEnd > 0) {
+    if (minutesUntilEnd && minutesUntilEnd < 60) {
+      // Ending soon: Show relative time
+      timeStatus = `Ends in ${Math.round(minutesUntilEnd)}m`;
+    } else if (hoursUntilEnd < 1) {
+      timeStatus = "Ending soon";
+    } else if (hoursUntilEnd < 24) {
+      timeStatus = `Ends in ${Math.round(hoursUntilEnd)}h`;
+    } else {
+      // Upcoming: Show end date/time
+      timeStatus = `Ends ${formatDateTime(endDate)}`;
+    }
+  } else if (endDate) {
+    // Fallback: Show end date
+    timeStatus = `Ends ${formatDateTime(endDate)}`;
+  }
+
   return (
-    <button className="group flex h-full flex-col justify-between rounded-xl border border-white/10 bg-[#121A30] p-6 text-left shadow-[0_8px_24px_rgba(15,23,42,0.8)] transition-all hover:-translate-y-1 hover:border-white/20 hover:shadow-[0_12px_32px_rgba(15,23,42,0.95)]">
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-2 flex-1 min-w-0">
+    <Link
+      href={`/markets/${marketId}`}
+      className="group flex h-full flex-col justify-between rounded-xl border border-white/10 bg-[#121A30] p-6 text-left shadow-[0_8px_24px_rgba(15,23,42,0.8)] transition-all hover:-translate-y-1 hover:border-white/20 hover:shadow-[0_12px_32px_rgba(15,23,42,0.95)]"
+    >
+      <div className="space-y-3">
+        {/* Game title and status */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            {game && (
+              <div className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-[10px] font-medium text-white/70">
+                {game}
+              </div>
+            )}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {isLive && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/20 px-2.5 py-1 text-[10px] font-semibold text-red-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />
+                Live
+              </span>
+            )}
+            {badge && (
+              <span
+                className={cn(
+                  "inline-flex h-5 shrink-0 items-center rounded-full px-2.5 text-[10px] font-semibold",
+                  badge === "New"
+                    ? "bg-emerald-400 text-black"
+                    : "bg-orange-400 text-black"
+                )}
+              >
+                {badge}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Market question */}
+        <div className="space-y-1">
           <h2 className="line-clamp-2 text-sm font-semibold leading-snug text-white">
             {title}
           </h2>
-          <p className="text-xs text-white/55">{subtitle}</p>
+          {timeStatus && <p className="text-xs text-white/55">{timeStatus}</p>}
         </div>
-        {badge ? (
-          <span
-            className={cn(
-              "inline-flex h-5 shrink-0 items-center rounded-full px-2.5 text-[10px] font-semibold",
-              badge === "New"
-                ? "bg-emerald-400 text-black"
-                : "bg-orange-400 text-black"
-            )}
-          >
-            {badge}
-          </span>
-        ) : null}
       </div>
       <div className="mt-5 flex items-center justify-between gap-2.5">
         <OutcomeChip label={team1.name} value={team1.price} positive />
@@ -200,7 +341,7 @@ function MarketCard({
           <span>Liq {liquidity}</span>
         </span>
       </div>
-    </button>
+    </Link>
   );
 }
 
