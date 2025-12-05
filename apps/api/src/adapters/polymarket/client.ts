@@ -1,9 +1,5 @@
 import { POLYMARKET_CONFIG } from "@rekon/config";
-import type {
-  PolymarketEvent,
-  PolymarketMarket,
-  PolymarketTag,
-} from "./types";
+import type { PolymarketEvent, PolymarketMarket, PolymarketTag } from "./types";
 import { getBuilderApiHeaders, getClobApiHeaders } from "./headers";
 import { trackPolymarketApiFailure } from "../../utils/sentry";
 
@@ -55,6 +51,7 @@ interface GammaTeam {
   abbreviation?: string;
   alias?: string | null;
   imageUrl?: string;
+  color?: string;
 }
 
 /**
@@ -179,6 +176,65 @@ export async function fetchGammaTeams(): Promise<GammaTeam[]> {
       "[Polymarket] fetchGammaTeams: swallowing error and returning [] to keep API responsive"
     );
     return [];
+  }
+}
+
+/**
+ * Fetches a team by name from the Gamma API.
+ * @param teamName - Team name to search for
+ * @param league - Optional league filter (csgo, lol, dota2, valorant)
+ * @returns Team data or null if not found
+ */
+export async function fetchGammaTeamByName(
+  teamName: string,
+  league?: string
+): Promise<GammaTeam | null> {
+  if (OFFLINE_MODE) {
+    console.warn(
+      "[Polymarket] OFFLINE mode enabled (POLYMARKET_OFFLINE=true) – returning null for team by name"
+    );
+    return null;
+  }
+
+  const searchParams = new URLSearchParams();
+  searchParams.append("name", teamName);
+  if (league) {
+    searchParams.append("league", league);
+  }
+
+  const url = `${GAMMA_API_URL}/teams?${searchParams.toString()}`;
+
+  try {
+    const response = await fetch(url, {
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      const error = new Error(
+        `Gamma API error: ${response.status} ${response.statusText}`
+      );
+      trackPolymarketApiFailure(url, response.status, error);
+      throw error;
+    }
+
+    const data = await response.json();
+    if (Array.isArray(data) && data.length > 0) {
+      // Return the first match, or prefer the specified league if provided
+      if (league) {
+        const leagueMatch = data.find(
+          (team: GammaTeam) => team.league === league
+        );
+        return leagueMatch || (data[0] as GammaTeam);
+      }
+      return data[0] as GammaTeam;
+    }
+    return null;
+  } catch (error) {
+    console.error(
+      `[Polymarket] Failed to fetch team ${teamName} from Gamma:`,
+      error
+    );
+    return null;
   }
 }
 
@@ -371,10 +427,12 @@ export async function fetchGammaSports(): Promise<unknown> {
  * Fetches a list of comments from the Gamma API.
  * Thin wrapper around GET /comments with optional pagination.
  */
-export async function fetchGammaComments(params: {
-  limit?: number;
-  offset?: number;
-} = {}): Promise<unknown> {
+export async function fetchGammaComments(
+  params: {
+    limit?: number;
+    offset?: number;
+  } = {}
+): Promise<unknown> {
   if (OFFLINE_MODE) {
     console.warn(
       "[Polymarket] OFFLINE mode enabled (POLYMARKET_OFFLINE=true) – returning empty comments list"
@@ -551,7 +609,10 @@ export async function fetchGammaPublicSearch(params: {
 
     return response.json();
   } catch (error) {
-    console.error("[Polymarket] Failed to perform public search on Gamma:", error);
+    console.error(
+      "[Polymarket] Failed to perform public search on Gamma:",
+      error
+    );
     console.warn(
       "[Polymarket] fetchGammaPublicSearch: swallowing error and returning []"
     );
@@ -617,10 +678,10 @@ export async function fetchPolymarketCondition(
     const error = new Error(
       `Polymarket API error: ${response.status} ${response.statusText}`
     );
-    
+
     // Track Polymarket API failure
     trackPolymarketApiFailure(url, response.status, error);
-    
+
     throw error;
   }
 
@@ -644,10 +705,10 @@ export async function fetchPolymarketOrderBook(
     const error = new Error(
       `Polymarket API error: ${response.status} ${response.statusText}`
     );
-    
+
     // Track Polymarket API failure
     trackPolymarketApiFailure(url, response.status, error);
-    
+
     throw error;
   }
 
@@ -673,10 +734,10 @@ export async function fetchPolymarketTrades(
     const error = new Error(
       `Polymarket API error: ${response.status} ${response.statusText}`
     );
-    
+
     // Track Polymarket API failure
     trackPolymarketApiFailure(url, response.status, error);
-    
+
     throw error;
   }
 
@@ -698,10 +759,10 @@ export async function fetchPolymarketPrice(tokenId: string): Promise<unknown> {
     const error = new Error(
       `Polymarket API error: ${response.status} ${response.statusText}`
     );
-    
+
     // Track Polymarket API failure
     trackPolymarketApiFailure(url, response.status, error);
-    
+
     throw error;
   }
 
@@ -726,10 +787,10 @@ export async function fetchPolymarketPrices(
     const error = new Error(
       `Polymarket API error: ${response.status} ${response.statusText}`
     );
-    
+
     // Track Polymarket API failure
     trackPolymarketApiFailure(url, response.status, error);
-    
+
     throw error;
   }
 

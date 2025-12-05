@@ -28,6 +28,7 @@ export {
   fetchGammaTags,
   fetchGammaSports,
   fetchGammaTeams,
+  fetchGammaTeamByName,
   fetchGammaComments,
   fetchGammaCommentById,
   fetchGammaCommentsByUserAddress,

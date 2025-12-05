@@ -11,6 +11,7 @@ export interface Market {
   endDate: string;
   createdAt?: string;
   imageUrl?: string;
+  description?: string;
   outcomes: MarketOutcome[];
   volume: number;
   liquidity: number;

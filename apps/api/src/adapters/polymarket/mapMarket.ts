@@ -29,13 +29,32 @@ export function mapPolymarketMarket(pmMarket: PolymarketMarket): Market {
     });
   }
 
-  // Parse outcome tokens from clobTokenIds (comma-separated)
-  const outcomeTokens = pmMarket.clobTokenIds
-    ? pmMarket.clobTokenIds
+  // Parse outcome tokens from clobTokenIds
+  // Can be either JSON string array or comma-separated string
+  let outcomeTokens: string[] | undefined;
+  if (pmMarket.clobTokenIds) {
+    try {
+      // Try parsing as JSON first (most common format)
+      const parsed = JSON.parse(pmMarket.clobTokenIds);
+      if (Array.isArray(parsed)) {
+        outcomeTokens = parsed
+          .map((token) => String(token).trim())
+          .filter(Boolean);
+      } else {
+        // Fallback: treat as comma-separated string
+        outcomeTokens = pmMarket.clobTokenIds
+          .split(",")
+          .map((token) => token.trim())
+          .filter(Boolean);
+      }
+    } catch {
+      // If JSON parse fails, treat as comma-separated string
+      outcomeTokens = pmMarket.clobTokenIds
         .split(",")
         .map((token) => token.trim())
-        .filter(Boolean)
-    : undefined;
+        .filter(Boolean);
+    }
+  }
 
   // Map outcomes to MarketOutcome array
   const outcomes: MarketOutcome[] = outcomeNames.map((name, index) => {
@@ -43,7 +62,7 @@ export function mapPolymarketMarket(pmMarket: PolymarketMarket): Market {
     const tokenAddress = outcomeTokens?.[index];
     // Clean the name: remove quotes, brackets, and trim
     let cleanedName = name.trim();
-    cleanedName = cleanedName.replace(/^["'\[]+|["'\]]+$/g, '').trim();
+    cleanedName = cleanedName.replace(/^["'\[]+|["'\]]+$/g, "").trim();
     return {
       id: `${pmMarket.conditionId}-${index}`,
       name: cleanedName,
@@ -139,6 +158,7 @@ export function mapPolymarketMarket(pmMarket: PolymarketMarket): Market {
     endDate,
     createdAt: pmMarket.createdAt || undefined,
     imageUrl,
+    description: pmMarket.description || undefined,
     outcomes,
     volume,
     liquidity,
@@ -193,12 +213,14 @@ function parseOutcomes(outcomesStr: string): string[] {
           // Convert to string and clean up quotes and brackets
           let cleaned = String(outcome).trim();
           // Remove surrounding quotes if present
-          if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || 
-              (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+          if (
+            (cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+            (cleaned.startsWith("'") && cleaned.endsWith("'"))
+          ) {
             cleaned = cleaned.slice(1, -1);
           }
           // Remove brackets if somehow included
-          cleaned = cleaned.replace(/^\[|\]$/g, '');
+          cleaned = cleaned.replace(/^\[|\]$/g, "");
           return cleaned.trim();
         })
         .filter((outcome) => outcome.length > 0);
@@ -213,7 +235,7 @@ function parseOutcomes(outcomesStr: string): string[] {
     .map((outcome) => {
       let cleaned = outcome.trim();
       // Remove surrounding quotes and brackets
-      cleaned = cleaned.replace(/^["'\[]+|["'\]]+$/g, '');
+      cleaned = cleaned.replace(/^["'\[]+|["'\]]+$/g, "");
       return cleaned.trim();
     })
     .filter((outcome) => outcome.length > 0);

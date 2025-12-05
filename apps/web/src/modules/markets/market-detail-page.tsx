@@ -146,7 +146,8 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
     );
   }
 
-  const { market, bestBid, bestAsk, recentTrades, metrics } = marketFull;
+  const { market, bestBid, bestAsk, recentTrades, metrics, spread } =
+    marketFull;
 
   // Get YES and NO outcomes
   const yesOutcome = market.outcomes.find(
@@ -157,6 +158,28 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
   // For esports markets, use first two outcomes as YES/NO
   const yesPrice = yesOutcome?.price ?? market.outcomes[0]?.price ?? 0.5;
   const noPrice = noOutcome?.price ?? market.outcomes[1]?.price ?? 0.5;
+
+  // Get team names from outcomes (for esports markets)
+  const team1Name = market.outcomes[0]?.name || "Team 1";
+  const team2Name = market.outcomes[1]?.name || "Team 2";
+
+  // Determine league from market category/game
+  // Map cs2 -> csgo for API compatibility
+  const league =
+    market.game === "cs2"
+      ? "csgo"
+      : market.game ||
+        (market.subcategory?.toLowerCase().includes("dota")
+          ? "dota2"
+          : market.subcategory?.toLowerCase().includes("cs") ||
+            market.subcategory?.toLowerCase().includes("counter")
+          ? "csgo"
+          : market.subcategory?.toLowerCase().includes("lol") ||
+            market.subcategory?.toLowerCase().includes("league")
+          ? "lol"
+          : market.subcategory?.toLowerCase().includes("valorant")
+          ? "valorant"
+          : undefined);
 
   // Determine market status
   const now = new Date();
@@ -206,6 +229,9 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
           status={status}
           yesPrice={yesPrice}
           noPrice={noPrice}
+          team1Name={team1Name}
+          team2Name={team2Name}
+          league={league}
         />
 
         {/* Responsive Grid Layout */}
@@ -218,6 +244,8 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
               noPrice={noPrice}
               volume24h={metrics.volume24h}
               priceChange24h={metrics.priceChange24h}
+              liquidity={metrics.liquidity}
+              spread={spread}
             />
           </div>
 
@@ -228,6 +256,8 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
               marketId={market.id}
               yesPrice={yesPrice}
               noPrice={noPrice}
+              team1Name={team1Name}
+              team2Name={team2Name}
             />
           </div>
 

@@ -31,7 +31,12 @@ export function RecentTrades({ trades }: RecentTradesProps) {
         <h2 className="mb-3 sm:mb-4 text-xs sm:text-sm font-semibold text-white/80">
           Recent Trades
         </h2>
-        <p className="text-xs text-white/60">No recent trades</p>
+        <div className="space-y-2">
+          <p className="text-xs text-white/60">No recent trades</p>
+          <p className="text-[10px] text-white/40">
+            Trades will appear here as they occur
+          </p>
+        </div>
       </div>
     );
   }

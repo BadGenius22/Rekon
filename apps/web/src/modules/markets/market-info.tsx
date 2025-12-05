@@ -1,10 +1,15 @@
+"use client";
+
+import { useState } from "react";
 import type { Market } from "@rekon/types";
+import { cn } from "@rekon/ui";
 
 interface MarketInfoProps {
   market: Market;
 }
 
 export function MarketInfo({ market }: MarketInfoProps) {
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
@@ -71,6 +76,39 @@ export function MarketInfo({ market }: MarketInfoProps) {
           </div>
         )}
       </div>
+
+      {/* Market Description - Expandable */}
+      {market.description && (
+        <div className="mt-4 sm:mt-5 border-t border-white/10 pt-3 sm:pt-4">
+          <button
+            onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+            className="flex w-full items-center justify-between text-xs sm:text-sm font-semibold text-white/80 hover:text-white transition-colors"
+          >
+            <span>Market Description</span>
+            <svg
+              className={cn(
+                "h-4 w-4 transition-transform",
+                isDescriptionExpanded && "rotate-180"
+              )}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+          {isDescriptionExpanded && (
+            <div className="mt-3 text-xs sm:text-sm text-white/70 leading-relaxed whitespace-pre-line">
+              {market.description}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

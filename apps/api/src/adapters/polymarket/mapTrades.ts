@@ -13,7 +13,8 @@ import type { PolymarketTrade } from "./types";
 export function mapPolymarketTrades(
   pmTrades: PolymarketTrade[] | unknown,
   marketId?: string,
-  outcome?: string
+  outcome?: string,
+  sideHint?: "yes" | "no"
 ): Trade[] {
   if (!Array.isArray(pmTrades)) {
     return [];
@@ -21,7 +22,7 @@ export function mapPolymarketTrades(
 
   return pmTrades
     .filter((trade): trade is PolymarketTrade => isPolymarketTrade(trade))
-    .map((pmTrade) => mapPolymarketTrade(pmTrade, marketId, outcome));
+    .map((pmTrade) => mapPolymarketTrade(pmTrade, marketId, outcome, sideHint));
 }
 
 /**
@@ -45,23 +46,35 @@ function isPolymarketTrade(obj: unknown): obj is PolymarketTrade {
 function mapPolymarketTrade(
   pmTrade: PolymarketTrade,
   marketId?: string,
-  outcome?: string
+  outcome?: string,
+  sideHint?: "yes" | "no"
 ): Trade {
   const price = parseNumericString(pmTrade.price);
   const amount = parseNumericString(pmTrade.size);
 
-  // Map side: Polymarket uses "maker"/"taker", we use "buy"/"sell"
-  // If side is "maker" or "taker", we need to infer from context
-  // For now, use the side field if it's buy/sell, otherwise default
-  let side: "buy" | "sell" = "buy";
-  if (pmTrade.side === "buy" || pmTrade.side === "sell") {
-    side = pmTrade.side;
-  } else if (pmTrade.side === "taker") {
-    // Taker is typically the buyer in most markets
-    side = "buy";
-  } else if (pmTrade.side === "maker") {
-    // Maker is typically the seller
-    side = "sell";
+  // Map side to yes/no based on prediction market logic:
+  // - Buying YES token = betting YES will win = "yes"
+  // - Selling YES token = betting YES will NOT win = "no"
+  // - Buying NO token = betting NO will win = "no"
+  // - Selling NO token = betting NO will NOT win = "yes"
+  let side: "yes" | "no";
+
+  if (sideHint) {
+    // sideHint tells us which token this trade is for
+    if (pmTrade.side === "buy" || pmTrade.side === "taker") {
+      // Buying the token = betting on that outcome
+      side = sideHint;
+    } else {
+      // Selling the token = betting against that outcome (opposite)
+      side = sideHint === "yes" ? "no" : "yes";
+    }
+  } else {
+    // Fallback: if buy, assume yes; if sell, assume no
+    if (pmTrade.side === "buy" || pmTrade.side === "taker") {
+      side = "yes";
+    } else {
+      side = "no";
+    }
   }
 
   // Parse timestamp

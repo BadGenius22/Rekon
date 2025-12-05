@@ -1,11 +1,14 @@
 import { formatVolume } from "@rekon/utils";
 import { cn } from "@rekon/ui";
+import type { MarketSpread } from "@rekon/types";
 
 interface PriceDisplayProps {
   yesPrice: number;
   noPrice: number;
   volume24h: number;
   priceChange24h: number;
+  liquidity: number;
+  spread: MarketSpread | null;
 }
 
 export function PriceDisplay({
@@ -13,6 +16,8 @@ export function PriceDisplay({
   noPrice,
   volume24h,
   priceChange24h,
+  liquidity,
+  spread,
 }: PriceDisplayProps) {
   const yesPercent = (yesPrice * 100).toFixed(2);
   const noPercent = (noPrice * 100).toFixed(2);
@@ -53,6 +58,20 @@ export function PriceDisplay({
               ${formatVolume(volume24h)}
             </div>
           </div>
+          <div>
+            <div className="text-xs font-medium text-white/60">Liquidity</div>
+            <div className="mt-1 text-lg sm:text-xl font-mono font-semibold text-white">
+              ${formatVolume(liquidity)}
+            </div>
+          </div>
+          {spread && (
+            <div>
+              <div className="text-xs font-medium text-white/60">Spread</div>
+              <div className="mt-1 text-lg sm:text-xl font-mono font-semibold text-white">
+                {spread.spreadPercent.toFixed(2)}%
+              </div>
+            </div>
+          )}
           <div>
             <div className="text-xs font-medium text-white/60">
               24h Price Change

@@ -18,8 +18,8 @@ export interface GetTradesParams {
 
 /**
  * Gets trades for a market by market ID.
- * Fetches trades for the first outcome token (Yes outcome typically).
- * Uses cache to reduce API calls (1.5 second TTL).
+ * Fetches trades for both outcome tokens (YES and NO) and combines them.
+ * Uses cache to reduce API calls (2 second TTL).
  */
 export async function getTradesByMarketId(
   marketId: string,
@@ -31,33 +31,67 @@ export async function getTradesByMarketId(
     return [];
   }
 
-  // Get first outcome token (typically Yes outcome)
-  const tokenId = market.outcomeTokens?.[0];
-  if (!tokenId) {
+  const limit = params.limit || 100;
+  const outcomeTokens = market.outcomeTokens || [];
+
+  if (outcomeTokens.length === 0) {
     return [];
   }
 
-  const limit = params.limit || 100;
+  // Fetch trades for all outcome tokens in parallel
+  const tradePromises = outcomeTokens.map(async (tokenId, index) => {
+    try {
+      // Check cache first
+      const cacheKey = tradesCacheService.generateKey(tokenId, limit);
+      const cached = await tradesCacheService.get(cacheKey);
+      if (cached) {
+        return cached;
+      }
 
-  // Check cache first
-  const cacheKey = tradesCacheService.generateKey(tokenId, limit);
-  const cached = await tradesCacheService.get(cacheKey);
-  if (cached) {
-    return cached;
-  }
+      // Fetch from API
+      const rawTrades = await fetchPolymarketTrades(tokenId, limit);
 
-  // Fetch from API
-  const rawTrades = await fetchPolymarketTrades(tokenId, limit);
-  const trades = mapPolymarketTrades(
-    rawTrades,
-    marketId,
-    market.outcomes[0]?.name
-  );
+      // Determine if this is YES or NO outcome
+      // First outcome is typically YES, second is NO
+      const isYesOutcome = index === 0;
+      const sideHint: "yes" | "no" = isYesOutcome ? "yes" : "no";
+      const outcomeName =
+        market.outcomes[index]?.name || (isYesOutcome ? "yes" : "no");
 
-  // Cache the result
-  await tradesCacheService.set(cacheKey, trades);
+      const trades = mapPolymarketTrades(
+        rawTrades,
+        marketId,
+        outcomeName,
+        sideHint
+      );
 
-  return trades;
+      // Cache the result
+      await tradesCacheService.set(cacheKey, trades);
+
+      return trades;
+    } catch (error) {
+      // Log error but don't fail the entire request
+      console.warn(
+        `Failed to fetch trades for token ${tokenId} (market ${marketId}):`,
+        error
+      );
+      return [];
+    }
+  });
+
+  // Wait for all trades to be fetched
+  const allTradesArrays = await Promise.all(tradePromises);
+
+  // Combine all trades and sort by timestamp (most recent first)
+  const allTrades = allTradesArrays.flat();
+  allTrades.sort((a, b) => {
+    const timeA = new Date(a.timestamp).getTime();
+    const timeB = new Date(b.timestamp).getTime();
+    return timeB - timeA; // Most recent first
+  });
+
+  // Return limited number of trades
+  return allTrades.slice(0, limit);
 }
 
 /**
@@ -81,7 +115,15 @@ export async function getTradesByTokenId(
 
   // Fetch from API
   const rawTrades = await fetchPolymarketTrades(tokenId, limit);
-  const trades = mapPolymarketTrades(rawTrades, marketId, outcome);
+
+  // Determine if this is YES or NO outcome based on outcome name
+  // For esports markets, first outcome is typically team1 (yes), second is team2 (no)
+  const isYesOutcome =
+    outcome?.toLowerCase() === "yes" ||
+    (outcome && !outcome.toLowerCase().includes("no"));
+  const sideHint: "yes" | "no" = isYesOutcome ? "yes" : "no";
+
+  const trades = mapPolymarketTrades(rawTrades, marketId, outcome, sideHint);
 
   // Cache the result
   await tradesCacheService.set(cacheKey, trades);

@@ -8,9 +8,17 @@ interface TradeBoxProps {
   marketId: string;
   yesPrice: number;
   noPrice: number;
+  team1Name?: string;
+  team2Name?: string;
 }
 
-export function TradeBox({ marketId, yesPrice, noPrice }: TradeBoxProps) {
+export function TradeBox({
+  marketId,
+  yesPrice,
+  noPrice,
+  team1Name,
+  team2Name,
+}: TradeBoxProps) {
   const [side, setSide] = useState<"yes" | "no">("yes");
   const [stake, setStake] = useState<string>("");
   const [isPlacing, setIsPlacing] = useState(false);
@@ -78,7 +86,7 @@ export function TradeBox({ marketId, yesPrice, noPrice }: TradeBoxProps) {
               : "border-white/10 bg-[#090E1C] text-white/60 hover:border-white/20"
           )}
         >
-          YES
+          {team1Name || "YES"}
         </button>
         <button
           onClick={() => setSide("no")}
@@ -89,7 +97,7 @@ export function TradeBox({ marketId, yesPrice, noPrice }: TradeBoxProps) {
               : "border-white/10 bg-[#090E1C] text-white/60 hover:border-white/20"
           )}
         >
-          NO
+          {team2Name || "NO"}
         </button>
       </div>
 
@@ -98,6 +106,7 @@ export function TradeBox({ marketId, yesPrice, noPrice }: TradeBoxProps) {
         <label className="mb-2 block text-sm font-semibold text-white/80">
           Stake Amount (USDC)
         </label>
+        <p className="mb-2 text-xs text-white/50">Minimum order size: 5 USDC</p>
         <input
           type="number"
           min="0.01"
