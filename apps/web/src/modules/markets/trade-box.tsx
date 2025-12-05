@@ -98,7 +98,7 @@ export function TradeBox({
           className={cn(
             "rounded-lg border px-4 py-3 text-sm font-semibold transition-all",
             selectedTeam === "team1"
-              ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-300"
+              ? "border-yellow-500/50 bg-yellow-500/20 text-yellow-300"
               : "border-white/10 bg-[#090E1C] text-white/60 hover:border-white/20"
           )}
         >
@@ -109,7 +109,7 @@ export function TradeBox({
           className={cn(
             "rounded-lg border px-4 py-3 text-sm font-semibold transition-all",
             selectedTeam === "team2"
-              ? "border-red-500/50 bg-red-500/20 text-red-300"
+              ? "border-blue-500/50 bg-blue-500/20 text-blue-300"
               : "border-white/10 bg-[#090E1C] text-white/60 hover:border-white/20"
           )}
         >
@@ -214,7 +214,7 @@ export function TradeBox({
         disabled={isPlacing || !stake || stakeNum < 0.01}
         className={cn(
           "w-full rounded-lg px-4 py-3 sm:px-6 sm:py-4 text-sm sm:text-base font-bold text-white transition-all shadow-lg",
-          selectedTeam === "team1"
+          tradeAction === "buy"
             ? "bg-emerald-500 hover:bg-emerald-600 hover:shadow-emerald-500/50"
             : "bg-red-500 hover:bg-red-600 hover:shadow-red-500/50",
           (isPlacing || !stake || stakeNum < 0.01) &&

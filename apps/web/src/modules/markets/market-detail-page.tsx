@@ -198,7 +198,7 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
   return (
     <div className="min-h-screen bg-[#030711] text-white">
       <AppHeader />
-      <div className="mx-auto w-full max-w-6xl px-3 py-4 sm:px-4 sm:py-6 md:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-screen-2xl px-4 py-4 sm:px-6 sm:py-6 md:px-6 xl:px-10">
         {/* Back Button */}
         <Link
           href="/markets"
@@ -245,7 +245,6 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
               team1PriceChange24h={team1PriceChange24h}
               team2PriceChange24h={team2PriceChange24h}
               volume24h={metrics.volume24h}
-              priceChange24h={metrics.priceChange24h}
               liquidity={metrics.liquidity}
               spread={spread}
             />

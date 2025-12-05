@@ -35,33 +35,41 @@ export function MarketInfo({ market }: MarketInfoProps) {
         Market Info
       </h2>
 
-      <div className="space-y-2 sm:space-y-3 text-xs">
-        {/* Market ID - Hidden/Small */}
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-white/60 flex-shrink-0">Market ID</span>
-          <span className="text-right font-mono text-[10px] text-white/40 truncate">
-            {market.id.slice(0, 8)}...
+      <div className="space-y-2.5 sm:space-y-3 text-xs">
+        {/* Market ID */}
+        <div className="flex items-start justify-between gap-2">
+          <span className="text-white/60 flex-shrink-0 font-medium">
+            Market ID
+          </span>
+          <span className="text-right font-mono text-xs text-white/70 break-all min-w-0 max-w-[60%]">
+            {market.id}
           </span>
         </div>
 
         {/* Created At */}
         <div className="flex items-center justify-between gap-2">
-          <span className="text-white/60 flex-shrink-0">Created</span>
-          <span className="text-right font-mono text-white/80 truncate">
+          <span className="text-white/60 flex-shrink-0 font-medium">
+            Created
+          </span>
+          <span className="text-right font-mono text-xs text-white/80">
             {formatDate(market.createdAt)}
           </span>
         </div>
 
         {/* Liquidity Source */}
         <div className="flex items-center justify-between gap-2">
-          <span className="text-white/60 flex-shrink-0">Liquidity Source</span>
-          <span className="text-white/80 truncate">Polymarket CLOB</span>
+          <span className="text-white/60 flex-shrink-0 font-medium">
+            Liquidity Source
+          </span>
+          <span className="text-xs text-white/80">Polymarket CLOB</span>
         </div>
 
         {/* Resolution Source */}
         <div className="flex items-start justify-between gap-2">
-          <span className="text-white/60 flex-shrink-0">Resolution Source</span>
-          <span className="text-right text-white/80 break-words min-w-0">
+          <span className="text-white/60 flex-shrink-0 font-medium">
+            Resolution Source
+          </span>
+          <span className="text-right text-xs text-white/80 break-words min-w-0 max-w-[60%]">
             {market.resolutionSource || "esports official API"}
           </span>
         </div>
@@ -69,8 +77,10 @@ export function MarketInfo({ market }: MarketInfoProps) {
         {/* Category */}
         {categoryPath && (
           <div className="flex items-start justify-between gap-2">
-            <span className="text-white/60 flex-shrink-0">Category</span>
-            <span className="text-right text-white/80 break-words min-w-0">
+            <span className="text-white/60 flex-shrink-0 font-medium">
+              Category
+            </span>
+            <span className="text-right text-xs text-white/80 break-words min-w-0 max-w-[60%]">
               {categoryPath}
             </span>
           </div>

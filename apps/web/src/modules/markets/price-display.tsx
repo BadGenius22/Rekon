@@ -10,7 +10,6 @@ interface PriceDisplayProps {
   team1PriceChange24h?: number;
   team2PriceChange24h?: number;
   volume24h: number;
-  priceChange24h: number;
   liquidity: number;
   spread: MarketSpread | null;
 }
@@ -23,12 +22,9 @@ export function PriceDisplay({
   team1PriceChange24h,
   team2PriceChange24h,
   volume24h,
-  priceChange24h,
   liquidity,
   spread,
 }: PriceDisplayProps) {
-  const priceChangePercent = priceChange24h.toFixed(2);
-  const isPositive = priceChange24h >= 0;
   const team1Change = team1PriceChange24h ?? 0;
   const team2Change = team2PriceChange24h ?? 0;
 
@@ -37,12 +33,12 @@ export function PriceDisplay({
       <div className="space-y-4 sm:space-y-6">
         {/* Team Prices */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          {/* Team 1 Price */}
-          <div className="rounded-lg border border-emerald-500/50 bg-emerald-500/12 p-3 sm:p-4 md:p-5">
-            <div className="mb-1 sm:mb-2 text-xs font-semibold uppercase tracking-wider text-emerald-300 truncate">
+          {/* Team 1 Price - Yellow */}
+          <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/12 p-3 sm:p-4 md:p-5">
+            <div className="mb-1 sm:mb-2 text-xs font-semibold uppercase tracking-wider text-yellow-300 truncate">
               {team1Name}
             </div>
-            <div className="text-2xl sm:text-3xl font-mono font-bold text-emerald-400">
+            <div className="text-2xl sm:text-3xl font-mono font-bold text-yellow-400">
               {team1Price.toFixed(2)}
             </div>
             {team1Change !== 0 && (
@@ -58,12 +54,12 @@ export function PriceDisplay({
             )}
           </div>
 
-          {/* Team 2 Price */}
-          <div className="rounded-lg border border-red-500/50 bg-red-500/12 p-3 sm:p-4 md:p-5">
-            <div className="mb-1 sm:mb-2 text-xs font-semibold uppercase tracking-wider text-red-300 truncate">
+          {/* Team 2 Price - Blue */}
+          <div className="rounded-lg border border-blue-500/50 bg-blue-500/12 p-3 sm:p-4 md:p-5">
+            <div className="mb-1 sm:mb-2 text-xs font-semibold uppercase tracking-wider text-blue-300 truncate">
               {team2Name}
             </div>
-            <div className="text-2xl sm:text-3xl font-mono font-bold text-red-400">
+            <div className="text-2xl sm:text-3xl font-mono font-bold text-blue-400">
               {team2Price.toFixed(2)}
             </div>
             {team2Change !== 0 && (
@@ -102,20 +98,6 @@ export function PriceDisplay({
               </div>
             </div>
           )}
-          <div>
-            <div className="text-xs font-medium text-white/60">
-              24h Price Change
-            </div>
-            <div
-              className={cn(
-                "mt-1 text-lg sm:text-xl font-mono font-semibold",
-                isPositive ? "text-emerald-400" : "text-red-400"
-              )}
-            >
-              {isPositive ? "+" : ""}
-              {priceChangePercent}%
-            </div>
-          </div>
         </div>
       </div>
     </div>

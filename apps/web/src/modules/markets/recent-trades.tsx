@@ -138,7 +138,7 @@ export async function RecentTrades({
                 <span
                   className={cn(
                     "font-semibold whitespace-nowrap truncate max-w-[80px] sm:max-w-none",
-                    isTeam1 ? "text-emerald-400" : "text-red-400"
+                    isTeam1 ? "text-yellow-400" : "text-blue-400"
                   )}
                 >
                   {trade.teamName}
