@@ -28,7 +28,7 @@ export function PortfolioSnapshot({
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <span className="text-[11px] uppercase tracking-wide text-white/50">
-              Net exposure
+              Esports exposure
             </span>
             <span className="block font-mono text-lg font-semibold text-white">
               $

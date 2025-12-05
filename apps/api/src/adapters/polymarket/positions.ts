@@ -31,10 +31,21 @@ export interface PolymarketPosition {
   title: string;
   slug: string;
   icon?: string;
+  eventId?: string;
   eventSlug: string;
   outcome: string;
   outcomeIndex: number;
   oppositeOutcome: string;
+  oppositeAsset?: string;
+  endDate?: string;
+  negativeRisk?: boolean;
+}
+
+export interface FetchPolymarketPositionsParams {
+  sizeThreshold?: number;
+  limit?: number;
+  sortBy?: "TOKENS" | "VALUE" | "PNL";
+  sortDirection?: "ASC" | "DESC";
 }
 
 /**
@@ -42,7 +53,8 @@ export interface PolymarketPosition {
  * Returns raw PolymarketPosition[] - must be mapped to Position[] in service layer.
  */
 export async function fetchPolymarketPositions(
-  userAddress: string
+  userAddress: string,
+  params?: FetchPolymarketPositionsParams
 ): Promise<PolymarketPosition[]> {
   // In offline mode, return an empty list
   if (OFFLINE_MODE) {
@@ -52,10 +64,26 @@ export async function fetchPolymarketPositions(
     return [];
   }
 
-  const url = `${DATA_API_URL}/positions?user=${userAddress}`;
+  const url = new URL(`${DATA_API_URL}/positions`);
+  url.searchParams.set("user", userAddress);
+
+  if (params) {
+    if (params.sizeThreshold !== undefined) {
+      url.searchParams.set("sizeThreshold", String(params.sizeThreshold));
+    }
+    if (params.limit !== undefined) {
+      url.searchParams.set("limit", String(params.limit));
+    }
+    if (params.sortBy) {
+      url.searchParams.set("sortBy", params.sortBy);
+    }
+    if (params.sortDirection) {
+      url.searchParams.set("sortDirection", params.sortDirection);
+    }
+  }
 
   try {
-    const response = await fetch(url, {
+    const response = await fetch(url.toString(), {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

@@ -75,7 +75,7 @@ type PortfolioScope = "all" | "esports";
  * Portfolio Service
  *
  * Calculates user portfolio from positions and fills.
- *
+ * 
  * Portfolio includes:
  * - Total portfolio value
  * - Available balance
@@ -92,7 +92,7 @@ type PortfolioScope = "all" | "esports";
 
 /**
  * Gets user portfolio.
- *
+ * 
  * @param sessionId - User session ID
  * @param walletAddress - User's wallet address (optional)
  * @returns Portfolio
@@ -274,164 +274,64 @@ export async function getPortfolioBySession(
       }
     }
 
-    // Calculate 30-day realized PnL
-    // Try to calculate from fills, but if fills are not available, use positions API data
+    // Calculate 30-day realized PnL from positions API
+    // Fetch all positions (including closed ones) to calculate realized PnL
     let realizedPnL30d = 0;
+    try {
+      // Fetch all positions with a high limit to get closed positions
+      const allPositions = await fetchPolymarketPositions(walletAddress, {
+        sizeThreshold: 1,
+        limit: 1000, // Fetch up to 1000 positions to include closed ones
+        sortBy: "TOKENS",
+        sortDirection: "DESC",
+      });
 
-    if (allFills.length > 0) {
+      // Filter positions that were closed/resolved in the last 30 days
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      thirtyDaysAgo.setHours(0, 0, 0, 0); // Start of day
 
-      // When scope is "esports", restrict realized PnL to fills from esports
-      // markets only, using the same scoped conditionIds that we use for
-      // lifetimePositions and positionsForScope.
-      const conditionIdsForScope = new Set(
-        positionsForScope.map((pos) => pos.conditionId)
-      );
-      const scopedFills =
+      const closedPositionsIn30d = allPositions.filter((pos) => {
+        // A position is considered closed if:
+        // 1. It's redeemable (market resolved) OR
+        // 2. Current price is 0 or 1 (market resolved)
+        const isClosed = pos.redeemable || pos.curPrice === 0 || pos.curPrice === 1;
+
+        if (!isClosed) {
+          return false;
+        }
+
+        // Check if the market ended in the last 30 days
+        if (pos.endDate) {
+          const endDate = new Date(pos.endDate);
+          endDate.setHours(0, 0, 0, 0);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          return endDate >= thirtyDaysAgo && endDate <= today;
+        }
+
+        // If no endDate, we can't determine if it closed in the last 30 days
+        // Skip it to avoid counting positions that closed earlier
+        return false;
+      });
+
+      // Filter by esports scope if needed
+      const scopedClosedPositions =
         scope === "esports"
-          ? allFills.filter((fill) => conditionIdsForScope.has(fill.marketId))
-          : allFills;
+          ? closedPositionsIn30d.filter(isEsportsPosition)
+          : closedPositionsIn30d;
 
-      realizedPnL30d = calculateRealizedPnLFromFills(
-        scopedFills,
-        thirtyDaysAgo
+      // Sum realized PnL from closed positions
+      realizedPnL30d = scopedClosedPositions.reduce(
+        (sum, pos) => sum + (pos.realizedPnl || 0),
+        0
       );
-    } else {
-      // Fallback: use activity API to calculate 30-day realized PnL
-      try {
-        // Fetch ALL activities (not just last 30 days) to properly match positions
-        // Positions opened before 30 days but closed within 30 days should be included
-        const pmActivities = await fetchPolymarketActivity(walletAddress, {
-          limit: 50000, // Fetch more to get all historical activities
-          sortBy: "TIMESTAMP",
-          sortDirection: "ASC", // Oldest first to process chronologically
-        });
-
-        // Apply esports scope here as well so that 30-day realized PnL is
-        // consistent with the rest of the esports portfolio metrics.
-        const scopedActivities =
-          scope === "esports"
-            ? pmActivities.filter(isEsportsActivity)
-            : pmActivities;
-
-        // Filter activities from last 30 days (for sells that closed positions)
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const thirtyDaysAgoTimestamp = Math.floor(
-          thirtyDaysAgo.getTime() / 1000
-        );
-
-        // Track all positions (buys and sells) chronologically
-        const positionMap = new Map<
-          string,
-          {
-            buys: Array<{
-              size: number;
-              price: number;
-              usdcSize: number;
-              timestamp: number;
-            }>;
-            sells: Array<{
-              size: number;
-              price: number;
-              usdcSize: number;
-              timestamp: number;
-            }>;
-          }
-        >();
-
-        // Process all activities chronologically
-        for (const activity of scopedActivities) {
-          const key = `${activity.conditionId}-${activity.outcome}`;
-          if (!positionMap.has(key)) {
-            positionMap.set(key, { buys: [], sells: [] });
-          }
-          const position = positionMap.get(key)!;
-
-          if (activity.side === "BUY") {
-            position.buys.push({
-              size: activity.size,
-              price: activity.price,
-              usdcSize: activity.usdcSize,
-              timestamp: activity.timestamp,
-            });
-          } else if (activity.side === "SELL") {
-            position.sells.push({
-              size: activity.size,
-              price: activity.price,
-              usdcSize: activity.usdcSize,
-              timestamp: activity.timestamp,
-            });
-          }
-        }
-
-        // Calculate realized PnL from positions closed in the last 30 days
-        // A position is "realized" when a sell closes a buy (FIFO matching)
-        for (const [key, position] of positionMap.entries()) {
-          // Match sells to buys (FIFO - First In First Out)
-          // Create mutable copies for tracking
-          const buys = position.buys.map((b) => ({ ...b }));
-          const sells = position.sells.map((s) => ({ ...s }));
-
-          // Sort by timestamp (oldest first for FIFO)
-          buys.sort((a, b) => a.timestamp - b.timestamp);
-          sells.sort((a, b) => a.timestamp - b.timestamp);
-
-          // Track which buys have been consumed
-          let buyIndex = 0;
-
-          // Process all sells chronologically
-          for (const sell of sells) {
-            let sellSize = sell.size;
-            const sellPricePerUnit = sell.usdcSize / sell.size;
-            const isRecentSell = sell.timestamp >= thirtyDaysAgoTimestamp;
-
-            // Match this sell to buys (FIFO)
-            while (sellSize > 0 && buyIndex < buys.length) {
-              const buy = buys[buyIndex];
-              const buyPricePerUnit = buy.usdcSize / buy.size;
-
-              if (buy.size <= sellSize) {
-                // Entire buy is matched
-                const buyValue = buy.usdcSize;
-                const sellValue = sellPricePerUnit * buy.size;
-                const pnl = sellValue - buyValue;
-
-                // Only count PnL if the sell happened in the last 30 days
-                if (isRecentSell) {
-                  realizedPnL30d += pnl;
-                }
-
-                sellSize -= buy.size;
-                buyIndex++;
-              } else {
-                // Partial buy is matched
-                const matchedSize = sellSize;
-                const buyValue = buyPricePerUnit * matchedSize;
-                const sellValue = sellPricePerUnit * matchedSize;
-                const pnl = sellValue - buyValue;
-
-                // Only count PnL if the sell happened in the last 30 days
-                if (isRecentSell) {
-                  realizedPnL30d += pnl;
-                }
-
-                // Update buy to reflect consumed portion
-                buy.size -= sellSize;
-                buy.usdcSize -= buyValue;
-                sellSize = 0;
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.error(
-          "[Portfolio] Error calculating 30d realized PnL from activity:",
-          error
-        );
-        realizedPnL30d = 0;
-      }
+    } catch (error) {
+      console.error(
+        "[Portfolio] Error calculating 30d realized PnL from positions API:",
+        error
+      );
+      realizedPnL30d = 0;
     }
 
     return {
@@ -535,7 +435,65 @@ export async function getPortfolioBySession(
     }
   }
 
-  const realizedPnL30d = calculateRealizedPnLFromFills(scopedFills, thirtyDaysAgo);
+  // Calculate 30-day realized PnL from positions API
+  let realizedPnL30d = 0;
+  try {
+    // Fetch all positions with a high limit to get closed positions
+    const allPositions = await fetchPolymarketPositions(walletAddress, {
+      sizeThreshold: 1,
+      limit: 1000, // Fetch up to 1000 positions to include closed ones
+      sortBy: "TOKENS",
+      sortDirection: "DESC",
+    });
+
+    // Filter positions that were closed/resolved in the last 30 days
+    // Use the existing thirtyDaysAgo but set hours to start of day for date comparison
+    const thirtyDaysAgoForDate = new Date(thirtyDaysAgo);
+    thirtyDaysAgoForDate.setHours(0, 0, 0, 0);
+
+    const closedPositionsIn30d = allPositions.filter((pos) => {
+      // A position is considered closed if:
+      // 1. It's redeemable (market resolved) OR
+      // 2. Current price is 0 or 1 (market resolved)
+      const isClosed = pos.redeemable || pos.curPrice === 0 || pos.curPrice === 1;
+
+      if (!isClosed) {
+        return false;
+      }
+
+      // Check if the market ended in the last 30 days
+      if (pos.endDate) {
+        const endDate = new Date(pos.endDate);
+        endDate.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return endDate >= thirtyDaysAgoForDate && endDate <= today;
+      }
+
+      // If no endDate, we can't determine if it closed in the last 30 days
+      // Skip it to avoid counting positions that closed earlier
+      return false;
+    });
+
+    // Filter by esports scope if needed
+    const scopedClosedPositions =
+      scope === "esports"
+        ? closedPositionsIn30d.filter(isEsportsPosition)
+        : closedPositionsIn30d;
+
+    // Sum realized PnL from closed positions
+    realizedPnL30d = scopedClosedPositions.reduce(
+      (sum, pos) => sum + (pos.realizedPnl || 0),
+      0
+    );
+  } catch (error) {
+    console.error(
+      "[Portfolio] Error calculating 30d realized PnL from positions API (fallback):",
+      error
+    );
+    // Fallback to fills-based calculation if positions API fails
+    realizedPnL30d = calculateRealizedPnLFromFills(scopedFills, thirtyDaysAgo);
+  }
 
   // Calculate lifetime positions count
   // Count unique market+outcome combinations that had a positive net position at some point

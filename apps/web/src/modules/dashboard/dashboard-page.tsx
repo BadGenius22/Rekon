@@ -9,7 +9,7 @@ async function getPortfolio(
 ): Promise<Portfolio | null> {
   try {
     // For now, use hardcoded address. Later, this will be replaced with connected wallet.
-    const userAddress = "0x14ac84b66a27fc30e56ed620ebfa61cd8105cb21";
+    const userAddress = "0x84f7860753f0fb62e7e786523690661c4255ade1";
     const url = new URL(`${API_CONFIG.baseUrl}/portfolio`);
     url.searchParams.set("user", userAddress);
     url.searchParams.set("scope", scope);
@@ -34,7 +34,7 @@ async function getPortfolio(
 async function getRecentActivity(): Promise<Activity[]> {
   try {
     // For now, use hardcoded address. Later, this will be replaced with connected wallet.
-    const userAddress = "0x14ac84b66a27fc30e56ed620ebfa61cd8105cb21";
+    const userAddress = "0x84f7860753f0fb62e7e786523690661c4255ade1";
     const url = new URL(`${API_CONFIG.baseUrl}/activity`);
     url.searchParams.set("user", userAddress);
     url.searchParams.set("sortBy", "TIMESTAMP");
@@ -186,14 +186,10 @@ function MetricTile({
         <div className="text-[10px] font-medium uppercase tracking-wide text-white/55">
           {label}
         </div>
-        <div
-          className={`font-mono text-sm font-semibold ${valueClass}`}
-        >
+        <div className={`font-mono text-sm font-semibold ${valueClass}`}>
           {display}
         </div>
       </div>
     </div>
   );
 }
-
-
