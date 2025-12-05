@@ -5,8 +5,9 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Rekon - Professional Trading Terminal for Prediction Markets",
-  description: "Advanced trading interface for Polymarket, optimized for esports markets",
+  title: "Rekon - Real-time esports prediction markets",
+  description:
+    "Real-time esports prediction markets. Simple. Fast. Powered by Polymarket.",
 };
 
 export default function RootLayout({
@@ -20,4 +21,3 @@ export default function RootLayout({
     </html>
   );
 }
-

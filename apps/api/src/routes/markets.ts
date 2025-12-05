@@ -3,6 +3,7 @@ import {
   getMarketsController,
   getMarketByIdController,
   getMarketByConditionIdController,
+  getMarketBySlugController,
   getActiveMarketsController,
   getFeaturedMarketsController,
   getMarketsByCategoryController,
@@ -22,6 +23,7 @@ const marketsRoutes = new Hono()
   .get("/featured", getFeaturedMarketsController)
   .get("/category/:category", getMarketsByCategoryController)
   .get("/condition/:conditionId", getMarketByConditionIdController)
+  .get("/slug/:slug", getMarketBySlugController)
   .get("/:id/trades", getMarketTradesController)
   .get("/:id/chart", getMarketChartController)
   .get("/:id", getMarketByIdController);

@@ -4,6 +4,7 @@ import {
   getMarkets,
   getMarketById,
   getMarketByConditionId,
+  getMarketBySlug,
   getActiveMarkets,
   getFeaturedMarkets,
   getMarketsByCategory,
@@ -163,6 +164,26 @@ export async function getMarketByConditionIdController(c: Context) {
   }
 
   const market = await getMarketByConditionId(conditionId);
+
+  if (!market) {
+    return c.json({ error: "Market not found" }, 404);
+  }
+
+  return c.json(market);
+}
+
+/**
+ * GET /api/markets/slug/:slug
+ * Get a market by slug (recommended for user-friendly URLs).
+ */
+export async function getMarketBySlugController(c: Context) {
+  const { slug } = c.req.param();
+
+  if (!slug) {
+    return c.json({ error: "Market slug is required" }, 400);
+  }
+
+  const market = await getMarketBySlug(slug);
 
   if (!market) {
     return c.json({ error: "Market not found" }, 404);

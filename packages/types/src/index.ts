@@ -173,3 +173,6 @@ export interface Activity {
 
 // Fill types
 export type { Fill } from "./fill";
+
+// Market full types
+export type { MarketFullResponse, MarketSpread } from "./market-full";

@@ -185,9 +185,12 @@ export async function MarketsPage(props: {
             {markets.length === 0 ? (
               <div className="flex justify-center py-16">
                 <div className="inline-flex max-w-md flex-col items-center gap-3 rounded-2xl border border-dashed border-white/15 bg-white/5 px-6 py-6 text-sm text-white/70">
-                  <p className="font-medium">No markets found for this filter.</p>
+                  <p className="font-medium">
+                    No markets found for this filter.
+                  </p>
                   <p className="text-xs text-white/55">
-                    Try switching game or status, or go back to all live esports markets.
+                    Try switching game or status, or go back to all live esports
+                    markets.
                   </p>
                   <Link
                     href="/markets"
@@ -603,7 +606,9 @@ function MarketCard({
   const endLabel = market.endDate ? formatDateShort(market.endDate) : undefined;
   const now = new Date();
   const endDateObj = market.endDate ? new Date(market.endDate) : undefined;
-  const startDateObj = market.createdAt ? new Date(market.createdAt) : undefined;
+  const startDateObj = market.createdAt
+    ? new Date(market.createdAt)
+    : undefined;
 
   const isResolved = market.isResolved || market.closed;
   const isInPlay =
@@ -637,8 +642,9 @@ function MarketCard({
   const priceChangePct = priceChange24h * 100;
 
   return (
-    <div
-      className={`group border border-white/10 rounded-xl bg-[#121A30] hover:border-white/20 transition-all hover:shadow-[0_8px_24px_rgba(15,23,42,0.8)] ${
+    <Link
+      href={`/markets/${market.slug || market.id}`}
+      className={`group border border-white/10 rounded-xl bg-[#121A30] hover:border-white/20 transition-all hover:shadow-[0_8px_24px_rgba(15,23,42,0.8)] cursor-pointer ${
         compact ? "p-5" : "p-6"
       }`}
     >
@@ -756,16 +762,13 @@ function MarketCard({
             <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
             <span>Liq {formatVolume(market.liquidity)}</span>
           </span>
-          <Link
-            href={`/markets/${market.id}`}
-            className="inline-flex items-center gap-1 text-[11px] font-medium text-sky-400 hover:text-sky-300"
-          >
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-sky-400">
             <span>View market</span>
             <span aria-hidden>→</span>
-          </Link>
+          </span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -807,5 +810,3 @@ function OutcomeChip({
     </div>
   );
 }
-
-

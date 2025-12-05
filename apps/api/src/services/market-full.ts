@@ -6,7 +6,7 @@ import type {
   Trade,
   OrderBookEntry,
 } from "@rekon/types";
-import { getMarketById } from "./markets";
+import { getMarketById, getMarketBySlug } from "./markets";
 import { getOrderBookByMarketId } from "./orderbook";
 import { getTradesByMarketId } from "./trades";
 import { NotFound } from "../utils/http-errors";
@@ -32,26 +32,48 @@ export interface GetMarketFullParams {
 /**
  * Gets full market data aggregated from multiple sources.
  *
- * @param marketId - Market ID
+ * @param identifier - Market ID or slug
  * @param params - Optional parameters
  * @returns Aggregated market data
  */
 export async function getMarketFull(
-  marketId: string,
+  identifier: string,
   params: GetMarketFullParams = {}
 ): Promise<MarketFullResponse> {
   const tradesLimit = params.tradesLimit || 20;
 
+  // Try to fetch market by slug first (user-friendly), then by ID (backward compatibility)
+  let market: Market | null = null;
+  let marketId: string;
+
+  // Check if identifier looks like a slug (contains hyphens, lowercase, no hex pattern)
+  const looksLikeSlug =
+    /^[a-z0-9-]+$/.test(identifier) && identifier.includes("-");
+
+  if (looksLikeSlug) {
+    market = await getMarketBySlug(identifier);
+    if (market) {
+      marketId = market.id;
+    }
+  }
+
+  // If slug lookup failed or doesn't look like a slug, try ID
+  if (!market) {
+    market = await getMarketById(identifier);
+    if (market) {
+      marketId = market.id;
+    }
+  }
+
+  if (!market || !marketId) {
+    throw NotFound(`Market not found: ${identifier}`);
+  }
+
   // Fetch all data in parallel for better performance
-  const [market, orderbook, trades] = await Promise.all([
-    getMarketById(marketId),
+  const [orderbook, trades] = await Promise.all([
     getOrderBookByMarketId(marketId),
     getTradesByMarketId(marketId, { limit: tradesLimit }),
   ]);
-
-  if (!market) {
-    throw NotFound(`Market not found: ${marketId}`);
-  }
 
   // Calculate spread if orderbook is available
   const spread = orderbook ? calculateSpread(orderbook) : null;
