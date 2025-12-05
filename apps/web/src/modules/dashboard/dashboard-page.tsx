@@ -3,7 +3,7 @@ import { API_CONFIG } from "@rekon/config";
 import { AppHeader } from "@/components/app-header";
 import { PortfolioSnapshot } from "@/components/portfolio-snapshot";
 import { RecentActivityPanel } from "@/components/recent-activity-panel";
-import { PnLChart } from "@/components/pnl-chart";
+import { PnLChartLightweight } from "@/components/pnl-chart-lightweight";
 
 async function getPortfolio(
   scope: "esports" | "all"
@@ -131,7 +131,7 @@ export async function DashboardPage() {
                     </h2>
                   </div>
                   <div className="flex-1 min-h-0">
-                    <PnLChart
+                    <PnLChartLightweight
                       totalPnL={esportsPortfolio?.totalPnL ?? 0}
                       userAddress="0x5d58e38cd0a7e6f5fa67b7f9c2f70dd70df09a15"
                       scope="esports"
