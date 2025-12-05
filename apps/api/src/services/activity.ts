@@ -22,11 +22,68 @@ export interface GetActivityParams {
 /**
  * Checks if an activity item is one of the 4 main esports games:
  * Counter-Strike, League of Legends, Dota 2, or Valorant.
+ * Mirrors the logic in isEsportsPosition but works on PolymarketActivityItem.
+ *
+ * IMPORTANT: Explicitly excludes traditional sports (NFL, NBA, MLB, etc.) to ensure
+ * only esports markets are included when esportsOnly=true.
  */
 export function isEsportsActivity(activity: PolymarketActivityItem): boolean {
   const slug = (activity.slug || "").toLowerCase();
   const title = (activity.title || "").toLowerCase();
   const eventSlug = (activity.eventSlug || "").toLowerCase();
+
+  // First, explicitly exclude traditional sports to prevent false positives
+  const sportsExclusionPatterns = [
+    /^nfl-/,
+    /^nba-/,
+    /^mlb-/,
+    /^nhl-/,
+    /^ncaa-/,
+    /^soccer-/,
+    /^football-/,
+    /^basketball-/,
+    /^baseball-/,
+    /^hockey-/,
+    /^mlb-/,
+  ];
+
+  const sportsExclusionKeywords = [
+    "nfl",
+    "nba",
+    "mlb",
+    "nhl",
+    "ncaa",
+    "cowboys",
+    "lions",
+    "heat",
+    "lakers",
+    "timberwolves",
+    "pelicans",
+    "super bowl",
+    "world series",
+    "stanley cup",
+    "nba finals",
+    "nfl playoffs",
+    "ncaa tournament",
+    "march madness",
+    "vs.", // Common in sports matchups like "Cowboys vs. Lions"
+  ];
+
+  // If it matches sports exclusion patterns, it's definitely NOT esports
+  const isExcludedSport =
+    sportsExclusionPatterns.some(
+      (pattern) => pattern.test(slug) || pattern.test(eventSlug)
+    ) ||
+    sportsExclusionKeywords.some(
+      (keyword) =>
+        title.includes(keyword) ||
+        slug.includes(keyword) ||
+        eventSlug.includes(keyword)
+    );
+
+  if (isExcludedSport) {
+    return false;
+  }
 
   // Only check for the 4 main esports games
   const esportsSlugPatterns = [
@@ -134,16 +191,8 @@ export async function getActivity(
     ? pmActivities.filter(isEsportsActivity)
     : pmActivities;
 
-  // If we asked for esports-only activity but our heuristic did not match
-  // anything, fall back to unfiltered activity so the UI does not look empty
-  // for wallets that do have recent trades.
-  const effectiveActivities =
-    esportsOnly && filteredActivities.length === 0
-      ? pmActivities
-      : filteredActivities;
-
   // Take only the requested limit after filtering
-  const limitedActivities = effectiveActivities.slice(0, limit);
+  const limitedActivities = filteredActivities.slice(0, limit);
 
   // Map to normalized Activity type and annotate esports flag so that
   // frontends can reliably distinguish esports vs non-esports activity.

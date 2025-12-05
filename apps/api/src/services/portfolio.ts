@@ -20,7 +20,7 @@ import { isEsportsActivity } from "./activity";
  * IMPORTANT: Explicitly excludes traditional sports (NFL, NBA, MLB, etc.) to ensure
  * only esports markets are included when scope="esports".
  */
-function isEsportsPosition(
+export function isEsportsPosition(
   position: PolymarketPosition | PolymarketClosedPosition
 ): boolean {
   const slug = (position.slug || "").toLowerCase();
