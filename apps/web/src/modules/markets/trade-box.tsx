@@ -6,29 +6,45 @@ import { cn } from "@rekon/ui";
 
 interface TradeBoxProps {
   marketId: string;
-  yesPrice: number;
-  noPrice: number;
-  team1Name?: string;
-  team2Name?: string;
+  team1Name: string;
+  team2Name: string;
+  team1Price: number;
+  team2Price: number;
 }
 
 export function TradeBox({
   marketId,
-  yesPrice,
-  noPrice,
   team1Name,
   team2Name,
+  team1Price,
+  team2Price,
 }: TradeBoxProps) {
-  const [side, setSide] = useState<"yes" | "no">("yes");
+  const [selectedTeam, setSelectedTeam] = useState<"team1" | "team2">("team1");
+  const [tradeAction, setTradeAction] = useState<"buy" | "sell">("buy");
   const [stake, setStake] = useState<string>("");
   const [isPlacing, setIsPlacing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Calculate estimated payout
   const stakeNum = parseFloat(stake) || 0;
-  const currentPrice = side === "yes" ? yesPrice : noPrice;
+  const currentPrice = selectedTeam === "team1" ? team1Price : team2Price;
+  const selectedTeamName = selectedTeam === "team1" ? team1Name : team2Name;
+
+  // For BUY: shares = stake / price
+  // For SELL: shares = stake (selling existing shares)
   const estimatedPayout =
-    stakeNum > 0 && currentPrice > 0 ? stakeNum / currentPrice : 0;
+    tradeAction === "buy" && stakeNum > 0 && currentPrice > 0
+      ? stakeNum / currentPrice
+      : stakeNum;
+
+  // Map team + action to yes/no for API
+  // Team 1: BUY = "yes", SELL = "no"
+  // Team 2: BUY = "no", SELL = "yes"
+  const side: "yes" | "no" =
+    (selectedTeam === "team1" && tradeAction === "buy") ||
+    (selectedTeam === "team2" && tradeAction === "sell")
+      ? "yes"
+      : "no";
 
   const handlePlaceTrade = async () => {
     if (!stake || stakeNum < 0.01) {
@@ -75,38 +91,68 @@ export function TradeBox({
         Place Prediction
       </h2>
 
-      {/* YES/NO Selector */}
+      {/* Team Selector */}
       <div className="mb-4 sm:mb-6 grid grid-cols-2 gap-2 sm:gap-3">
         <button
-          onClick={() => setSide("yes")}
+          onClick={() => setSelectedTeam("team1")}
           className={cn(
             "rounded-lg border px-4 py-3 text-sm font-semibold transition-all",
-            side === "yes"
+            selectedTeam === "team1"
               ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-300"
               : "border-white/10 bg-[#090E1C] text-white/60 hover:border-white/20"
           )}
         >
-          {team1Name || "YES"}
+          {team1Name}
         </button>
         <button
-          onClick={() => setSide("no")}
+          onClick={() => setSelectedTeam("team2")}
           className={cn(
             "rounded-lg border px-4 py-3 text-sm font-semibold transition-all",
-            side === "no"
+            selectedTeam === "team2"
               ? "border-red-500/50 bg-red-500/20 text-red-300"
               : "border-white/10 bg-[#090E1C] text-white/60 hover:border-white/20"
           )}
         >
-          {team2Name || "NO"}
+          {team2Name}
+        </button>
+      </div>
+
+      {/* Buy/Sell Selector */}
+      <div className="mb-4 sm:mb-6 grid grid-cols-2 gap-2 sm:gap-3">
+        <button
+          onClick={() => setTradeAction("buy")}
+          className={cn(
+            "rounded-lg border px-4 py-3 text-sm font-semibold transition-all",
+            tradeAction === "buy"
+              ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-300"
+              : "border-white/10 bg-[#090E1C] text-white/60 hover:border-white/20"
+          )}
+        >
+          Buy
+        </button>
+        <button
+          onClick={() => setTradeAction("sell")}
+          className={cn(
+            "rounded-lg border px-4 py-3 text-sm font-semibold transition-all",
+            tradeAction === "sell"
+              ? "border-red-500/50 bg-red-500/20 text-red-300"
+              : "border-white/10 bg-[#090E1C] text-white/60 hover:border-white/20"
+          )}
+        >
+          Sell
         </button>
       </div>
 
       {/* Stake Input */}
       <div className="mb-4 sm:mb-6">
         <label className="mb-2 block text-sm font-semibold text-white/80">
-          Stake Amount (USDC)
+          {tradeAction === "buy" ? "Stake Amount (USDC)" : "Shares to Sell"}
         </label>
-        <p className="mb-2 text-xs text-white/50">Minimum order size: 5 USDC</p>
+        <p className="mb-2 text-xs text-white/50">
+          {tradeAction === "buy"
+            ? "Minimum order size: 5 USDC"
+            : "Enter number of shares to sell"}
+        </p>
         <input
           type="number"
           min="0.01"
@@ -118,21 +164,40 @@ export function TradeBox({
         />
       </div>
 
-      {/* Estimated Payout */}
+      {/* Estimated Payout/Receipt */}
       {stakeNum > 0 && (
         <div className="mb-4 sm:mb-6 rounded-lg border border-white/10 bg-[#090E1C] p-3 sm:p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-white/70">
-              Estimated Payout
-            </span>
-            <span className="font-mono text-lg font-bold text-white">
-              {estimatedPayout.toFixed(4)} shares
-            </span>
-          </div>
-          <div className="mt-2 text-xs text-white/50">
-            If {side.toUpperCase()} wins, you receive{" "}
-            {estimatedPayout.toFixed(4)} shares
-          </div>
+          {tradeAction === "buy" ? (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-white/70">
+                  Estimated Shares
+                </span>
+                <span className="font-mono text-lg font-bold text-white">
+                  {estimatedPayout.toFixed(4)} shares
+                </span>
+              </div>
+              <div className="mt-2 text-xs text-white/50">
+                If {selectedTeamName} wins, you receive{" "}
+                {estimatedPayout.toFixed(4)} shares
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-white/70">
+                  Estimated Receipt
+                </span>
+                <span className="font-mono text-lg font-bold text-white">
+                  ${(estimatedPayout * currentPrice).toFixed(2)} USDC
+                </span>
+              </div>
+              <div className="mt-2 text-xs text-white/50">
+                Selling {stakeNum.toFixed(4)} {selectedTeamName} shares at{" "}
+                {currentPrice.toFixed(2)}
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -149,14 +214,16 @@ export function TradeBox({
         disabled={isPlacing || !stake || stakeNum < 0.01}
         className={cn(
           "w-full rounded-lg px-4 py-3 sm:px-6 sm:py-4 text-sm sm:text-base font-bold text-white transition-all shadow-lg",
-          side === "yes"
+          selectedTeam === "team1"
             ? "bg-emerald-500 hover:bg-emerald-600 hover:shadow-emerald-500/50"
             : "bg-red-500 hover:bg-red-600 hover:shadow-red-500/50",
           (isPlacing || !stake || stakeNum < 0.01) &&
             "cursor-not-allowed opacity-50"
         )}
       >
-        {isPlacing ? "Placing..." : "Place Prediction"}
+        {isPlacing
+          ? "Placing..."
+          : `${tradeAction === "buy" ? "Buy" : "Sell"} ${selectedTeamName}`}
       </button>
     </div>
   );

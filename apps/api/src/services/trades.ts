@@ -3,6 +3,7 @@ import {
   fetchPolymarketTrades,
   mapPolymarketTrades,
 } from "../adapters/polymarket";
+import type { PolymarketDataTrade } from "../adapters/polymarket/misc";
 import { getMarketById } from "./markets";
 import { tradesCacheService } from "./cache";
 
@@ -92,6 +93,28 @@ export async function getTradesByMarketId(
 
   // Return limited number of trades
   return allTrades.slice(0, limit);
+}
+
+/**
+ * Gets recent trades from Polymarket Data API by condition ID.
+ * This is the newer API that provides more detailed trade information.
+ */
+export async function getRecentTradesByConditionId(
+  conditionId: string,
+  params: GetTradesParams = {}
+): Promise<PolymarketDataTrade[]> {
+  const limit = params.limit || 100;
+
+  try {
+    const { fetchDataApiTrades } = await import("../adapters/polymarket/misc");
+    return await fetchDataApiTrades(conditionId, limit, true);
+  } catch (error) {
+    console.error(
+      `Failed to fetch recent trades for condition ${conditionId}:`,
+      error
+    );
+    return [];
+  }
 }
 
 /**

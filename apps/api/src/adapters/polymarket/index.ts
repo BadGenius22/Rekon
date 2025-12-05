@@ -61,7 +61,9 @@ export {
 // Export misc Data-API functions
 export {
   fetchTotalMarketsTraded,
+  fetchDataApiTrades,
   type TotalMarketsTradedResponse,
+  type PolymarketDataTrade,
 } from "./misc";
 
 // Export order placement functions

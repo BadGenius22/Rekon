@@ -103,7 +103,7 @@ export function MarketInfo({ market }: MarketInfoProps) {
             </svg>
           </button>
           {isDescriptionExpanded && (
-            <div className="mt-3 text-xs sm:text-sm text-white/70 leading-relaxed whitespace-pre-line">
+            <div className="mt-3 text-xs sm:text-sm text-white/70 leading-relaxed whitespace-pre-line break-words min-w-0 overflow-wrap-anywhere">
               {market.description}
             </div>
           )}

@@ -5,10 +5,10 @@ import { MarketCountdown } from "./market-countdown";
 interface MarketHeaderProps {
   market: Market;
   status: "LIVE" | "UPCOMING" | "RESOLVED";
-  yesPrice: number;
-  noPrice: number;
-  team1Name?: string;
-  team2Name?: string;
+  team1Name: string;
+  team2Name: string;
+  team1Price: number;
+  team2Price: number;
   league?: string;
 }
 
@@ -79,18 +79,14 @@ function extractMatchTitle(question: string): string {
 export async function MarketHeader({
   market,
   status,
-  yesPrice,
-  noPrice,
   team1Name,
   team2Name,
+  team1Price,
+  team2Price,
   league,
 }: MarketHeaderProps) {
   // Extract match title (Team A vs Team B)
-  // If we have team names, use them; otherwise use the question
-  const matchTitle =
-    team1Name && team2Name
-      ? `${team1Name} vs ${team2Name}`
-      : extractMatchTitle(market.question);
+  const matchTitle = `${team1Name} vs ${team2Name}`;
 
   // Tournament name from subcategory or category
   const tournamentName = market.subcategory || market.category;

@@ -2,7 +2,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { X } from "lucide-react";
 
-export function HomeFooter() {
+interface AppFooterProps {
+  marketSlug?: string;
+}
+
+export function AppFooter({ marketSlug }: AppFooterProps = {}) {
   return (
     <footer className="border-t border-white/10 bg-[#050816]">
       <div className="mx-auto w-full max-w-screen-2xl px-4 py-12 md:px-6 xl:px-10">
@@ -36,6 +40,18 @@ export function HomeFooter() {
                   Dashboard
                 </Link>
               </li>
+              {marketSlug && (
+                <li>
+                  <a
+                    href={`https://polymarket.com/event/${marketSlug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="transition-colors hover:text-white"
+                  >
+                    View on Polymarket →
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
 

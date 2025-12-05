@@ -1,6 +1,10 @@
 import type { Context } from "hono";
 import { z } from "zod";
-import { getTradesByMarketId, getTradesByTokenId } from "../services/trades";
+import {
+  getTradesByMarketId,
+  getTradesByTokenId,
+  getRecentTradesByConditionId,
+} from "../services/trades";
 import { NotFound } from "../utils/http-errors";
 
 /**
@@ -62,6 +66,21 @@ export async function getTradesByTokenIdController(c: Context) {
       limit: query.limit,
     }
   );
+
+  return c.json(trades);
+}
+
+/**
+ * GET /api/trades/recent/:id
+ * Get recent trades from Polymarket Data API by condition ID.
+ */
+export async function getRecentTradesController(c: Context) {
+  const params = TradesParamsSchema.parse(c.req.param());
+  const query = TradesQuerySchema.parse(c.req.query());
+
+  const trades = await getRecentTradesByConditionId(params.id, {
+    limit: query.limit,
+  });
 
   return c.json(trades);
 }

@@ -3,8 +3,12 @@ import { cn } from "@rekon/ui";
 import type { MarketSpread } from "@rekon/types";
 
 interface PriceDisplayProps {
-  yesPrice: number;
-  noPrice: number;
+  team1Name: string;
+  team2Name: string;
+  team1Price: number;
+  team2Price: number;
+  team1PriceChange24h?: number;
+  team2PriceChange24h?: number;
   volume24h: number;
   priceChange24h: number;
   liquidity: number;
@@ -12,41 +16,67 @@ interface PriceDisplayProps {
 }
 
 export function PriceDisplay({
-  yesPrice,
-  noPrice,
+  team1Name,
+  team2Name,
+  team1Price,
+  team2Price,
+  team1PriceChange24h,
+  team2PriceChange24h,
   volume24h,
   priceChange24h,
   liquidity,
   spread,
 }: PriceDisplayProps) {
-  const yesPercent = (yesPrice * 100).toFixed(2);
-  const noPercent = (noPrice * 100).toFixed(2);
   const priceChangePercent = priceChange24h.toFixed(2);
   const isPositive = priceChange24h >= 0;
+  const team1Change = team1PriceChange24h ?? 0;
+  const team2Change = team2PriceChange24h ?? 0;
 
   return (
     <div className="rounded-xl border border-white/10 bg-[#121A30] p-4 sm:p-6">
       <div className="space-y-4 sm:space-y-6">
-        {/* YES/NO Prices */}
+        {/* Team Prices */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          {/* YES Price */}
+          {/* Team 1 Price */}
           <div className="rounded-lg border border-emerald-500/50 bg-emerald-500/12 p-3 sm:p-4 md:p-5">
-            <div className="mb-1 sm:mb-2 text-xs font-semibold uppercase tracking-wider text-emerald-300">
-              YES
+            <div className="mb-1 sm:mb-2 text-xs font-semibold uppercase tracking-wider text-emerald-300 truncate">
+              {team1Name}
             </div>
             <div className="text-2xl sm:text-3xl font-mono font-bold text-emerald-400">
-              {yesPrice.toFixed(2)}
+              {team1Price.toFixed(2)}
             </div>
+            {team1Change !== 0 && (
+              <div
+                className={cn(
+                  "mt-1 text-xs font-mono",
+                  team1Change >= 0 ? "text-emerald-400" : "text-red-400"
+                )}
+              >
+                {team1Change >= 0 ? "+" : ""}
+                {(team1Change * 100).toFixed(2)}%
+              </div>
+            )}
           </div>
 
-          {/* NO Price */}
+          {/* Team 2 Price */}
           <div className="rounded-lg border border-red-500/50 bg-red-500/12 p-3 sm:p-4 md:p-5">
-            <div className="mb-1 sm:mb-2 text-xs font-semibold uppercase tracking-wider text-red-300">
-              NO
+            <div className="mb-1 sm:mb-2 text-xs font-semibold uppercase tracking-wider text-red-300 truncate">
+              {team2Name}
             </div>
             <div className="text-2xl sm:text-3xl font-mono font-bold text-red-400">
-              {noPrice.toFixed(2)}
+              {team2Price.toFixed(2)}
             </div>
+            {team2Change !== 0 && (
+              <div
+                className={cn(
+                  "mt-1 text-xs font-mono",
+                  team2Change >= 0 ? "text-emerald-400" : "text-red-400"
+                )}
+              >
+                {team2Change >= 0 ? "+" : ""}
+                {(team2Change * 100).toFixed(2)}%
+              </div>
+            )}
           </div>
         </div>
 

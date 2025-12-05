@@ -106,3 +106,61 @@ export async function fetchLiveVolume(): Promise<LiveVolumeResponse> {
   return (await response.json()) as LiveVolumeResponse;
 }
 
+/**
+ * Polymarket Data API Trade Response
+ */
+export interface PolymarketDataTrade {
+  proxyWallet: string;
+  side: "BUY" | "SELL";
+  asset: string;
+  conditionId: string;
+  size: number;
+  price: number;
+  timestamp: number;
+  title: string;
+  slug: string;
+  icon?: string;
+  eventSlug: string;
+  outcome: string;
+  outcomeIndex: number;
+  name?: string;
+  pseudonym?: string;
+  bio?: string;
+  profileImage?: string;
+  profileImageOptimized?: string;
+  transactionHash: string;
+}
+
+/**
+ * Fetches recent trades from Polymarket Data-API.
+ *
+ * GET https://data-api.polymarket.com/trades?limit=100&takerOnly=true&market=<conditionId>
+ */
+export async function fetchDataApiTrades(
+  conditionId: string,
+  limit: number = 100,
+  takerOnly: boolean = true
+): Promise<PolymarketDataTrade[]> {
+  const searchParams = new URLSearchParams({
+    limit: String(limit),
+    takerOnly: String(takerOnly),
+    market: conditionId,
+  });
+
+  const url = `${DATA_API_URL}/trades?${searchParams.toString()}`;
+
+  const response = await fetch(url, {
+    headers: getDataApiHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = new Error(
+      `Polymarket Data-API error: ${response.status} ${response.statusText}`
+    );
+
+    trackPolymarketApiFailure(url, response.status, error);
+    throw error;
+  }
+
+  return (await response.json()) as PolymarketDataTrade[];
+}

@@ -7,7 +7,7 @@ import { AppHeader } from "@/components/app-header";
 import { HomePageClient } from "./home-page-client";
 import { GameCategories } from "./game-categories";
 import { HowItWorks } from "./how-it-works";
-import { HomeFooter } from "./home-footer";
+import { AppFooter } from "./app-footer";
 
 async function getHighlightedMarkets(): Promise<Market[]> {
   try {
@@ -185,7 +185,9 @@ export async function HomePage() {
         </section>
 
         {/* Footer */}
-        <HomeFooter />
+        <div className="mt-12 sm:mt-16 md:mt-20 lg:mt-24">
+          <AppFooter />
+        </div>
       </div>
     </main>
   );

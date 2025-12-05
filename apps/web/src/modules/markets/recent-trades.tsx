@@ -1,15 +1,60 @@
-import type { Trade } from "@rekon/types";
 import { formatVolume } from "@rekon/utils";
 import { cn } from "@rekon/ui";
+import { API_CONFIG } from "@rekon/config";
 
-interface RecentTradesProps {
-  trades: Trade[];
+interface PolymarketDataTrade {
+  side: "BUY" | "SELL";
+  price: number;
+  size: number;
+  timestamp: number; // Unix timestamp
+  outcome: string;
+  outcomeIndex: number;
+  transactionHash: string;
+  name?: string; // Trader username
 }
 
-function formatTimeAgo(timestamp: string): string {
-  const now = new Date();
-  const tradeTime = new Date(timestamp);
-  const diffMs = now.getTime() - tradeTime.getTime();
+interface RecentTradesProps {
+  conditionId: string;
+  team1Name: string;
+  team2Name: string;
+}
+
+async function fetchRecentTrades(
+  conditionId: string
+): Promise<PolymarketDataTrade[]> {
+  try {
+    const url = new URL(`${API_CONFIG.baseUrl}/trades/recent/${conditionId}`);
+    url.searchParams.set("limit", "100");
+
+    const response = await fetch(url.toString(), {
+      next: { revalidate: 10 }, // Revalidate every 10 seconds
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "Unknown error");
+      console.warn(
+        `Failed to fetch recent trades: ${response.status} ${
+          response.statusText
+        }. URL: ${url.toString()}. Error: ${errorText}`
+      );
+      return [];
+    }
+
+    const trades: PolymarketDataTrade[] = await response.json();
+    return trades;
+  } catch (error) {
+    // Handle network errors, timeouts, etc.
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(
+      `Error fetching recent trades (network/exception) for conditionId ${conditionId}: ${errorMessage}. API URL: ${API_CONFIG.baseUrl}`
+    );
+    return [];
+  }
+}
+
+function formatTimeAgo(timestamp: number): string {
+  const now = Date.now();
+  const diffMs = now - timestamp * 1000; // Convert Unix timestamp to milliseconds
   const diffMins = Math.floor(diffMs / (1000 * 60));
 
   if (diffMins < 1) return "Just now";
@@ -24,7 +69,38 @@ function formatTimeAgo(timestamp: string): string {
   return `${diffDays}d ago`;
 }
 
-export function RecentTrades({ trades }: RecentTradesProps) {
+export async function RecentTrades({
+  conditionId,
+  team1Name,
+  team2Name,
+}: RecentTradesProps) {
+  const rawTrades = await fetchRecentTrades(conditionId);
+
+  // Map Polymarket Data API trades to display format
+  const trades = rawTrades.map((trade) => {
+    // Determine side: outcomeIndex 0 (team1) BUY = "yes", SELL = "no"
+    // outcomeIndex 1 (team2) BUY = "no", SELL = "yes"
+    const isTeam1 = trade.outcomeIndex === 0;
+    const side: "yes" | "no" =
+      (isTeam1 && trade.side === "BUY") || (!isTeam1 && trade.side === "SELL")
+        ? "yes"
+        : "no";
+
+    // Map BUY/SELL to bought/sold
+    const action = trade.side === "BUY" ? "bought" : "sold";
+
+    return {
+      id: trade.transactionHash,
+      price: trade.price,
+      amount: trade.size,
+      timestamp: trade.timestamp,
+      side,
+      teamName: isTeam1 ? team1Name : team2Name,
+      traderName: trade.name || "Anonymous",
+      action,
+    };
+  });
+
   if (trades.length === 0) {
     return (
       <div className="rounded-xl border border-white/10 bg-[#121A30] p-4 sm:p-5">
@@ -43,14 +119,14 @@ export function RecentTrades({ trades }: RecentTradesProps) {
 
   return (
     <div className="rounded-xl border border-white/10 bg-[#121A30] p-4 sm:p-5">
-      <h2 className="mb-3 sm:mb-4 text-xs sm:text-sm font-semibold text-white/80">
+      <h2 className="mb-3 sm:mb-4 text-sm sm:text-base font-semibold text-white/80">
         Recent Trades
       </h2>
 
-      <div className="space-y-1.5 sm:space-y-2">
-        {trades.slice(0, 10).map((trade) => {
-          const isYes = trade.side === "yes";
-          // Format: "YES @ 0.64 — $18 — 2m ago"
+      <div className="max-h-[320px] sm:max-h-[380px] overflow-y-auto space-y-1.5 sm:space-y-2 pr-2 scrollbar-thin">
+        {trades.map((trade) => {
+          const isTeam1 = trade.side === "yes";
+          // Format: "Team Liquid @ 0.64 — $18 — 2m ago"
           const formattedAmount = `$${formatVolume(trade.amount)}`;
 
           return (
@@ -61,11 +137,21 @@ export function RecentTrades({ trades }: RecentTradesProps) {
               <div className="flex items-center gap-1 sm:gap-1.5 text-white/80 flex-wrap">
                 <span
                   className={cn(
-                    "font-semibold whitespace-nowrap",
-                    isYes ? "text-emerald-400" : "text-red-400"
+                    "font-semibold whitespace-nowrap truncate max-w-[80px] sm:max-w-none",
+                    isTeam1 ? "text-emerald-400" : "text-red-400"
                   )}
                 >
-                  {trade.side.toUpperCase()}
+                  {trade.teamName}
+                </span>
+                <span
+                  className={cn(
+                    "text-[9px] sm:text-[10px] font-medium whitespace-nowrap",
+                    trade.action === "bought"
+                      ? "text-emerald-400"
+                      : "text-red-400"
+                  )}
+                >
+                  {trade.action}
                 </span>
                 <span className="font-mono whitespace-nowrap">
                   @ {trade.price.toFixed(2)}
@@ -73,6 +159,10 @@ export function RecentTrades({ trades }: RecentTradesProps) {
                 <span className="text-white/40 hidden sm:inline">—</span>
                 <span className="font-mono whitespace-nowrap">
                   {formattedAmount}
+                </span>
+                <span className="text-white/40 hidden sm:inline">—</span>
+                <span className="text-white/50 text-[9px] sm:text-[10px] whitespace-nowrap">
+                  {trade.traderName}
                 </span>
                 <span className="text-white/40 hidden sm:inline">—</span>
                 <span className="text-white/60 whitespace-nowrap">

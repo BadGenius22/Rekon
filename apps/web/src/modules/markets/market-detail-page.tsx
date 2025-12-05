@@ -5,9 +5,9 @@ import { AppHeader } from "@/components/app-header";
 import { MarketHeader } from "@/modules/markets/market-header";
 import { PriceDisplay } from "@/modules/markets/price-display";
 import { TradeBox } from "@/modules/markets/trade-box";
-import { OrderbookPreview } from "@/modules/markets/orderbook-preview";
 import { MarketInfo } from "@/modules/markets/market-info";
 import { RecentTrades } from "@/modules/markets/recent-trades";
+import { AppFooter } from "@/modules/home/app-footer";
 
 async function getMarketFull(
   identifier: string
@@ -149,19 +149,17 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
   const { market, bestBid, bestAsk, recentTrades, metrics, spread } =
     marketFull;
 
-  // Get YES and NO outcomes
-  const yesOutcome = market.outcomes.find(
-    (o) => o.name.toLowerCase() === "yes"
-  );
-  const noOutcome = market.outcomes.find((o) => o.name.toLowerCase() === "no");
-
-  // For esports markets, use first two outcomes as YES/NO
-  const yesPrice = yesOutcome?.price ?? market.outcomes[0]?.price ?? 0.5;
-  const noPrice = noOutcome?.price ?? market.outcomes[1]?.price ?? 0.5;
-
-  // Get team names from outcomes (for esports markets)
+  // Get team names and prices from outcomes (for esports markets)
+  // For esports markets, outcomes are team names, not YES/NO
   const team1Name = market.outcomes[0]?.name || "Team 1";
   const team2Name = market.outcomes[1]?.name || "Team 2";
+  const team1Price = market.outcomes[0]?.price ?? 0.5;
+  const team2Price = market.outcomes[1]?.price ?? 0.5;
+
+  // Calculate 24h price changes for each team (if available)
+  // For now, use overall price change, but this could be enhanced with team-specific data
+  const team1PriceChange24h = metrics.priceChange24h; // TODO: Get team-specific price change
+  const team2PriceChange24h = -metrics.priceChange24h; // Inverse for now
 
   // Determine league from market category/game
   // Map cs2 -> csgo for API compatibility
@@ -227,10 +225,10 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
         <MarketHeader
           market={market}
           status={status}
-          yesPrice={yesPrice}
-          noPrice={noPrice}
           team1Name={team1Name}
           team2Name={team2Name}
+          team1Price={team1Price}
+          team2Price={team2Price}
           league={league}
         />
 
@@ -240,8 +238,12 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
           {/* Desktop: Left Column - Price Display */}
           <div className="order-2 lg:order-1 lg:col-span-4 xl:col-span-4">
             <PriceDisplay
-              yesPrice={yesPrice}
-              noPrice={noPrice}
+              team1Name={team1Name}
+              team2Name={team2Name}
+              team1Price={team1Price}
+              team2Price={team2Price}
+              team1PriceChange24h={team1PriceChange24h}
+              team2PriceChange24h={team2PriceChange24h}
               volume24h={metrics.volume24h}
               priceChange24h={metrics.priceChange24h}
               liquidity={metrics.liquidity}
@@ -254,30 +256,33 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
           <div className="order-1 lg:order-2 lg:col-span-5 xl:col-span-5">
             <TradeBox
               marketId={market.id}
-              yesPrice={yesPrice}
-              noPrice={noPrice}
               team1Name={team1Name}
               team2Name={team2Name}
+              team1Price={team1Price}
+              team2Price={team2Price}
             />
           </div>
 
-          {/* Mobile/Tablet: Orderbook + Info + Trades Last */}
-          {/* Desktop: Right Column - Orderbook + Info + Trades */}
+          {/* Mobile/Tablet: Market Info Last */}
+          {/* Desktop: Right Column - Market Info */}
           <div className="order-3 lg:col-span-3 xl:col-span-3 space-y-4 sm:space-y-6 min-w-0">
-            {/* Minimal Orderbook Preview */}
-            <OrderbookPreview
-              bestYesBid={bestBid}
-              bestNoBid={bestAsk}
-              yesPrice={yesPrice}
-              noPrice={noPrice}
-            />
-
             {/* Minimal Market Info */}
             <MarketInfo market={market} />
-
-            {/* Recent Trades List */}
-            <RecentTrades trades={recentTrades} />
           </div>
+        </div>
+
+        {/* Recent Trades - Centered Full Width */}
+        <div className="mt-6 sm:mt-8">
+          <RecentTrades
+            conditionId={market.conditionId}
+            team1Name={team1Name}
+            team2Name={team2Name}
+          />
+        </div>
+
+        {/* Footer */}
+        <div className="mt-12 sm:mt-16 md:mt-20 lg:mt-24">
+          <AppFooter marketSlug={market.slug} />
         </div>
       </div>
     </div>
