@@ -10,9 +10,9 @@ export function RecentActivityPanel({ items }: RecentActivityPanelProps) {
     <Panel className="flex flex-col h-full">
       <PanelHeader title="Recent Activity" />
       <div className="flex-1 min-h-0 overflow-y-auto flex flex-col justify-start gap-2.5 text-xs text-white/70 pr-1">
-        {items.map((item) => (
+        {items.map((item, index) => (
           <ActivityRow
-            key={item.id}
+            key={`${item.id}-${item.timestamp}-${item.amount ?? 0}-${index}`}
             label={item.label}
             meta={item.meta}
             positive={item.positive}
@@ -107,4 +107,3 @@ function PanelHeader({
     </div>
   );
 }
-

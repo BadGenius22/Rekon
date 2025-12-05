@@ -3,6 +3,7 @@ import { API_CONFIG } from "@rekon/config";
 import { AppHeader } from "@/components/app-header";
 import { PortfolioSnapshot } from "@/components/portfolio-snapshot";
 import { RecentActivityPanel } from "@/components/recent-activity-panel";
+import { PortfolioChart } from "@/components/portfolio-chart";
 
 async function getPortfolio(
   scope: "esports" | "all"
@@ -39,7 +40,7 @@ async function getRecentActivity(): Promise<Activity[]> {
     url.searchParams.set("user", userAddress);
     url.searchParams.set("sortBy", "TIMESTAMP");
     url.searchParams.set("sortDirection", "DESC");
-    url.searchParams.set("esportsOnly", "false");
+    url.searchParams.set("esportsOnly", "true");
 
     const response = await fetch(url.toString(), {
       next: { revalidate: 10 },
@@ -74,6 +75,8 @@ export async function DashboardPage() {
     totalExposure > 0 ? esportsExposure / totalExposure : undefined;
   const realizedPnL30d = esportsPortfolio?.realizedPnL30d ?? 0;
 
+  // Activities are already filtered to esports-only by the API, but add defensive filter
+  // to ensure no non-esports activities slip through
   const esportsActivities = activities.filter(
     (activity) => activity.isEsports === true
   );
@@ -90,7 +93,7 @@ export async function DashboardPage() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h1 className="text-lg font-semibold text-white/95">
-                    Trading dashboard
+                    Portfolio dashboard
                   </h1>
                   <p className="mt-1 text-sm text-white/70">
                     Snapshot of your esports risk and performance on Polymarket.
@@ -115,7 +118,25 @@ export async function DashboardPage() {
                 </div>
               </div>
             </div>
-            {/* Placeholder for future: open positions, history, etc. */}
+
+            {/* Main Dashboard Card - Chart */}
+            <div className="flex-1 flex flex-col min-h-0 rounded-2xl border border-white/6 bg-[#0C1224] p-8 shadow-[0_22px_60px_rgba(0,0,0,0.80)]">
+              <div className="flex flex-col h-full min-h-0 space-y-3">
+                <div className="flex items-center justify-between shrink-0">
+                  <h2 className="text-xs font-semibold uppercase tracking-wider text-white/50">
+                    Portfolio Performance
+                  </h2>
+                </div>
+                <div className="flex-1 min-h-0">
+                  <PortfolioChart
+                    portfolioValue={esportsExposure}
+                    totalPnL={esportsPortfolio?.totalPnL ?? 0}
+                    userAddress="0x84f7860753f0fb62e7e786523690661c4255ade1"
+                    scope="esports"
+                  />
+                </div>
+              </div>
+            </div>
           </section>
 
           <aside className="w-full flex flex-col gap-4 md:w-72 shrink-0 min-h-0">

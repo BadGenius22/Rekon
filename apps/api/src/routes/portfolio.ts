@@ -1,5 +1,8 @@
 import { Hono } from "hono";
-import { getPortfolioController } from "../controllers/portfolio";
+import {
+  getPortfolioController,
+  getPortfolioHistoryController,
+} from "../controllers/portfolio";
 import { sessionMiddleware } from "../middleware/session";
 
 /**
@@ -8,11 +11,12 @@ import { sessionMiddleware } from "../middleware/session";
  * Defines portfolio-related HTTP endpoints.
  *
  * GET /portfolio - Get portfolio for current session (from cookie)
+ * GET /portfolio/history - Get historical portfolio values over time
  */
 
 const portfolioRoutes = new Hono()
   .use("*", sessionMiddleware)
-  .get("/", getPortfolioController);
+  .get("/", getPortfolioController)
+  .get("/history", getPortfolioHistoryController);
 
 export { portfolioRoutes };
-
