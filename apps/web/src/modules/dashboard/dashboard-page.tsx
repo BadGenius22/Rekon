@@ -3,14 +3,14 @@ import { API_CONFIG } from "@rekon/config";
 import { AppHeader } from "@/components/app-header";
 import { PortfolioSnapshot } from "@/components/portfolio-snapshot";
 import { RecentActivityPanel } from "@/components/recent-activity-panel";
-import { PortfolioChart } from "@/components/portfolio-chart";
+import { PnLChart } from "@/components/pnl-chart";
 
 async function getPortfolio(
   scope: "esports" | "all"
 ): Promise<Portfolio | null> {
   try {
     // For now, use hardcoded address. Later, this will be replaced with connected wallet.
-    const userAddress = "0x84f7860753f0fb62e7e786523690661c4255ade1";
+    const userAddress = "0x5d58e38cd0a7e6f5fa67b7f9c2f70dd70df09a15";
     const url = new URL(`${API_CONFIG.baseUrl}/portfolio`);
     url.searchParams.set("user", userAddress);
     url.searchParams.set("scope", scope);
@@ -35,7 +35,7 @@ async function getPortfolio(
 async function getRecentActivity(): Promise<Activity[]> {
   try {
     // For now, use hardcoded address. Later, this will be replaced with connected wallet.
-    const userAddress = "0x84f7860753f0fb62e7e786523690661c4255ade1";
+    const userAddress = "0x5d58e38cd0a7e6f5fa67b7f9c2f70dd70df09a15";
     const url = new URL(`${API_CONFIG.baseUrl}/activity`);
     url.searchParams.set("user", userAddress);
     url.searchParams.set("sortBy", "TIMESTAMP");
@@ -67,12 +67,14 @@ export async function DashboardPage() {
   ]);
 
   const esportsExposure = esportsPortfolio?.totalValue ?? 0;
-  const totalExposure =
-    totalPortfolio?.totalValue !== undefined
-      ? totalPortfolio.totalValue
-      : esportsExposure;
+  const totalExposure = totalPortfolio?.totalValue ?? 0;
+
+  // Calculate esports share based on balance (dollar exposure)
+  // Esports share = esports exposure / total exposure
   const esportsShare =
-    totalExposure > 0 ? esportsExposure / totalExposure : undefined;
+    totalExposure > 0 && esportsExposure >= 0
+      ? esportsExposure / totalExposure
+      : undefined;
   const realizedPnL30d = esportsPortfolio?.realizedPnL30d ?? 0;
 
   // Activities are already filtered to esports-only by the API, but add defensive filter
@@ -119,21 +121,22 @@ export async function DashboardPage() {
               </div>
             </div>
 
-            {/* Main Dashboard Card - Chart */}
-            <div className="flex-1 flex flex-col min-h-0 rounded-2xl border border-white/6 bg-[#0C1224] p-8 shadow-[0_22px_60px_rgba(0,0,0,0.80)]">
-              <div className="flex flex-col h-full min-h-0 space-y-3">
-                <div className="flex items-center justify-between shrink-0">
-                  <h2 className="text-xs font-semibold uppercase tracking-wider text-white/50">
-                    Portfolio Performance
-                  </h2>
-                </div>
-                <div className="flex-1 min-h-0">
-                  <PortfolioChart
-                    portfolioValue={esportsExposure}
-                    totalPnL={esportsPortfolio?.totalPnL ?? 0}
-                    userAddress="0x84f7860753f0fb62e7e786523690661c4255ade1"
-                    scope="esports"
-                  />
+            {/* Main Dashboard Card - PnL Chart */}
+            <div className="flex-1 flex flex-col min-h-0">
+              <div className="flex-1 flex flex-col min-h-0 rounded-2xl border border-white/6 bg-[#0C1224] p-8 shadow-[0_22px_60px_rgba(0,0,0,0.80)]">
+                <div className="flex flex-col h-full min-h-0 space-y-3">
+                  <div className="flex items-center justify-between shrink-0">
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-white/50">
+                      Profit & Loss
+                    </h2>
+                  </div>
+                  <div className="flex-1 min-h-0">
+                    <PnLChart
+                      totalPnL={esportsPortfolio?.totalPnL ?? 0}
+                      userAddress="0x5d58e38cd0a7e6f5fa67b7f9c2f70dd70df09a15"
+                      scope="esports"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

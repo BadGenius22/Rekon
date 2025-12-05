@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   getPortfolioBySession,
   getPortfolioHistory,
+  getPnLHistory,
 } from "../services/portfolio";
 import { getSessionFromContext } from "../middleware/session";
 
@@ -125,6 +126,61 @@ export async function getPortfolioHistoryController(c: Context) {
   // Get portfolio history for requested scope and range
   // walletAddress is guaranteed to be defined at this point due to earlier checks
   const history = await getPortfolioHistory(
+    session?.sessionId || "anonymous",
+    walletAddress!,
+    scope,
+    range as "24H" | "7D" | "30D" | "90D" | "ALL"
+  );
+
+  return c.json({ data: history });
+}
+
+/**
+ * GET /portfolio/pnl-history
+ * Gets historical PnL values over time.
+ *
+ * Query parameters:
+ * - user: Optional wallet address (for development/testing without wallet connection)
+ * - scope: Portfolio scope ("all" or "esports")
+ * - range: Time range ("24H", "7D", "30D", "90D", "ALL")
+ */
+export async function getPnLHistoryController(c: Context) {
+  // Get session from context
+  const session = getSessionFromContext(c);
+
+  // Validate query parameters
+  const query = c.req.query();
+  const validation = GetPortfolioHistoryQuerySchema.safeParse(query);
+  if (!validation.success) {
+    return c.json(
+      { error: "Invalid query parameters", details: validation.error },
+      400
+    );
+  }
+
+  // Use wallet address from query parameter if provided, otherwise from session
+  let walletAddress: string | undefined;
+  if (validation.data.user) {
+    walletAddress = validation.data.user;
+  } else if (session?.walletAddress) {
+    walletAddress = session.walletAddress;
+  } else {
+    return c.json(
+      {
+        error: "Wallet address required",
+        message:
+          "Provide wallet address via 'user' query parameter or link wallet to session",
+      },
+      400
+    );
+  }
+
+  const scope = validation.data.scope ?? "all";
+  const range = validation.data.range ?? "30D";
+
+  // Get PnL history for requested scope and range
+  // walletAddress is guaranteed to be defined at this point due to earlier checks
+  const history = await getPnLHistory(
     session?.sessionId || "anonymous",
     walletAddress!,
     scope,

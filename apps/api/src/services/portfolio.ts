@@ -5,20 +5,80 @@ import { fetchUserFills } from "../adapters/polymarket/fills";
 import {
   fetchPolymarketPositions,
   fetchPolymarketPortfolioValue,
+  fetchPolymarketClosedPositions,
   type PolymarketPosition,
+  type PolymarketClosedPosition,
 } from "../adapters/polymarket/positions";
 import { fetchPolymarketActivity } from "../adapters/polymarket/activity";
 import { isEsportsActivity } from "./activity";
 
 /**
- * Checks if a Polymarket position is one of the 4 main esports games:
+ * Checks if a Polymarket position (open or closed) is one of the 4 main esports games:
  * Counter-Strike, League of Legends, Dota 2, or Valorant.
- * Mirrors the logic in isEsportsActivity but works on PolymarketPosition.
+ * Mirrors the logic in isEsportsActivity but works on PolymarketPosition and PolymarketClosedPosition.
+ *
+ * IMPORTANT: Explicitly excludes traditional sports (NFL, NBA, MLB, etc.) to ensure
+ * only esports markets are included when scope="esports".
  */
-function isEsportsPosition(position: PolymarketPosition): boolean {
+function isEsportsPosition(
+  position: PolymarketPosition | PolymarketClosedPosition
+): boolean {
   const slug = (position.slug || "").toLowerCase();
   const title = (position.title || "").toLowerCase();
   const eventSlug = (position.eventSlug || "").toLowerCase();
+
+  // First, explicitly exclude traditional sports to prevent false positives
+  const sportsExclusionPatterns = [
+    /^nfl-/,
+    /^nba-/,
+    /^mlb-/,
+    /^nhl-/,
+    /^ncaa-/,
+    /^soccer-/,
+    /^football-/,
+    /^basketball-/,
+    /^baseball-/,
+    /^hockey-/,
+    /^mlb-/,
+  ];
+
+  const sportsExclusionKeywords = [
+    "nfl",
+    "nba",
+    "mlb",
+    "nhl",
+    "ncaa",
+    "cowboys",
+    "lions",
+    "heat",
+    "lakers",
+    "timberwolves",
+    "pelicans",
+    "super bowl",
+    "world series",
+    "stanley cup",
+    "nba finals",
+    "nfl playoffs",
+    "ncaa tournament",
+    "march madness",
+    "vs.", // Common in sports matchups like "Cowboys vs. Lions"
+  ];
+
+  // If it matches sports exclusion patterns, it's definitely NOT esports
+  const isExcludedSport =
+    sportsExclusionPatterns.some(
+      (pattern) => pattern.test(slug) || pattern.test(eventSlug)
+    ) ||
+    sportsExclusionKeywords.some(
+      (keyword) =>
+        title.includes(keyword) ||
+        slug.includes(keyword) ||
+        eventSlug.includes(keyword)
+    );
+
+  if (isExcludedSport) {
+    return false;
+  }
 
   const esportsSlugPatterns = [
     // Counter-Strike
@@ -116,44 +176,94 @@ export async function getPortfolioBySession(
     };
   }
 
-  // Try to fetch portfolio value directly from Polymarket Data API first.
-  // Note: this is the total account value; we will recompute scoped values
-  // from positions below if a narrower scope is requested.
-  let totalValue = 0;
-  try {
-    totalValue = await fetchPolymarketPortfolioValue(walletAddress);
-  } catch (error) {
-    // Ignore, we'll fall back to positions data
-  }
-
-  // Try to fetch positions from Polymarket Data API
+  // Fetch ALL positions from Polymarket Data API with pagination
+  // This is critical for scope="all" to get accurate total portfolio value
+  // The API has a max limit of 500 per request, so we paginate
   let pmPositions: Awaited<ReturnType<typeof fetchPolymarketPositions>> = [];
   try {
-    pmPositions = await fetchPolymarketPositions(walletAddress);
+    const batchSize = 500; // API max limit
+    let offset = 0;
+    let hasMore = true;
+
+    while (hasMore && pmPositions.length < 10000) {
+      // Cap at 10k to prevent infinite loops
+      // Set sizeThreshold to 0 to include ALL positions (even very small ones)
+      // This ensures we get non-esports positions that might have small values
+      const batch = await fetchPolymarketPositions(walletAddress, {
+        sizeThreshold: 0, // Include all positions, not just significant ones
+        limit: batchSize,
+        offset,
+        sortBy: "TOKENS",
+        sortDirection: "DESC",
+      });
+
+      if (batch.length === 0) {
+        hasMore = false;
+      } else {
+        pmPositions.push(...batch);
+        offset += batchSize;
+
+        // If we got less than batchSize, we've reached the end
+        if (batch.length < batchSize) {
+          hasMore = false;
+        }
+      }
+    }
   } catch (error) {
     // Ignore, we'll fall back to calculated positions
+    console.error("[Portfolio] Error fetching positions:", error);
   }
+
+  // Always calculate totalValue from positions to ensure consistency
+  // between scope="all" and scope="esports" calculations
+  // This ensures esports share is calculated correctly (esports value / all value)
+  let totalValue = 0;
 
   // If we have positions from Polymarket API, use them
   if (pmPositions.length > 0) {
+    // Filter out positions with zero or negative size (these are not active positions)
+    // Only count positions with size > 0 as "open positions"
+    const activePositions = pmPositions.filter((pos) => pos.size > 0);
+
     // Decide which positions are in scope for this portfolio
     const positionsForScope =
-      scope === "esports" ? pmPositions.filter(isEsportsPosition) : pmPositions;
+      scope === "esports"
+        ? activePositions.filter(isEsportsPosition)
+        : activePositions;
 
-    // Calculate totals from scoped Polymarket positions
-    if (totalValue === 0) {
-      totalValue = positionsForScope.reduce(
-        (sum, pos) => sum + pos.currentValue,
-        0
+    // Debug logging to verify filtering is working
+    if (scope === "all") {
+      console.log(
+        `[Portfolio] scope=all: Total positions fetched: ${
+          pmPositions.length
+        }, Active positions: ${activePositions.length}, Esports positions: ${
+          activePositions.filter(isEsportsPosition).length
+        }`
       );
-    } else if (scope === "esports") {
-      // If we have a global totalValue from the API but the user requested
-      // esports-only scope, recompute value from scoped positions so that
-      // all metrics in the card share the same scope.
-      totalValue = positionsForScope.reduce(
-        (sum, pos) => sum + pos.currentValue,
-        0
+    } else {
+      console.log(
+        `[Portfolio] scope=esports: Total positions fetched: ${pmPositions.length}, Active positions: ${activePositions.length}, Filtered to esports: ${positionsForScope.length}`
       );
+    }
+
+    // Calculate totalValue from scoped positions
+    totalValue = positionsForScope.reduce(
+      (sum, pos) => sum + pos.currentValue,
+      0
+    );
+
+    // Debug logging for totalValue
+    if (scope === "all") {
+      const esportsValue = activePositions
+        .filter(isEsportsPosition)
+        .reduce((sum, pos) => sum + pos.currentValue, 0);
+      console.log(
+        `[Portfolio] scope=all: totalValue=${totalValue}, esportsValue=${esportsValue}, share=${
+          (esportsValue / totalValue) * 100
+        }%`
+      );
+    } else {
+      console.log(`[Portfolio] scope=esports: totalValue=${totalValue}`);
     }
 
     const totalUnrealizedPnL = positionsForScope.reduce(
@@ -164,114 +274,80 @@ export async function getPortfolioBySession(
       (sum, pos) => sum + pos.realizedPnl,
       0
     );
-    const openPositions = positionsForScope.length;
 
-    // For lifetime positions, we need to fetch ALL fills with pagination
-    let allFills: Fill[] = [];
+    // Deduplicate positions by conditionId + outcome to get unique open positions count
+    // Multiple entries for the same market+outcome should be counted as one position
+    const uniqueOpenPositionKeys = new Set<string>();
+    for (const pos of positionsForScope) {
+      const key = `${pos.conditionId}-${pos.outcome}`;
+      uniqueOpenPositionKeys.add(key);
+    }
+    const openPositions = uniqueOpenPositionKeys.size;
+
+    // Calculate lifetime positions from open + closed positions
+    // Lifetime = all unique positions (open + closed) in the requested scope
+    let lifetimePositions = 0;
+
     try {
+      // Fetch closed positions from Data API
       const batchSize = 1000;
       let offset = 0;
       let hasMore = true;
+      const allClosedPositions: Awaited<
+        ReturnType<typeof fetchPolymarketClosedPositions>
+      > = [];
 
-      while (hasMore && allFills.length < 100000) {
-        // Cap at 100k to prevent infinite loops
-        const batch = await fetchUserFills(walletAddress, batchSize, offset);
+      while (hasMore && allClosedPositions.length < 10000) {
+        // Cap at 10k to prevent infinite loops
+        const batch = await fetchPolymarketClosedPositions(walletAddress, {
+          limit: batchSize,
+          offset,
+          sortBy: "TIMESTAMP",
+          sortDirection: "DESC",
+        });
+
         if (batch.length === 0) {
           hasMore = false;
         } else {
-          allFills.push(...batch);
+          allClosedPositions.push(...batch);
           offset += batchSize;
+
           // If we got less than batchSize, we've reached the end
           if (batch.length < batchSize) {
             hasMore = false;
           }
         }
       }
+
+      // Filter closed positions by scope if needed
+      const scopedClosedPositions =
+        scope === "esports"
+          ? allClosedPositions.filter(isEsportsPosition)
+          : allClosedPositions;
+
+      // Combine open and closed positions, count unique market+outcome combinations
+      const allLifetimePositionKeys = new Set<string>();
+
+      // Add open positions
+      for (const pos of positionsForScope) {
+        const key = `${pos.conditionId}-${pos.outcome}`;
+        allLifetimePositionKeys.add(key);
+      }
+
+      // Add closed positions
+      for (const pos of scopedClosedPositions) {
+        const key = `${pos.conditionId}-${pos.outcome}`;
+        allLifetimePositionKeys.add(key);
+      }
+
+      lifetimePositions = allLifetimePositionKeys.size;
     } catch (error) {
-      console.error("[Portfolio] Error fetching fills:", error);
-      // If fills API fails, we'll fall back to activity API below
-    }
-
-    // Calculate lifetime positions from fills
-    let lifetimePositions = 0;
-
-    if (allFills.length > 0) {
-      // Only consider markets in the requested scope for lifetime positions.
-      // Build a set of conditionIds from the scoped positions.
-      const conditionIdsForScope = new Set(
-        positionsForScope.map((pos) => pos.conditionId)
+      console.error(
+        "[Portfolio] Error fetching closed positions for lifetime count:",
+        error instanceof Error ? error.message : error
       );
-
-      // Count all positions that had a positive net size at some point in history
-      // for markets in the current scope only. Optimized: process fills
-      // chronologically and track maximum net size.
-      const maxNetSizes = new Map<string, number>();
-      const runningNetSizes = new Map<string, number>();
-
-      // Sort fills by timestamp to process chronologically
-      const sortedFills = [...allFills].sort(
-        (a, b) =>
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      );
-
-      // Single pass: track running net size and maximum net size
-      for (const fill of sortedFills) {
-        // Skip markets that are out of scope
-        if (!conditionIdsForScope.has(fill.marketId)) {
-          continue;
-        }
-
-        const key = `${fill.marketId}-${fill.outcome}`;
-        const currentNetSize = runningNetSizes.get(key) || 0;
-
-        // Update running net size based on fill
-        const newNetSize =
-          currentNetSize + (fill.side === "yes" ? fill.size : -fill.size);
-        runningNetSizes.set(key, newNetSize);
-
-        // Update maximum net size
-        const currentMax = maxNetSizes.get(key) || 0;
-        maxNetSizes.set(key, Math.max(currentMax, newNetSize));
-      }
-
-      // Count positions that had a positive net size at some point (scope only)
-      lifetimePositions = Array.from(maxNetSizes.values()).filter(
-        (maxSize) => maxSize > 0
-      ).length;
-    } else {
-      // Fallback: use activity API to count unique positions in the same scope
-      try {
-        // Fetch all activities directly from Polymarket API
-        const pmActivities = await fetchPolymarketActivity(walletAddress, {
-          limit: 10000,
-          sortBy: "TIMESTAMP",
-          sortDirection: "DESC",
-        });
-
-        // Optionally filter to esports-only activities when scope is "esports"
-        const scopedActivities =
-          scope === "esports"
-            ? pmActivities.filter(isEsportsActivity)
-            : pmActivities;
-
-        // Count unique market+outcome combinations from activities in scope
-        const uniquePositions = new Set<string>();
-        for (const activity of scopedActivities) {
-          if (activity.conditionId && activity.outcome) {
-            const key = `${activity.conditionId}-${activity.outcome}`;
-            uniquePositions.add(key);
-          } else if (activity.conditionId) {
-            uniquePositions.add(activity.conditionId);
-          }
-        }
-        lifetimePositions = uniquePositions.size;
-      } catch (error) {
-        console.error(
-          "[Portfolio] Error fetching activity for lifetime positions:",
-          error
-        );
-        lifetimePositions = 0;
-      }
+      // Fallback: use open positions count if closed positions fetch fails
+      lifetimePositions = positionsForScope.length;
     }
 
     // Calculate 30-day realized PnL from positions API
@@ -365,32 +441,6 @@ export async function getPortfolioBySession(
     }, 0);
   }
 
-  // Fetch all fills to calculate lifetime positions and 30-day realized PnL
-  // Fetch fills in batches to get all of them for accurate lifetime count
-  let allFills: Fill[] = [];
-  try {
-    const batchSize = 1000;
-    let offset = 0;
-    let hasMore = true;
-
-    while (hasMore && allFills.length < 50000) {
-      // Cap at 50k to prevent infinite loops
-      const batch = await fetchUserFills(walletAddress, batchSize, offset);
-      if (batch.length === 0) {
-        hasMore = false;
-      } else {
-        allFills.push(...batch);
-        offset += batchSize;
-        // If we got less than batchSize, we've reached the end
-        if (batch.length < batchSize) {
-          hasMore = false;
-        }
-      }
-    }
-  } catch (error) {
-    console.error("[Portfolio] Error fetching fills:", error);
-    // Continue with empty fills - portfolio will show 0 values
-  }
   const totalPnL = positions.reduce(
     (sum, pos) => sum + pos.unrealizedPnL + pos.realizedPnL,
     0
@@ -404,37 +454,12 @@ export async function getPortfolioBySession(
     0
   );
 
-  // Calculate 30-day realized PnL from fills
+  // Calculate 30-day realized PnL from positions API
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  // When scope is "esports", restrict realized PnL to fills from esports
-  // markets only by leveraging esports activity detection to infer which
-  // conditionIds are esports-related.
-  let scopedFills = allFills;
-  if (scope === "esports" && allFills.length > 0) {
-    try {
-      const pmActivities = await fetchPolymarketActivity(walletAddress, {
-        limit: 50000,
-        sortBy: "TIMESTAMP",
-        sortDirection: "ASC",
-      });
-      const esportsActivities = pmActivities.filter(isEsportsActivity);
-      const esportsConditionIds = new Set(
-        esportsActivities
-          .map((a) => a.conditionId)
-          .filter((id): id is string => Boolean(id))
-      );
-      scopedFills = allFills.filter((fill) =>
-        esportsConditionIds.has(fill.marketId)
-      );
-    } catch (error) {
-      console.error(
-        "[Portfolio] Error fetching activity for esports 30d PnL scope:",
-        error
-      );
-    }
-  }
+  // Fills are only fetched if positions API fails (fallback)
+  let allFills: Fill[] = [];
 
   // Calculate 30-day realized PnL from positions API
   let realizedPnL30d = 0;
@@ -494,47 +519,128 @@ export async function getPortfolioBySession(
       error
     );
     // Fallback to fills-based calculation if positions API fails
+    // Only fetch fills if we need the fallback
+    let scopedFills: Fill[] = [];
+    if (allFills.length === 0) {
+      try {
+        const batchSize = 1000;
+        let offset = 0;
+        let hasMore = true;
+
+        while (hasMore && allFills.length < 50000) {
+          const batch = await fetchUserFills(walletAddress, batchSize, offset);
+          if (batch.length === 0) {
+            hasMore = false;
+          } else {
+            allFills.push(...batch);
+            offset += batchSize;
+            if (batch.length < batchSize) {
+              hasMore = false;
+            }
+          }
+        }
+
+        // Filter by scope if needed
+        if (scope === "esports" && allFills.length > 0) {
+          try {
+            const pmActivities = await fetchPolymarketActivity(walletAddress, {
+              limit: 50000,
+              sortBy: "TIMESTAMP",
+              sortDirection: "ASC",
+            });
+            const esportsActivities = pmActivities.filter(isEsportsActivity);
+            const esportsConditionIds = new Set(
+              esportsActivities
+                .map((a) => a.conditionId)
+                .filter((id): id is string => Boolean(id))
+            );
+            scopedFills = allFills.filter((fill) =>
+              esportsConditionIds.has(fill.marketId)
+            );
+          } catch (error) {
+            console.error(
+              "[Portfolio] Error fetching activity for esports 30d PnL scope (fallback):",
+              error
+            );
+            scopedFills = allFills;
+          }
+        } else {
+          scopedFills = allFills;
+        }
+      } catch (error) {
+        console.error(
+          "[Portfolio] Error fetching fills for 30d PnL fallback:",
+          error
+        );
+        scopedFills = [];
+      }
+    }
     realizedPnL30d = calculateRealizedPnLFromFills(scopedFills, thirtyDaysAgo);
   }
 
-  // Calculate lifetime positions count
-  // Count unique market+outcome combinations that had a positive net position at some point
-  const positionHistory = new Map<string, { maxNetSize: number }>();
+  // Calculate lifetime positions from open + closed positions
+  let lifetimePositions = 0;
+  try {
+    // Fetch closed positions from Data API
+    const batchSize = 1000;
+    let offset = 0;
+    let hasMore = true;
+    const allClosedPositions: Awaited<
+      ReturnType<typeof fetchPolymarketClosedPositions>
+    > = [];
 
-  // Sort fills by timestamp to process chronologically
-  const sortedFills = [...allFills].sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-  );
+    while (hasMore && allClosedPositions.length < 10000) {
+      // Cap at 10k to prevent infinite loops
+      const batch = await fetchPolymarketClosedPositions(walletAddress, {
+        limit: batchSize,
+        offset,
+        sortBy: "TIMESTAMP",
+        sortDirection: "DESC",
+      });
 
-  for (const fill of sortedFills) {
-    const key = `${fill.marketId}-${fill.outcome}`;
-    const existing = positionHistory.get(key);
+      if (batch.length === 0) {
+        hasMore = false;
+      } else {
+        allClosedPositions.push(...batch);
+        offset += batchSize;
 
-    // Calculate net size up to this point
-    let netSize = 0;
-    for (const f of sortedFills) {
-      if (f.marketId === fill.marketId && f.outcome === fill.outcome) {
-        if (new Date(f.timestamp) <= new Date(fill.timestamp)) {
-          if (f.side === "yes") {
-            netSize += f.size;
-          } else {
-            netSize -= f.size;
-          }
+        // If we got less than batchSize, we've reached the end
+        if (batch.length < batchSize) {
+          hasMore = false;
         }
       }
     }
 
-    if (!existing) {
-      positionHistory.set(key, { maxNetSize: netSize });
-    } else {
-      existing.maxNetSize = Math.max(existing.maxNetSize, netSize);
-    }
-  }
+    // Filter closed positions by scope if needed
+    const scopedClosedPositions =
+      scope === "esports"
+        ? allClosedPositions.filter(isEsportsPosition)
+        : allClosedPositions;
 
-  // Count positions that had a positive net size at some point
-  const lifetimePositions = Array.from(positionHistory.values()).filter(
-    (p) => p.maxNetSize > 0
-  ).length;
+    // Combine open and closed positions, count unique market+outcome combinations
+    const allLifetimePositionKeys = new Set<string>();
+
+    // Add open positions (from calculated positions)
+    for (const pos of positions) {
+      const key = `${pos.marketId}-${pos.outcome}`;
+      allLifetimePositionKeys.add(key);
+    }
+
+    // Add closed positions
+    for (const pos of scopedClosedPositions) {
+      const key = `${pos.conditionId}-${pos.outcome}`;
+      allLifetimePositionKeys.add(key);
+    }
+
+    lifetimePositions = allLifetimePositionKeys.size;
+  } catch (error) {
+    console.error(
+      "[Portfolio] Error fetching closed positions for lifetime count (fallback):",
+      error instanceof Error ? error.message : error
+    );
+    // Fallback: use open positions count if closed positions fetch fails
+    lifetimePositions = positions.length;
+  }
 
   // Open positions count
   const openPositions = positions.length;
@@ -658,6 +764,16 @@ export interface PortfolioHistoryPoint {
 }
 
 /**
+ * Historical PnL data point
+ */
+export interface PnLHistoryPoint {
+  timestamp: string;
+  pnl: number; // Cumulative PnL at this point in time
+  realizedPnL: number; // Realized PnL up to this point
+  unrealizedPnL: number; // Unrealized PnL at this point (approximate)
+}
+
+/**
  * Gets historical portfolio values over time.
  *
  * @param sessionId - User session ID
@@ -699,50 +815,9 @@ export async function getPortfolioHistory(
       break;
   }
 
-  // Fetch all fills within the time range
-  let allFills: Fill[] = [];
-  try {
-    const batchSize = 1000;
-    let offset = 0;
-    let hasMore = true;
-
-    while (hasMore && allFills.length < 50000) {
-      const batch = await fetchUserFills(walletAddress, batchSize, offset);
-      if (batch.length === 0) {
-        hasMore = false;
-      } else {
-        // Filter fills within date range
-        const filteredBatch = batch.filter((fill) => {
-          const fillDate = new Date(fill.timestamp);
-          return fillDate >= startDate;
-        });
-
-        allFills.push(...filteredBatch);
-        offset += batchSize;
-
-        if (batch.length < batchSize || filteredBatch.length === 0) {
-          hasMore = false;
-        }
-      }
-    }
-  } catch (error) {
-    console.error("[Portfolio History] Error fetching fills:", error);
-    return [];
-  }
-
-  // Filter by esports scope if needed
-  // Note: We'd need market data to properly filter esports fills
-  // For now, we'll use all fills and let the portfolio calculation handle scope
-  const scopedFills = allFills;
-
-  if (scopedFills.length === 0) {
-    return [];
-  }
-
-  // Sort fills by timestamp
-  const sortedFills = [...scopedFills].sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-  );
+  // Portfolio history is not currently used in the dashboard
+  // This function is kept for potential future use but simplified to use positions API
+  // instead of fills for better performance
 
   // Get current portfolio value as reference
   let currentValue = 0;
@@ -757,6 +832,7 @@ export async function getPortfolioHistory(
       }, 0);
     } catch (error) {
       console.error("[Portfolio History] Error fetching current value:", error);
+      return [];
     }
   }
 
@@ -784,8 +860,177 @@ export async function getPortfolioHistory(
   const timeInterval = (now.getTime() - startDate.getTime()) / numPoints;
   const points: PortfolioHistoryPoint[] = [];
 
-  // For each time point, calculate approximate portfolio value
-  // This is a simplified calculation - in production, you'd want historical prices
+  // Simplified: return linear interpolation from 0 to current value
+  // In the future, this could use closed positions API for historical data
+  for (let i = 0; i <= numPoints; i++) {
+    const pointTime = new Date(startDate.getTime() + i * timeInterval);
+    const progress = i / numPoints;
+    const approximateValue = currentValue * progress;
+
+    points.push({
+      timestamp: pointTime.toISOString(),
+      value: Math.max(0, approximateValue), // Ensure non-negative
+    });
+  }
+
+  return points;
+}
+
+/**
+ * Gets historical PnL values over time.
+ * Calculates cumulative profit/loss by tracking realized PnL from closed positions
+ * and approximating unrealized PnL for open positions at each point.
+ *
+ * @param sessionId - User session ID
+ * @param walletAddress - User's wallet address
+ * @param scope - Portfolio scope ("all" or "esports")
+ * @param range - Time range ("24H", "7D", "30D", "90D", "ALL")
+ * @returns Array of PnL value points over time
+ */
+export async function getPnLHistory(
+  sessionId: string,
+  walletAddress: string,
+  scope: PortfolioScope = "all",
+  range: "24H" | "7D" | "30D" | "90D" | "ALL" = "30D"
+): Promise<PnLHistoryPoint[]> {
+  if (!walletAddress) {
+    return [];
+  }
+
+  // Calculate time range
+  const now = new Date();
+  let startDate: Date;
+
+  switch (range) {
+    case "24H":
+      startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      break;
+    case "7D":
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      break;
+    case "30D":
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      break;
+    case "90D":
+      startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      break;
+    case "ALL":
+      // Go back 1 year for "ALL"
+      startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+      break;
+  }
+
+  // Fetch all fills within the time range
+  // Note: This requires CLOB API authentication. If auth fails, we return empty data
+  // and the frontend will show mock data as fallback.
+  let allFills: Fill[] = [];
+  try {
+    const batchSize = 1000;
+    let offset = 0;
+    let hasMore = true;
+
+    while (hasMore && allFills.length < 50000) {
+      const batch = await fetchUserFills(walletAddress, batchSize, offset);
+      if (batch.length === 0) {
+        hasMore = false;
+      } else {
+        // Filter fills within date range (or before end date for historical calculation)
+        allFills.push(...batch);
+        offset += batchSize;
+
+        if (batch.length < batchSize) {
+          hasMore = false;
+        }
+      }
+    }
+  } catch (error) {
+    // CLOB authentication may fail if not properly configured
+    // Return empty array - frontend will show mock data as fallback
+    console.warn(
+      "[PnL History] Could not fetch fills (CLOB auth may be required). Returning empty data - frontend will show mock data.",
+      error instanceof Error ? error.message : error
+    );
+    return [];
+  }
+
+  // Filter by esports scope if needed
+  // When scope is "esports", restrict fills to esports markets only
+  // by leveraging esports activity detection to infer which conditionIds are esports-related
+  let scopedFills = allFills;
+  if (scope === "esports" && allFills.length > 0) {
+    try {
+      const pmActivities = await fetchPolymarketActivity(walletAddress, {
+        limit: 50000,
+        sortBy: "TIMESTAMP",
+        sortDirection: "ASC",
+      });
+      const esportsActivities = pmActivities.filter(isEsportsActivity);
+      const esportsConditionIds = new Set(
+        esportsActivities
+          .map((a) => a.conditionId)
+          .filter((id): id is string => Boolean(id))
+      );
+      scopedFills = allFills.filter((fill) =>
+        esportsConditionIds.has(fill.marketId)
+      );
+    } catch (error) {
+      console.warn(
+        "[PnL History] Error fetching activity for esports scope filtering:",
+        error instanceof Error ? error.message : error
+      );
+      // If filtering fails, use all fills (fallback behavior)
+    }
+  }
+
+  if (scopedFills.length === 0) {
+    return [];
+  }
+
+  // Sort fills by timestamp
+  const sortedFills = [...scopedFills].sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+
+  // Get current portfolio for reference (to calculate current unrealized PnL and all-time realized PnL)
+  let currentUnrealizedPnL = 0;
+  let allTimeRealizedPnL = 0;
+  try {
+    const portfolio = await getPortfolioBySession(
+      sessionId,
+      walletAddress,
+      scope
+    );
+    currentUnrealizedPnL = portfolio.totalUnrealizedPnL;
+    allTimeRealizedPnL = portfolio.totalRealizedPnL; // All-time realized PnL from positions API
+  } catch (error) {
+    console.error("[PnL History] Error fetching current portfolio:", error);
+  }
+
+  // Calculate number of data points based on range
+  let numPoints: number;
+  switch (range) {
+    case "24H":
+      numPoints = 24; // Hourly
+      break;
+    case "7D":
+      numPoints = 28; // Every 6 hours
+      break;
+    case "30D":
+      numPoints = 30; // Daily
+      break;
+    case "90D":
+      numPoints = 30; // Every 3 days
+      break;
+    case "ALL":
+      numPoints = 50; // Monthly
+      break;
+  }
+
+  // Calculate time intervals
+  const timeInterval = (now.getTime() - startDate.getTime()) / numPoints;
+  const points: PnLHistoryPoint[] = [];
+
+  // For each time point, calculate cumulative PnL
   for (let i = 0; i <= numPoints; i++) {
     const pointTime = new Date(startDate.getTime() + i * timeInterval);
 
@@ -794,24 +1039,35 @@ export async function getPortfolioHistory(
       (fill) => new Date(fill.timestamp).getTime() <= pointTime.getTime()
     );
 
-    // Calculate cumulative cost basis up to this point
-    let costBasis = 0;
-    for (const fill of fillsUpToPoint) {
-      if (fill.side === "yes") {
-        costBasis += fill.size * fill.price + (fill.fee || 0);
-      } else {
-        costBasis -= fill.size * fill.price - (fill.fee || 0);
-      }
+    // Calculate realized PnL from closed positions up to this point
+    // For "ALL" range, use all-time realized PnL from portfolio API (more accurate)
+    // For other ranges, calculate from fills within the date range
+    let realizedPnL: number;
+    if (range === "ALL" && i === numPoints) {
+      // For the last point in "ALL" range, use all-time realized PnL from portfolio API
+      // This ensures it matches the portfolio's totalRealizedPnL
+      realizedPnL = allTimeRealizedPnL;
+    } else {
+      // For historical points or other ranges, calculate from fills
+      realizedPnL = calculateRealizedPnLFromFills(fillsUpToPoint, startDate);
     }
 
-    // Approximate portfolio value at this point
-    // This is simplified - we use a linear interpolation from cost basis to current value
-    const progress = i / numPoints;
-    const approximateValue = costBasis + (currentValue - costBasis) * progress;
+    // EASIEST APPROACH: Show only realized PnL for historical points (accurate),
+    // and add current unrealized PnL only to the last point (current time).
+    // This gives accurate historical trend + current total PnL.
+    // For accurate historical unrealized PnL, we would need to fetch price history
+    // for each position at each timestamp, which requires many API calls.
+    const isLastPoint = i === numPoints;
+    const unrealizedPnL = isLastPoint ? currentUnrealizedPnL : 0;
+
+    // Total PnL = realized + unrealized (only at current time)
+    const totalPnL = realizedPnL + unrealizedPnL;
 
     points.push({
       timestamp: pointTime.toISOString(),
-      value: Math.max(0, approximateValue), // Ensure non-negative
+      pnl: totalPnL,
+      realizedPnL,
+      unrealizedPnL,
     });
   }
 

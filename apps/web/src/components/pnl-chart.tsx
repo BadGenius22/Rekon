@@ -4,37 +4,38 @@ import { useState, useEffect } from "react";
 import { cn } from "@rekon/ui";
 import { API_CONFIG } from "@rekon/config";
 
-interface PortfolioChartProps {
-  portfolioValue: number;
-  totalPnL: number; // Keep for reference/color coding
+interface PnLChartProps {
+  totalPnL: number;
   userAddress: string;
   scope?: "all" | "esports";
 }
 
-interface HistoryPoint {
+interface PnLHistoryPoint {
   timestamp: string;
-  value: number;
+  pnl: number;
+  realizedPnL: number;
+  unrealizedPnL: number;
 }
 
 const timeRanges = ["24H", "7D", "30D", "90D", "ALL"] as const;
 type TimeRange = (typeof timeRanges)[number];
 
 /**
- * Portfolio value/exposure chart component.
- * Shows esports portfolio value over time with time range selector.
+ * PnL chart component.
+ * Shows profit/loss over time with zero baseline, similar to Polymarket.
+ * Green above zero (profit), red below zero (loss).
  */
-export function PortfolioChart({
-  portfolioValue,
+export function PnLChart({
   totalPnL,
   userAddress,
   scope = "esports",
-}: PortfolioChartProps) {
+}: PnLChartProps) {
   const [selectedRange, setSelectedRange] = useState<TimeRange>("30D");
-  const [historyData, setHistoryData] = useState<HistoryPoint[]>([]);
+  const [historyData, setHistoryData] = useState<PnLHistoryPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch historical portfolio data from API
+  // Fetch historical PnL data from API
   useEffect(() => {
     const fetchHistory = async () => {
       if (!userAddress) {
@@ -47,7 +48,7 @@ export function PortfolioChart({
       setError(null);
 
       try {
-        const url = new URL(`${API_CONFIG.baseUrl}/portfolio/history`);
+        const url = new URL(`${API_CONFIG.baseUrl}/portfolio/pnl-history`);
         url.searchParams.set("user", userAddress);
         url.searchParams.set("scope", scope);
         url.searchParams.set("range", selectedRange);
@@ -57,16 +58,14 @@ export function PortfolioChart({
         });
 
         if (!response.ok) {
-          throw new Error(
-            `Failed to fetch portfolio history: ${response.status}`
-          );
+          throw new Error(`Failed to fetch PnL history: ${response.status}`);
         }
 
-        const result = (await response.json()) as { data: HistoryPoint[] };
+        const result = (await response.json()) as { data: PnLHistoryPoint[] };
         setHistoryData(result.data || []);
       } catch (err) {
-        console.error("Error fetching portfolio history:", err);
-        setError("Failed to load portfolio history");
+        console.error("Error fetching PnL history:", err);
+        setError("Failed to load PnL history");
         setHistoryData([]);
       } finally {
         setIsLoading(false);
@@ -78,7 +77,7 @@ export function PortfolioChart({
 
   // Convert API history data to chart data points
   const convertHistoryToDataPoints = (
-    history: HistoryPoint[]
+    history: PnLHistoryPoint[]
   ): Array<{ x: number; y: number }> => {
     if (history.length === 0) {
       return [];
@@ -86,7 +85,7 @@ export function PortfolioChart({
 
     return history.map((point, index) => ({
       x: (index / (history.length - 1)) * 100,
-      y: point.value,
+      y: point.pnl,
     }));
   };
 
@@ -94,60 +93,47 @@ export function PortfolioChart({
   const generateMockDataPoints = (
     range: TimeRange
   ): Array<{ x: number; y: number }> => {
-    // Adjust number of points and volatility based on time range
     const pointConfig: Record<
       TimeRange,
       { points: number; volatility: number; cycles: number }
     > = {
-      "24H": { points: 24, volatility: 0.25, cycles: 8 }, // Hourly data, high volatility
-      "7D": { points: 28, volatility: 0.2, cycles: 4 }, // 6-hour intervals, medium volatility
-      "30D": { points: 30, volatility: 0.15, cycles: 3 }, // Daily data, lower volatility
-      "90D": { points: 30, volatility: 0.12, cycles: 2 }, // 3-day intervals, smooth trend
-      ALL: { points: 50, volatility: 0.1, cycles: 1 }, // Long-term smooth trend
+      "24H": { points: 24, volatility: 0.3, cycles: 8 },
+      "7D": { points: 28, volatility: 0.25, cycles: 4 },
+      "30D": { points: 30, volatility: 0.2, cycles: 3 },
+      "90D": { points: 30, volatility: 0.15, cycles: 2 },
+      ALL: { points: 50, volatility: 0.1, cycles: 1 },
     };
 
     const config = pointConfig[range];
     const data: Array<{ x: number; y: number }> = [];
 
-    // Use portfolio value as reference (always positive)
-    const referenceValue = portfolioValue > 0 ? portfolioValue : 1000;
-    const baseRange = referenceValue * 0.5; // Create volatility range
+    // Use totalPnL as reference (can be positive or negative)
+    const referenceValue = totalPnL !== 0 ? totalPnL : 100;
+    const baseRange = Math.abs(referenceValue) * 0.8;
 
-    // Different starting points based on range (simulate portfolio growth over time)
-    // All ranges start from lower values and trend up to current value
+    // Start from lower PnL and trend to current
     const startMultipliers: Record<TimeRange, number> = {
-      "24H": 0.95, // Start 5% lower (recent volatility)
-      "7D": 0.85, // Start 15% lower (weekly growth)
-      "30D": 0.7, // Start 30% lower (monthly growth)
-      "90D": 0.5, // Start 50% lower (quarterly growth)
-      ALL: 0.3, // Start 70% lower (long-term growth)
+      "24H": 0.7,
+      "7D": 0.5,
+      "30D": 0.3,
+      "90D": 0.1,
+      ALL: -0.2, // Can start negative for long-term
     };
 
     const startValue = referenceValue * startMultipliers[range];
-    const endValue = referenceValue; // End at current portfolio value
+    const endValue = referenceValue;
 
     for (let i = 0; i < config.points; i++) {
       const progress = i / (config.points - 1);
-      // Create a trend from start to end
       const baseTrend = startValue + (endValue - startValue) * progress;
 
-      // Add volatility with sine wave - more cycles for shorter timeframes
-      // Portfolio value is always positive, so volatility should keep it above zero
       const volatilityRange = baseRange * config.volatility;
-
       const volatility =
         Math.sin(progress * Math.PI * config.cycles) * volatilityRange +
         Math.cos(progress * Math.PI * config.cycles * 1.5) *
-          (volatilityRange * 0.5) +
-        Math.sin(progress * Math.PI * config.cycles * 2.3) *
-          (volatilityRange * 0.3);
+          (volatilityRange * 0.5);
 
-      let value = baseTrend + volatility;
-
-      // Ensure portfolio value stays positive (shouldn't go below zero)
-      if (value < 0) {
-        value = Math.abs(value) * 0.1; // Keep it positive but small
-      }
+      const value = baseTrend + volatility;
 
       data.push({
         x: (i / (config.points - 1)) * 100,
@@ -163,24 +149,24 @@ export function PortfolioChart({
     historyData.length > 0 && !error
       ? convertHistoryToDataPoints(historyData)
       : generateMockDataPoints(selectedRange);
-  const allValues = dataPoints.map((d) => d.y);
-  const maxValue = Math.max(...allValues, portfolioValue || 1000);
-  const minValue = Math.max(0, Math.min(...allValues, portfolioValue * 0.3)); // Keep minimum positive
-  const valueRange = maxValue - minValue || 1000; // Fallback to 1000 if range is 0
 
-  // Calculate period-specific value change from real data
-  // Find the portfolio value at the start of the period and compare to current
+  const allValues = dataPoints.map((d) => d.y);
+  const maxValue = Math.max(...allValues, totalPnL, 0);
+  const minValue = Math.min(...allValues, totalPnL, 0);
+  const valueRange = maxValue - minValue || 1000;
+
+  // Calculate period-specific PnL change from real data
+  // Find the PnL value at the start of the period and compare to current
   const calculatePeriodChange = (): number => {
     if (historyData.length === 0 || error) {
       // If no real data, calculate from mock data points
       return dataPoints.length > 0
-      ? dataPoints[dataPoints.length - 1].y - dataPoints[0].y
-      : 0;
+        ? dataPoints[dataPoints.length - 1].y - dataPoints[0].y
+        : 0;
     }
 
-    // Get current portfolio value (last point in history)
-    const currentValue =
-      historyData[historyData.length - 1]?.value ?? portfolioValue;
+    // Get current PnL (last point in history)
+    const currentPnL = historyData[historyData.length - 1]?.pnl ?? totalPnL;
 
     // Calculate the time period in milliseconds
     const now = new Date();
@@ -200,7 +186,7 @@ export function PortfolioChart({
         break;
       case "ALL":
         // For ALL, use the first data point
-        return currentValue - (historyData[0]?.value ?? 0);
+        return currentPnL - (historyData[0]?.pnl ?? 0);
     }
 
     // Find the data point closest to the start of the period
@@ -220,39 +206,43 @@ export function PortfolioChart({
     }
 
     // Calculate change from period start to now
-    const periodStartValue = closestPoint?.value ?? 0;
-    return currentValue - periodStartValue;
+    const periodStartPnL = closestPoint?.pnl ?? 0;
+    return currentPnL - periodStartPnL;
   };
 
-  const periodValueChange = calculatePeriodChange();
+  const periodPnLChange = calculatePeriodChange();
+
+  // Find zero line position (for baseline)
+  const zeroYPercent =
+    maxValue > 0 && minValue < 0
+      ? ((0 - minValue) / valueRange) * 100
+      : minValue >= 0
+      ? 0
+      : 100; // All positive or all negative
 
   // Convert data points to SVG path
   // Scale Y to fit in 80% of height (leaving 10% margin top and bottom)
   const pathData = dataPoints
     .map((point, index) => {
       const normalizedY = (point.y - minValue) / valueRange;
-      const yScaled = 10 + normalizedY * 80; // 10% margin top, 80% chart area
-      const yPosition = 100 - yScaled; // Flip Y axis (SVG Y increases downward)
+      const yScaled = 10 + normalizedY * 80;
+      const yPosition = 100 - yScaled;
       return `${index === 0 ? "M" : "L"} ${point.x.toFixed(
         2
       )} ${yPosition.toFixed(2)}`;
     })
     .join(" ");
 
-  // For portfolio value, baseline is at the bottom of the chart (minimum value)
-  const baselineY = 100 - (10 + ((minValue - minValue) / valueRange) * 80);
-  const areaPath = `${pathData} L 100 ${baselineY} L 0 ${baselineY} Z`;
+  // Create area path - fill to zero line
+  const zeroYPosition = 100 - (10 + (zeroYPercent / 100) * 80);
+  const areaPath = `${pathData} L 100 ${zeroYPosition} L 0 ${zeroYPosition} Z`;
 
-  // Remove zero line since portfolio value is always positive
-
-  // Determine line color based on portfolio value trend (period change)
-  // Green if portfolio value increased over the period, red if decreased
-  // 24H always shows green, other ranges follow period change
-  const isPositive = selectedRange === "24H" || periodValueChange >= 0;
-  const lineColor = isPositive ? "#10B981" : "#F43F5E"; // Emerald for positive, rose for negative
+  // Determine colors based on current PnL
+  const isPositive = totalPnL >= 0;
+  const lineColor = isPositive ? "#10B981" : "#F43F5E";
   const areaFillColor = isPositive
-    ? "rgba(16, 185, 129, 0.06)" // Subtle emerald fill for positive
-    : "rgba(244, 63, 94, 0.06)"; // Subtle rose fill for negative
+    ? "rgba(16, 185, 129, 0.08)"
+    : "rgba(244, 63, 94, 0.08)";
   const lineGradientId = `gradient-${isPositive ? "positive" : "negative"}`;
 
   // Format Y-axis labels
@@ -293,7 +283,7 @@ export function PortfolioChart({
       <div className="relative flex-1 min-h-0 rounded-lg border border-white/5 bg-gradient-to-br from-[#0C1224] to-[#080B16] p-5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center z-10">
-            <div className="text-sm text-white/50">Loading chart data...</div>
+            <div className="text-sm text-white/50">Loading PnL data...</div>
           </div>
         )}
         {error && !isLoading && (
@@ -301,13 +291,13 @@ export function PortfolioChart({
             <div className="text-sm text-rose-400/70">{error}</div>
           </div>
         )}
+
         {/* Y-axis labels */}
         <div className="absolute left-5 top-5 bottom-5 w-12 pointer-events-none">
           {yAxisLabels.map(({ y, value }) => {
-            // Calculate the actual Y position in the chart area (accounting for 10% top/bottom margins)
             const normalizedValue = (value - minValue) / valueRange;
-            const chartY = 10 + normalizedValue * 80; // 10% margin top, 80% chart area
-            const yPosition = 100 - chartY; // Flip for SVG coordinate system
+            const chartY = 10 + normalizedValue * 80;
+            const yPosition = 100 - chartY;
             return (
               <div
                 key={y}
@@ -353,12 +343,12 @@ export function PortfolioChart({
                 <stop
                   offset="0%"
                   stopColor={isPositive ? "#10B981" : "#F43F5E"}
-                  stopOpacity="0.12"
+                  stopOpacity="0.15"
                 />
                 <stop
                   offset="100%"
                   stopColor={isPositive ? "#10B981" : "#F43F5E"}
-                  stopOpacity="0.02"
+                  stopOpacity="0.03"
                 />
               </linearGradient>
               <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
@@ -370,7 +360,7 @@ export function PortfolioChart({
               </filter>
             </defs>
 
-            {/* Grid lines - subtle horizontal lines */}
+            {/* Grid lines */}
             {[0, 25, 50, 75, 100].map((y) => (
               <line
                 key={y}
@@ -383,10 +373,23 @@ export function PortfolioChart({
               />
             ))}
 
-            {/* Area fill with gradient - render first so line appears on top */}
+            {/* Zero baseline - important for PnL charts */}
+            {minValue < 0 && maxValue > 0 && (
+              <line
+                x1="0"
+                y1={zeroYPosition}
+                x2="100"
+                y2={zeroYPosition}
+                stroke="rgba(255, 255, 255, 0.15)"
+                strokeWidth="0.5"
+                strokeDasharray="2,2"
+              />
+            )}
+
+            {/* Area fill */}
             <path d={areaPath} fill={`url(#area-${lineGradientId})`} />
 
-            {/* Chart line with gradient - professional color based on trend */}
+            {/* Chart line */}
             <path
               d={pathData}
               fill="none"
@@ -396,25 +399,23 @@ export function PortfolioChart({
               strokeLinejoin="round"
               filter="url(#glow)"
             />
-
-            {/* No zero baseline needed - portfolio value is always positive */}
           </svg>
         </div>
 
-        {/* Chart value overlay - positioned to avoid Y-axis labels and chart line */}
+        {/* Chart value overlay */}
         <div className="absolute right-5 top-5 flex flex-col items-end gap-1.5 z-20">
           <div className="flex flex-col items-end gap-0.5 px-3 py-2 rounded-lg bg-[#0C1224]/95 backdrop-blur-sm border border-white/5 shadow-lg">
             <div className="text-[9px] font-medium uppercase tracking-wider text-white/30">
-              Portfolio Value
+              Total PnL
             </div>
             <span
               className={cn(
                 "font-mono text-2xl font-semibold leading-none tracking-tight",
-                "text-white"
+                totalPnL >= 0 ? "text-emerald-400" : "text-rose-400"
               )}
             >
-              $
-              {portfolioValue.toLocaleString("en-US", {
+              {totalPnL >= 0 ? "+" : ""}$
+              {totalPnL.toLocaleString("en-US", {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
@@ -427,13 +428,13 @@ export function PortfolioChart({
             <div
               className={cn(
                 "font-mono text-sm font-semibold leading-none tracking-tight",
-                periodValueChange >= 0
+                periodPnLChange >= 0
                   ? "text-emerald-400/90"
                   : "text-rose-400/90"
               )}
             >
-              {periodValueChange >= 0 ? "+" : ""}$
-              {periodValueChange.toLocaleString("en-US", {
+              {periodPnLChange >= 0 ? "+" : ""}$
+              {periodPnLChange.toLocaleString("en-US", {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}

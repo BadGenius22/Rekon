@@ -41,9 +41,32 @@ export interface PolymarketPosition {
   negativeRisk?: boolean;
 }
 
+// Closed position type (from /closed-positions endpoint)
+// This is similar to PolymarketPosition but may have slightly different fields
+export interface PolymarketClosedPosition {
+  proxyWallet: string;
+  asset: string;
+  conditionId: string;
+  avgPrice: number;
+  totalBought: number;
+  realizedPnl: number;
+  curPrice: number;
+  title: string;
+  slug: string;
+  icon?: string;
+  eventSlug?: string;
+  outcome: string;
+  outcomeIndex: number;
+  oppositeOutcome: string;
+  oppositeAsset?: string;
+  endDate?: string;
+  timestamp: number;
+}
+
 export interface FetchPolymarketPositionsParams {
   sizeThreshold?: number;
   limit?: number;
+  offset?: number;
   sortBy?: "TOKENS" | "VALUE" | "PNL";
   sortDirection?: "ASC" | "DESC";
 }
@@ -73,6 +96,9 @@ export async function fetchPolymarketPositions(
     }
     if (params.limit !== undefined) {
       url.searchParams.set("limit", String(params.limit));
+    }
+    if (params.offset !== undefined) {
+      url.searchParams.set("offset", String(params.offset));
     }
     if (params.sortBy) {
       url.searchParams.set("sortBy", params.sortBy);
@@ -170,3 +196,85 @@ export async function fetchPolymarketPortfolioValue(
   }
 }
 
+/**
+ * Fetches closed positions from Polymarket Data API.
+ * Uses the /closed-positions endpoint which returns user's closed positions.
+ */
+export async function fetchPolymarketClosedPositions(
+  userAddress: string,
+  params?: {
+    limit?: number;
+    offset?: number;
+    sortBy?: "REALIZEDPNL" | "TIMESTAMP";
+    sortDirection?: "ASC" | "DESC";
+  }
+): Promise<PolymarketClosedPosition[]> {
+  // In offline mode, return an empty list
+  if (OFFLINE_MODE) {
+    console.warn(
+      "[Polymarket] OFFLINE mode enabled (POLYMARKET_OFFLINE=true) – returning empty closed positions list"
+    );
+    return [];
+  }
+
+  const url = new URL(`${DATA_API_URL}/closed-positions`);
+  url.searchParams.set("user", userAddress);
+
+  if (params) {
+    if (params.limit !== undefined) {
+      url.searchParams.set("limit", String(params.limit));
+    }
+    if (params.offset !== undefined) {
+      url.searchParams.set("offset", String(params.offset));
+    }
+    if (params.sortBy) {
+      url.searchParams.set("sortBy", params.sortBy);
+    }
+    if (params.sortDirection) {
+      url.searchParams.set("sortDirection", params.sortDirection);
+    }
+  }
+
+  try {
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return []; // No closed positions found
+      }
+      const errorText = await response.text();
+      throw new Error(
+        `Polymarket closed positions API error: ${response.status} ${response.statusText} - ${errorText}`
+      );
+    }
+
+    const data = await response.json();
+
+    // Handle both array response and object with data property
+    if (Array.isArray(data)) {
+      return data as PolymarketPosition[];
+    }
+    if (data && typeof data === "object" && "data" in data) {
+      return (data.data as PolymarketPosition[]) || [];
+    }
+    return [];
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    console.error(
+      "[Polymarket] Failed to fetch closed positions:",
+      errorMessage
+    );
+
+    // Track API failure
+    trackPolymarketApiFailure("closed-positions", errorMessage);
+
+    // Return empty array instead of throwing - portfolio will show 0 values
+    return [];
+  }
+}

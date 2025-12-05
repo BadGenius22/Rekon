@@ -36,22 +36,87 @@ export async function getClobClient(): Promise<ClobClient> {
   // Initialize wallet from private key
   const signer = new Wallet(POLYMARKET_CONFIG.walletPrivateKey);
 
+  // SignatureType refers to the SIGNER (EOA), not the funderAddress (Safe proxy)
+  // 0 = EOA/Browser Wallet (MetaMask, Rabby, etc.) - use if private key is from a Web3 wallet
+  // 1 = Magic/Email Login - use if private key exported from https://reveal.magic.link/polymarket
+  // Note: Even if Polymarket created a Safe proxy for you, use 0 if your private key is from an EOA wallet
+  const signatureType = Number(POLYMARKET_CONFIG.signatureType) as 0 | 1;
+
   // Get or derive API key credentials
+  // Note: For Safe proxy wallets, the funderAddress (Safe proxy) should be used
+  // The signer (EOA) signs, but the funderAddress (Safe proxy) is what Polymarket recognizes
+  // API key is optional for read-only operations (fills, positions, etc.)
+  // It's only required for write operations (placing orders)
   if (!apiKeyCreds) {
+    try {
+      // For Safe proxy wallets, we need to pass the funderAddress when creating API key
+      // This tells Polymarket to create the API key for the Safe proxy, not the EOA
+      const funderAddress = POLYMARKET_CONFIG.funderAddress;
+
+      // Create Level 1 client first (without API key)
     const tempClient = new ClobClient(
       POLYMARKET_CONFIG.clobApiUrl,
       Number(POLYMARKET_CONFIG.chainId),
-      signer
-    );
+        signer,
+        undefined, // apiKeyCreds (will be created)
+        signatureType,
+        funderAddress || undefined // Pass funderAddress for Safe proxy wallets
+      );
+      
+      // Try createApiKey() first (as shown in Polymarket examples)
+      // If that fails, fall back to createOrDeriveApiKey()
+      try {
+        apiKeyCreds = await tempClient.createApiKey();
+        console.log("[CLOB Client] API key created using createApiKey()");
+      } catch (createError) {
+        console.warn("[CLOB Client] createApiKey() failed, trying createOrDeriveApiKey():", 
+          createError instanceof Error ? createError.message : createError);
     apiKeyCreds = await tempClient.createOrDeriveApiKey();
+        console.log("[CLOB Client] API key created using createOrDeriveApiKey()");
+      }
+      console.log("[CLOB Client] API key created successfully");
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const eoaAddress = await signer.getAddress();
+      console.warn("[CLOB Client] API key creation failed:", errorMessage);
+      console.warn("[CLOB Client] EOA (signer):", eoaAddress);
+      if (POLYMARKET_CONFIG.funderAddress) {
+        console.warn(
+          "[CLOB Client] Funder (Safe proxy):",
+          POLYMARKET_CONFIG.funderAddress
+        );
+        console.warn(
+          "[CLOB Client] Continuing without API key - read operations (fills, positions) will work via direct API calls. Write operations (orders) will fail."
+        );
+      } else {
+        console.warn(
+          "[CLOB Client] POLYMARKET_FUNDER_ADDRESS not set. For Safe proxy wallets, set this to your Safe proxy address."
+        );
+        console.warn(
+          "[CLOB Client] Continuing without API key - read operations will work, but write operations will fail."
+        );
+      }
+      // Continue without API key - ClobClient can still work for read-only operations
+      // The client will be created without apiKeyCreds, which limits write functionality
+      // but allows read operations to fall back to direct API calls
+      apiKeyCreds = null;
+    }
   }
 
   // Get builder config for attribution (if available)
-  const builderConfig = createBuilderConfig();
-
-  // Create ClobClient with builder attribution
-  // SignatureType: 0 = Browser Wallet, 1 = Magic/Email Login
-  const signatureType = Number(POLYMARKET_CONFIG.signatureType) as 0 | 1;
+  // Builder config is optional - only needed for order attribution
+  // If it fails to create, we continue without it (for read-only operations)
+  let builderConfig: ReturnType<typeof createBuilderConfig> | undefined;
+  try {
+    builderConfig = createBuilderConfig();
+  } catch (error) {
+    console.warn(
+      "[CLOB Client] Builder config creation failed (continuing without builder attribution):",
+      error instanceof Error ? error.message : error
+    );
+    builderConfig = undefined;
+  }
 
   clobClientInstance = new ClobClient(
     POLYMARKET_CONFIG.clobApiUrl,
@@ -75,4 +140,3 @@ export function resetClobClient(): void {
   clobClientInstance = null;
   apiKeyCreds = null;
 }
-

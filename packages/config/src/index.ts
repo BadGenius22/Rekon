@@ -76,8 +76,11 @@ export const POLYMARKET_CONFIG = {
   walletPrivateKey: process.env.POLYMARKET_WALLET_PRIVATE_KEY || undefined,
   // Funder address (Polymarket Profile Address where USDC is sent)
   funderAddress: process.env.POLYMARKET_FUNDER_ADDRESS || undefined,
-  // Signature type: 0 = Browser Wallet, 1 = Magic/Email Login
-  signatureType: (process.env.POLYMARKET_SIGNATURE_TYPE || "1") as "0" | "1",
+  // Signature type refers to the SIGNER (EOA), not the funderAddress (Safe proxy)
+  // 0 = EOA/Browser Wallet (MetaMask, Rabby, etc.) - use if private key is from a Web3 wallet
+  // 1 = Magic/Email Login - use if private key exported from https://reveal.magic.link/polymarket
+  // Default: 0 (most common - EOA wallets like MetaMask/Rabby)
+  signatureType: (process.env.POLYMARKET_SIGNATURE_TYPE || "0") as "0" | "1",
   // Rate limits (per 10 seconds)
   // Based on Polymarket's documented rate limits:
   // - CLOB General: 5,000 requests / 10s
