@@ -22,8 +22,13 @@ const redis = getRedisClient();
 const NOTIFICATIONS_KEY_PREFIX = "rekon:notifications";
 const NOTIFICATIONS_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
-function buildNotificationsKey(sessionId: string): string {
-  return `${NOTIFICATIONS_KEY_PREFIX}:${sessionId}`;
+/**
+ * Builds notification key.
+ * Supports both sessionId and walletAddress as identifiers.
+ * When walletAddress is provided, notifications persist across devices.
+ */
+function buildNotificationsKey(identifier: string): string {
+  return `${NOTIFICATIONS_KEY_PREFIX}:${identifier}`;
 }
 
 // In-memory fallback store for development / no-Redis mode
@@ -34,10 +39,14 @@ function generateNotificationId(): string {
 }
 
 /**
- * Enqueues a new notification for a session.
+ * Enqueues a new notification.
+ * 
+ * @param identifier - Session ID or wallet address (prefer wallet address for persistence)
+ * @param params - Notification parameters
  */
 export async function enqueueNotification(params: {
-  sessionId: string;
+  sessionId?: string;
+  walletAddress?: string;
   userId?: string;
   type: NotificationType;
   title: string;
@@ -45,6 +54,12 @@ export async function enqueueNotification(params: {
   metadata?: Record<string, unknown>;
 }): Promise<Notification> {
   const now = new Date().toISOString();
+
+  // Prefer walletAddress for persistence across devices
+  const identifier = params.walletAddress || params.sessionId;
+  if (!identifier) {
+    throw new Error("Either sessionId or walletAddress must be provided");
+  }
 
   const notification: Notification = {
     id: generateNotificationId(),
@@ -59,7 +74,7 @@ export async function enqueueNotification(params: {
   };
 
   if (redis) {
-    const key = buildNotificationsKey(params.sessionId);
+    const key = buildNotificationsKey(identifier);
     const existing =
       ((await redis
         .get<Notification[]>(key)
@@ -76,25 +91,28 @@ export async function enqueueNotification(params: {
         console.error(`Redis set error for notifications ${key}:`, error);
       });
   } else {
-    const existing = inMemoryNotificationsStore.get(params.sessionId) || [];
+    const existing = inMemoryNotificationsStore.get(identifier) || [];
     const updated = [notification, ...existing].slice(0, 200);
-    inMemoryNotificationsStore.set(params.sessionId, updated);
+    inMemoryNotificationsStore.set(identifier, updated);
   }
 
   return notification;
 }
 
 /**
- * Lists notifications for a session, newest first.
+ * Lists notifications for a session or wallet, newest first.
+ * 
+ * @param identifier - Session ID or wallet address
+ * @param options - Query options
  */
 export async function listNotifications(
-  sessionId: string,
+  identifier: string,
   options?: { limit?: number }
 ): Promise<Notification[]> {
   const limit = options?.limit ?? 50;
 
   if (redis) {
-    const key = buildNotificationsKey(sessionId);
+    const key = buildNotificationsKey(identifier);
     const notifications =
       ((await redis
         .get<Notification[]>(key)
@@ -106,18 +124,21 @@ export async function listNotifications(
     return notifications.slice(0, limit);
   }
 
-  const existing = inMemoryNotificationsStore.get(sessionId) || [];
+  const existing = inMemoryNotificationsStore.get(identifier) || [];
   return existing.slice(0, limit);
 }
 
 /**
  * Marks a single notification as read.
+ * 
+ * @param identifier - Session ID or wallet address
+ * @param notificationId - Notification ID to mark as read
  */
 export async function markNotificationRead(
-  sessionId: string,
+  identifier: string,
   notificationId: string
 ): Promise<Notification | null> {
-  const notifications = await listNotifications(sessionId, {
+  const notifications = await listNotifications(identifier, {
     limit: 200,
   });
 
@@ -140,26 +161,28 @@ export async function markNotificationRead(
   notifications[index] = updated;
 
   if (redis) {
-    const key = buildNotificationsKey(sessionId);
+    const key = buildNotificationsKey(identifier);
     await redis
       .set(key, notifications, { ex: NOTIFICATIONS_TTL_SECONDS })
       .catch((error: unknown) => {
         console.error(`Redis set error for notifications ${key}:`, error);
       });
   } else {
-    inMemoryNotificationsStore.set(sessionId, notifications);
+    inMemoryNotificationsStore.set(identifier, notifications);
   }
 
   return updated;
 }
 
 /**
- * Marks all notifications for a session as read.
+ * Marks all notifications as read.
+ * 
+ * @param identifier - Session ID or wallet address
  */
 export async function markAllNotificationsRead(
-  sessionId: string
+  identifier: string
 ): Promise<void> {
-  const notifications = await listNotifications(sessionId, { limit: 200 });
+  const notifications = await listNotifications(identifier, { limit: 200 });
 
   const updated = notifications.map((n) =>
     n.status === "read"
@@ -168,7 +191,7 @@ export async function markAllNotificationsRead(
   );
 
   if (redis) {
-    const key = buildNotificationsKey(sessionId);
+    const key = buildNotificationsKey(identifier);
     await redis
       .set(key, updated, { ex: NOTIFICATIONS_TTL_SECONDS })
       .catch((error: unknown) => {

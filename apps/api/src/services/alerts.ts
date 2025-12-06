@@ -17,8 +17,8 @@ import { BadRequest, NotFound } from "../utils/http-errors";
  * - MVP: In-memory LRU cache (alerts lost on restart)
  * - Production: Use Redis or database for persistent storage
  * 
- * Note: This is "soft backend only" - alerts are stored but not triggered yet.
- * Triggering logic will be implemented later.
+ * Note: Alerts are stored and can be triggered via notification-triggers service.
+ * Call checkMarketPriceAlerts() when market prices update to trigger alerts.
  */
 
 // Alert storage (in-memory for MVP, replace with Redis/database for production)
@@ -29,6 +29,8 @@ const alertCache = new LRUCache<string, PriceAlert>({
 
 // Index by sessionId for quick lookup
 const alertsBySession = new Map<string, Set<string>>();
+// Index by marketId for efficient alert checking
+const alertsByMarket = new Map<string, Set<string>>();
 
 /**
  * Generates a unique alert ID.
@@ -109,6 +111,12 @@ export async function createAlert(
     alertsBySession.set(sessionId, new Set());
   }
   alertsBySession.get(sessionId)!.add(alert.id);
+
+  // Index by market
+  if (!alertsByMarket.has(alert.marketId)) {
+    alertsByMarket.set(alert.marketId, new Set());
+  }
+  alertsByMarket.get(alert.marketId)!.add(alert.id);
 
   return alert;
 }
@@ -225,7 +233,7 @@ export function deleteAlert(alertId: string, sessionId: string): boolean {
   // Remove from cache
   alertCache.delete(alertId);
 
-  // Remove from index
+  // Remove from session index
   const alertIds = alertsBySession.get(sessionId);
   if (alertIds) {
     alertIds.delete(alertId);
@@ -234,7 +242,40 @@ export function deleteAlert(alertId: string, sessionId: string): boolean {
     }
   }
 
+  // Remove from market index
+  const marketAlertIds = alertsByMarket.get(alert.marketId);
+  if (marketAlertIds) {
+    marketAlertIds.delete(alertId);
+    if (marketAlertIds.size === 0) {
+      alertsByMarket.delete(alert.marketId);
+    }
+  }
+
   return true;
+}
+
+/**
+ * Gets all active alerts for a specific market.
+ * Used for efficient alert checking when market prices update.
+ *
+ * @param marketId - Market ID
+ * @returns Array of active alerts for this market
+ */
+export function getAlertsByMarketId(marketId: string): PriceAlert[] {
+  const alertIds = alertsByMarket.get(marketId);
+  if (!alertIds || alertIds.size === 0) {
+    return [];
+  }
+
+  const alerts: PriceAlert[] = [];
+  for (const alertId of alertIds) {
+    const alert = alertCache.get(alertId);
+    if (alert && alert.status === "active") {
+      alerts.push(alert);
+    }
+  }
+
+  return alerts;
 }
 
 /**

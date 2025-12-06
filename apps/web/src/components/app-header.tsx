@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Bell, Wallet, Search } from "lucide-react";
+import { Wallet, Search } from "lucide-react";
 import { Navigation } from "./navigation";
 import { MobileMenu } from "./mobile-menu";
 import { SearchBar } from "./search-bar";
 import { SearchModal } from "./search-modal";
+import { NotificationsDropdown } from "./notifications-dropdown";
 
 export function AppHeader() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -60,9 +61,9 @@ export function AppHeader() {
             </button>
 
             {/* Notifications - hidden on very small screens */}
-            <button className="hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-[#090E1C] text-white/60 transition-colors hover:border-white/20 hover:bg-white/5 hover:text-white">
-              <Bell className="h-4 w-4" />
-            </button>
+            <div className="hidden sm:block">
+              <NotificationsDropdown />
+            </div>
 
             {/* Connect wallet - hidden on mobile, icon only on tablet, full on desktop */}
             <button className="hidden items-center gap-1.5 lg:gap-2 rounded-lg bg-[#FACC15] px-3 lg:px-4 py-2 text-xs font-semibold text-[#020617] shadow-[0_4px_12px_rgba(250,204,21,0.4)] transition-all hover:bg-[#FCD34D] hover:shadow-[0_6px_16px_rgba(250,204,21,0.5)] active:scale-[0.98] md:inline-flex">
