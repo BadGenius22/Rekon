@@ -34,18 +34,18 @@ export function PriceDisplay({
         {/* Team Prices */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
           {/* Team 1 Price - Yellow */}
-          <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/12 p-3 sm:p-4 md:p-5">
-            <div className="mb-1 sm:mb-2 text-xs font-semibold uppercase tracking-wider text-yellow-300 truncate">
+          <div className="rounded-lg border border-[#FACC15]/50 bg-[#FACC15]/20 p-3 sm:p-4 md:p-5">
+            <div className="mb-1 sm:mb-2 text-xs font-semibold uppercase tracking-wider text-[#FCD34D] truncate">
               {team1Name}
             </div>
-            <div className="text-2xl sm:text-3xl font-mono font-bold text-yellow-400">
+            <div className="text-2xl sm:text-3xl font-mono font-bold text-[#FACC15]">
               {team1Price.toFixed(2)}
             </div>
             {team1Change !== 0 && (
               <div
                 className={cn(
                   "mt-1 text-xs font-mono",
-                  team1Change >= 0 ? "text-emerald-400" : "text-red-400"
+                  team1Change >= 0 ? "text-[#22C55E]" : "text-[#EF4444]"
                 )}
               >
                 {team1Change >= 0 ? "+" : ""}
@@ -55,18 +55,18 @@ export function PriceDisplay({
           </div>
 
           {/* Team 2 Price - Blue */}
-          <div className="rounded-lg border border-blue-500/50 bg-blue-500/12 p-3 sm:p-4 md:p-5">
-            <div className="mb-1 sm:mb-2 text-xs font-semibold uppercase tracking-wider text-blue-300 truncate">
+          <div className="rounded-lg border border-[#3B82F6]/50 bg-[#3B82F6]/20 p-3 sm:p-4 md:p-5">
+            <div className="mb-1 sm:mb-2 text-xs font-semibold uppercase tracking-wider text-[#93C5FD] truncate">
               {team2Name}
             </div>
-            <div className="text-2xl sm:text-3xl font-mono font-bold text-blue-400">
+            <div className="text-2xl sm:text-3xl font-mono font-bold text-[#3B82F6]">
               {team2Price.toFixed(2)}
             </div>
             {team2Change !== 0 && (
               <div
                 className={cn(
                   "mt-1 text-xs font-mono",
-                  team2Change >= 0 ? "text-emerald-400" : "text-red-400"
+                  team2Change >= 0 ? "text-[#22C55E]" : "text-[#EF4444]"
                 )}
               >
                 {team2Change >= 0 ? "+" : ""}

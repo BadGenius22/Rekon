@@ -1,4 +1,4 @@
-import type { MarketFullResponse } from "@rekon/types";
+import type { MarketFullResponse, Market } from "@rekon/types";
 import { API_CONFIG } from "@rekon/config";
 import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
@@ -7,6 +7,7 @@ import { PriceDisplay } from "@/modules/markets/price-display";
 import { TradeBox } from "@/modules/markets/trade-box";
 import { MarketInfo } from "@/modules/markets/market-info";
 import { RecentTrades } from "@/modules/markets/recent-trades";
+import { MarketSubevents } from "@/modules/markets/market-subevents";
 import { AppFooter } from "@/modules/home/app-footer";
 
 async function getMarketFull(
@@ -56,7 +57,7 @@ async function getMarketFull(
       }
 
       // If that also fails, try condition ID endpoint (market ID might be condition ID)
-      if (!marketResponse.ok) {
+      if (!marketResponse || !marketResponse.ok) {
         marketResponse = await fetch(
           `${API_CONFIG.baseUrl}/markets/condition/${identifier}`,
           {
@@ -65,7 +66,7 @@ async function getMarketFull(
         );
       }
 
-      if (marketResponse.ok) {
+      if (marketResponse && marketResponse.ok) {
         const market = await marketResponse.json();
         console.log(`Successfully fetched market via fallback: ${market.id}`);
         // Return a minimal MarketFullResponse with just the market data
@@ -88,12 +89,13 @@ async function getMarketFull(
         };
       }
 
-      // Log detailed error information
-      const errorText = await marketResponse
-        .text()
-        .catch(() => "Unknown error");
-      console.error(
-        `All endpoints failed for market identifier: ${identifier}. Last status: ${marketResponse.status} ${marketResponse.statusText}. Error: ${errorText}`
+      // If all endpoints failed, return null (will show 404 page)
+      const errorText =
+        marketResponse && marketResponse.status
+          ? await marketResponse.text().catch(() => "Unknown error")
+          : "No response";
+      console.warn(
+        `Market not found: ${identifier}. Tried: /market/full/${identifier}, /markets/slug/${identifier}, /markets/${identifier}, /markets/condition/${identifier}`
       );
       return null;
     }
@@ -148,6 +150,40 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
 
   const { market, bestBid, bestAsk, recentTrades, metrics, spread } =
     marketFull;
+
+  // Fetch related markets (subevents) if eventSlug is available
+  // Show subevents whenever eventSlug exists - this is what groups markets together
+  // The eventSlug is the key field that links Moneyline, Game 1, Game 2, O/U, etc.
+  let relatedMarkets: Market[] = [];
+  const shouldShowSubevents = !!market.eventSlug;
+
+  if (shouldShowSubevents) {
+    try {
+      const relatedMarketsResponse = await fetch(
+        `${API_CONFIG.baseUrl}/markets/event/${market.eventSlug}`,
+        { next: { revalidate: 60 } } // Cache for 1 minute
+      );
+      if (relatedMarketsResponse.ok) {
+        relatedMarkets = await relatedMarketsResponse.json();
+      } else {
+        console.warn(
+          `Failed to fetch related markets: ${relatedMarketsResponse.status}`,
+          market.eventSlug
+        );
+      }
+    } catch (error) {
+      console.warn("Failed to fetch related markets:", error, market.eventSlug);
+    }
+  } else {
+    // Debug: Log when eventSlug is missing to help diagnose the issue
+    console.warn("Market missing eventSlug, subevents will not be shown:", {
+      marketId: market.id,
+      question: market.question,
+      sportsMarketType: market.sportsMarketType,
+      groupItemTitle: market.groupItemTitle,
+      game: market.game,
+    });
+  }
 
   // Get team names and prices from outcomes (for esports markets)
   // For esports markets, outcomes are team names, not YES/NO
@@ -232,8 +268,169 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
           league={league}
         />
 
+        {/* Subevents (Moneyline, Game 1, Game 2, O/U) - For esports markets with eventSlug */}
+        {/* Always show if shouldShowSubevents is true, even if relatedMarkets is empty */}
+        {shouldShowSubevents &&
+          (() => {
+            // Deduplicate markets by ID to avoid duplicate keys
+            const marketMap = new Map<string, Market>();
+            // Always add current market FIRST to ensure it's always shown
+            // This is critical - even if fetch fails or returns empty, current market should appear
+            marketMap.set(market.id, market);
+            // Add all related markets (they will overwrite if duplicate, but that's fine)
+            relatedMarkets.forEach((m) => marketMap.set(m.id, m));
+            let allMarkets = Array.from(marketMap.values());
+
+            // Safety check: Ensure current market is always in the list
+            // This should never be needed since we add it first, but defensive programming
+            const hasCurrentMarket = allMarkets.some((m) => m.id === market.id);
+            if (!hasCurrentMarket) {
+              console.warn(
+                "Current market missing from subevents list, adding it:",
+                market.id,
+                market.groupItemTitle || market.sportsMarketType || "Unknown"
+              );
+              // Force add it at the beginning
+              allMarkets = [market, ...allMarkets];
+            }
+
+            // Sort markets consistently: Standardized order across all games
+            // Moneyline → O/U → Game 1/Map 1 → Game 2/Map 2 → Game 3/Map 3
+            // This groups match-level markets first, then individual game/map markets
+            // This ensures buttons maintain their position regardless of which is active
+            // Use stable sort with market ID as secondary key to prevent position swapping
+            allMarkets.sort((a, b) => {
+              // First, use marketGroup if available (Polymarket's grouping)
+              if (a.marketGroup !== undefined && b.marketGroup !== undefined) {
+                if (a.marketGroup !== b.marketGroup) {
+                  return a.marketGroup - b.marketGroup;
+                }
+              } else if (a.marketGroup !== undefined) {
+                return -1; // Markets with group come first
+              } else if (b.marketGroup !== undefined) {
+                return 1;
+              }
+
+              const getSortOrder = (
+                title?: string,
+                sportsType?: string,
+                question?: string
+              ): number => {
+                // Check sportsMarketType first (most reliable)
+                if (sportsType) {
+                  const lowerType = sportsType.toLowerCase();
+                  if (lowerType === "moneyline") return 0;
+                  if (lowerType === "totals") return 1; // O/U comes after Moneyline
+
+                  if (lowerType === "child_moneyline") {
+                    // For child_moneyline, check title and question for game/map number
+                    const searchText = (title || question || "").toLowerCase();
+
+                    // Check for both "Map" (CS2/Valorant) and "Game" (Dota 2)
+                    // Standardized: both come after O/U
+                    if (
+                      searchText.includes("map 1") ||
+                      searchText.includes("map1") ||
+                      searchText.includes("game 1") ||
+                      searchText.includes("game1")
+                    )
+                      return 2; // After O/U (which is 1)
+                    if (
+                      searchText.includes("map 2") ||
+                      searchText.includes("map2") ||
+                      searchText.includes("game 2") ||
+                      searchText.includes("game2")
+                    )
+                      return 3;
+                    if (
+                      searchText.includes("map 3") ||
+                      searchText.includes("map3") ||
+                      searchText.includes("game 3") ||
+                      searchText.includes("game3")
+                    )
+                      return 4;
+                    return 10; // Child moneyline without game/map number
+                  }
+                }
+
+                // Fallback to title-based sorting
+                const searchText = (title || question || "").toLowerCase();
+                if (
+                  searchText.includes("moneyline") ||
+                  searchText.includes("match winner")
+                )
+                  return 0;
+
+                // O/U variations: "o/u", "over/under", "total", "totals", "ou"
+                const isTotals =
+                  searchText.includes("o/u") ||
+                  searchText.includes("over/under") ||
+                  searchText.includes("over under") ||
+                  searchText.startsWith("ou ") ||
+                  (searchText.includes("total") &&
+                    !searchText.includes("match"));
+
+                if (isTotals) {
+                  return 1; // O/U comes after Moneyline, before games/maps
+                }
+
+                // Check for games/maps (both "game" and "map" use same order)
+                if (
+                  searchText.includes("map 1") ||
+                  searchText.includes("map1") ||
+                  searchText.includes("game 1") ||
+                  searchText.includes("game1")
+                )
+                  return 2;
+                if (
+                  searchText.includes("map 2") ||
+                  searchText.includes("map2") ||
+                  searchText.includes("game 2") ||
+                  searchText.includes("game2")
+                )
+                  return 3;
+                if (
+                  searchText.includes("map 3") ||
+                  searchText.includes("map3") ||
+                  searchText.includes("game 3") ||
+                  searchText.includes("game3")
+                )
+                  return 4;
+
+                return 999;
+              };
+
+              const orderA = getSortOrder(
+                a.groupItemTitle,
+                a.sportsMarketType,
+                a.question
+              );
+              const orderB = getSortOrder(
+                b.groupItemTitle,
+                b.sportsMarketType,
+                b.question
+              );
+
+              // Primary sort: by type order
+              if (orderA !== orderB) {
+                return orderA - orderB;
+              }
+
+              // Secondary sort: by market ID for stable ordering
+              // This ensures markets with the same type maintain consistent positions
+              return a.id.localeCompare(b.id);
+            });
+
+            return (
+              <MarketSubevents
+                markets={allMarkets}
+                currentMarketId={market.id}
+              />
+            );
+          })()}
+
         {/* Responsive Grid Layout */}
-        <div className="mt-4 grid gap-4 sm:mt-6 sm:gap-6 lg:grid-cols-12 xl:grid-cols-12">
+        <div className="mt-4 grid gap-4 sm:mt-6 sm:gap-6 lg:grid-cols-12">
           {/* Mobile/Tablet: Trade Box First (MOST IMPORTANT) */}
           {/* Desktop: Left Column - Price Display */}
           <div className="order-2 lg:order-1 lg:col-span-4 xl:col-span-4">

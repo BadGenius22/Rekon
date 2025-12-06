@@ -309,6 +309,52 @@ export async function fetchGammaEvents(
 }
 
 /**
+ * Fetches a single event by slug from the Gamma API.
+ * Returns the event with all its markets (subevents).
+ */
+export async function fetchGammaEventBySlug(
+  slug: string
+): Promise<PolymarketEvent | null> {
+  if (OFFLINE_MODE) {
+    console.warn(
+      "[Polymarket] OFFLINE mode enabled (POLYMARKET_OFFLINE=true) – returning null for event by slug"
+    );
+    return null;
+  }
+
+  const encodedSlug = encodeURIComponent(slug);
+  const url = `${GAMMA_API_URL}/events/slug/${encodedSlug}?include_template=true&include_chat=false`;
+
+  try {
+    const response = await fetch(url, {
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (response.status === 404) {
+      return null;
+    }
+
+    if (!response.ok) {
+      const error = new Error(
+        `Gamma API error: ${response.status} ${response.statusText}`
+      );
+
+      trackPolymarketApiFailure(url, response.status, error);
+      throw error;
+    }
+
+    const data = (await response.json()) as PolymarketEvent;
+    return data;
+  } catch (error) {
+    console.error(
+      "[Polymarket] Failed to fetch event by slug from Gamma:",
+      error
+    );
+    return null;
+  }
+}
+
+/**
  * Fetches a single market by slug from the Gamma API.
  * Recommended for individual market lookups.
  */

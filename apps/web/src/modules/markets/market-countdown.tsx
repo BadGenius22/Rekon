@@ -37,7 +37,8 @@ export function MarketCountdown({ market, status }: MarketCountdownProps) {
       const diff = targetDate.getTime() - now.getTime();
 
       if (diff <= 0) {
-        setTimeRemaining("Ended");
+        // Market has ended - don't show countdown, status badge will handle it
+        setTimeRemaining("");
         return;
       }
 

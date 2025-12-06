@@ -34,20 +34,20 @@ export function OrderbookPreview({
       </h2>
 
       <div className="space-y-2 sm:space-y-3">
-        <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-2.5 sm:p-3">
-          <div className="mb-1 text-xs font-medium text-yellow-300 truncate">
+        <div className="rounded-lg border border-[#FACC15]/30 bg-[#FACC15]/20 p-2.5 sm:p-3">
+          <div className="mb-1 text-xs font-medium text-[#FCD34D] truncate">
             Best {team1Name} bid
           </div>
-          <div className="text-lg sm:text-xl font-mono font-bold text-yellow-400">
+          <div className="text-lg sm:text-xl font-mono font-bold text-[#FACC15]">
             {team1Bid.toFixed(2)}
           </div>
         </div>
 
-        <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-2.5 sm:p-3">
-          <div className="mb-1 text-xs font-medium text-blue-300 truncate">
+        <div className="rounded-lg border border-[#3B82F6]/30 bg-[#3B82F6]/20 p-2.5 sm:p-3">
+          <div className="mb-1 text-xs font-medium text-[#93C5FD] truncate">
             Best {team2Name} bid
           </div>
-          <div className="text-lg sm:text-xl font-mono font-bold text-blue-400">
+          <div className="text-lg sm:text-xl font-mono font-bold text-[#3B82F6]">
             {team2Bid.toFixed(2)}
           </div>
         </div>

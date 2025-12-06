@@ -1,0 +1,519 @@
+{
+  "meta": {
+    "name": "Rekon Trade Page Design System",
+    "version": "1.0.0",
+    "description": "High-level design guidelines for the trade/prediction market interface. This file instructs AI to replicate the pro trading terminal aesthetic with dark backgrounds, neon accents, and data-dense layouts optimized for rapid decision-making.",
+    "scope": "Trade page, market detail pages, order placement interfaces, price displays, and trading activity feeds"
+  },
+  "creative_director_notes": {
+    "overall_vision": "The trade interface should feel like a professional esports trading terminal—dark, focused, and optimized for speed. Every element serves a purpose: displaying critical information, enabling rapid decisions, and providing clear visual feedback. The design balances information density with clarity, using color strategically to guide attention and communicate state.",
+    "emotional_tone": "Confident, precise, energetic. This is not a casual interface—it's built for traders who need to act quickly. The design should inspire confidence through clarity and responsiveness.",
+    "user_experience_philosophy": "Minimize cognitive load. Use color, typography, and spacing to create clear information hierarchy. Critical actions should be immediately obvious. Feedback should be instant and unambiguous."
+  },
+  "design_principles": {
+    "visual_hierarchy": [
+      "The trade box is the primary focal point—it should be visually prominent but not overwhelming.",
+      "Price information is secondary but critical—use larger, monospace fonts for numbers to ensure quick scanning.",
+      "Supporting information (recent trades, market info) should be clearly secondary but still accessible.",
+      "Use border weights, background opacity, and spacing to establish hierarchy without relying solely on size."
+    ],
+    "color_semantics": [
+      "Yellow/Gold (#FACC15, #EAB308): Team 1, primary selection, highlights. Warm and attention-grabbing.",
+      "Blue/Cyan (#3B82F6, #22D3EE): Team 2, secondary selection, information. Cool and trustworthy.",
+      "Emerald/Green (#22C55E, #10B981): Buy actions, positive changes, success states. Growth and confidence.",
+      "Red (#EF4444, #DC2626): Sell actions, negative changes, errors. Urgency and caution.",
+      "White/Gray scales: Primary text (white/96), secondary text (white/60-80), muted text (white/40-50). Use opacity to create hierarchy.",
+      "Never use pure white (#FFFFFF) for backgrounds—always use dark surfaces with subtle borders."
+    ],
+    "information_density": [
+      "Pack information efficiently but maintain readability. Use compact spacing (8-12px) between related elements.",
+      "Group related information visually through borders, backgrounds, and spacing.",
+      "Use abbreviations and short labels where context is clear (e.g., '24h Volume' not '24 Hour Volume').",
+      "Numbers should always use monospace fonts for alignment and quick scanning."
+    ],
+    "interaction_design": [
+      "All interactive elements must have clear hover and active states.",
+      "Selection states should be obvious—use color fills, border changes, and subtle glows.",
+      "Buttons should feel responsive—use scale transforms (0.98 on active) and color shifts on hover.",
+      "Form inputs should have clear focus states with colored borders and subtle glows.",
+      "Disable states should reduce opacity (0.5) but remain visible—users should understand why something is disabled."
+    ],
+    "spatial_organization": [
+      "Use a grid-based layout system. The trade page uses a 12-column grid on desktop.",
+      "Main content area (trade box) should be 5 columns on desktop, price display 4 columns, market info 3 columns.",
+      "On mobile, stack vertically with trade box appearing first (most important action).",
+      "Maintain consistent padding: 16-24px (lg-xl) for cards, 12-16px (md-lg) for internal spacing.",
+      "Use gap utilities (gap-4, gap-6) for consistent spacing between grid items."
+    ]
+  },
+  "design_tokens": {
+    "colors": {
+      "background": {
+        "page": "#030711",
+        "surface_low": "#090E1C",
+        "surface": "#121A30",
+        "surface_high": "#1A1B20",
+        "description": "Very dark backgrounds create the terminal aesthetic. Surface variations use subtle opacity differences to create depth."
+      },
+      "borders": {
+        "subtle": "rgba(255, 255, 255, 0.1)",
+        "medium": "rgba(255, 255, 255, 0.2)",
+        "strong": "rgba(255, 255, 255, 0.3)",
+        "description": "Borders are always subtle—never harsh. Use opacity to create hierarchy. Active/selected states use colored borders with 50% opacity."
+      },
+      "team_colors": {
+        "team1": {
+          "primary": "#FACC15",
+          "secondary": "#EAB308",
+          "border": "rgba(250, 204, 21, 0.5)",
+          "background": "rgba(250, 204, 21, 0.2)",
+          "text": "#FCD34D",
+          "description": "Warm yellow/gold for Team 1. Used for selection states, price displays, and team identification."
+        },
+        "team2": {
+          "primary": "#3B82F6",
+          "secondary": "#2563EB",
+          "border": "rgba(59, 130, 246, 0.5)",
+          "background": "rgba(59, 130, 246, 0.2)",
+          "text": "#93C5FD",
+          "description": "Cool blue for Team 2. Used for selection states, price displays, and team identification."
+        }
+      },
+      "action_colors": {
+        "buy": {
+          "primary": "#22C55E",
+          "hover": "#16A34A",
+          "border": "rgba(34, 197, 94, 0.5)",
+          "background": "rgba(34, 197, 94, 0.2)",
+          "text": "#86EFAC",
+          "shadow": "rgba(34, 197, 94, 0.5)",
+          "description": "Emerald green for buy actions. Represents growth, positive action, confidence."
+        },
+        "sell": {
+          "primary": "#EF4444",
+          "hover": "#DC2626",
+          "border": "rgba(239, 68, 68, 0.5)",
+          "background": "rgba(239, 68, 68, 0.2)",
+          "text": "#FCA5A5",
+          "shadow": "rgba(239, 68, 68, 0.5)",
+          "description": "Red for sell actions. Represents urgency, caution, exit actions."
+        }
+      },
+      "text": {
+        "primary": "rgba(255, 255, 255, 0.96)",
+        "secondary": "rgba(255, 255, 255, 0.8)",
+        "muted": "rgba(255, 255, 255, 0.6)",
+        "disabled": "rgba(255, 255, 255, 0.4)",
+        "description": "Text hierarchy through opacity. Primary for important labels and values, secondary for supporting text, muted for hints and metadata."
+      },
+      "semantic": {
+        "positive": "#22C55E",
+        "negative": "#EF4444",
+        "neutral": "rgba(255, 255, 255, 0.6)",
+        "warning": "#F97316",
+        "description": "Use for price changes, trade indicators, and status messages."
+      }
+    },
+    "typography": {
+      "font_families": {
+        "sans": "system-ui, -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Text', sans-serif",
+        "mono": "'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, Monaco, 'Courier New', monospace",
+        "description": "Sans-serif for UI text and labels. Monospace for all numbers, prices, and data values to ensure alignment and quick scanning."
+      },
+      "sizes": {
+        "xs": "0.75rem",
+        "sm": "0.875rem",
+        "base": "1rem",
+        "lg": "1.125rem",
+        "xl": "1.25rem",
+        "2xl": "1.5rem",
+        "3xl": "1.875rem",
+        "4xl": "2.25rem",
+        "description": "Use larger sizes (2xl-3xl) for prices and critical numbers. Base-lg for labels and UI text. xs-sm for metadata and hints."
+      },
+      "weights": {
+        "regular": 400,
+        "medium": 500,
+        "semibold": 600,
+        "bold": 700,
+        "description": "Semibold for labels and important text. Bold for prices and critical values. Regular for body text and metadata."
+      },
+      "line_heights": {
+        "tight": "1.1",
+        "snug": "1.25",
+        "normal": "1.5",
+        "description": "Tight for large numbers and prices. Snug for headings. Normal for body text."
+      },
+      "letter_spacing": {
+        "tight": "-0.025em",
+        "normal": "0",
+        "wide": "0.05em",
+        "description": "Wide for uppercase labels and headers. Normal for most text. Tight for large numbers."
+      }
+    },
+    "spacing": {
+      "xs": "0.25rem",
+      "sm": "0.5rem",
+      "md": "0.75rem",
+      "lg": "1rem",
+      "xl": "1.5rem",
+      "2xl": "2rem",
+      "3xl": "3rem",
+      "description": "Consistent 4px base unit. Use lg-xl for card padding, md-lg for internal spacing, sm-md for tight groups."
+    },
+    "border_radius": {
+      "sm": "0.375rem",
+      "md": "0.5rem",
+      "lg": "0.75rem",
+      "xl": "1rem",
+      "2xl": "1.5rem",
+      "full": "9999px",
+      "description": "Rounded corners soften the interface. Use lg-xl for cards, md-lg for buttons and inputs, full for pills."
+    },
+    "shadows": {
+      "none": "none",
+      "sm": "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+      "md": "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+      "lg": "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+      "colored_glow": "0 0 20px rgba([color], 0.5)",
+      "description": "Use shadows sparingly. Colored glows for active states and important actions. Standard shadows for elevation on cards."
+    },
+    "transitions": {
+      "fast": "150ms ease-out",
+      "normal": "200ms ease-out",
+      "slow": "300ms ease-out",
+      "description": "Fast transitions for hover states and interactions. Keep animations subtle and purposeful—no bouncing or excessive motion."
+    }
+  },
+  "components": {
+    "trade_box": {
+      "description": "The primary trading interface card. Contains team selection, buy/sell toggle, stake input, estimated payout display, and trade button.",
+      "layout": {
+        "container": "rounded-xl border-2 border-white/20 bg-[#121A30] p-4 sm:p-6 shadow-lg",
+        "sections": [
+          "Header: Title 'Place Prediction'",
+          "Team selector: 2-column grid of team buttons",
+          "Action selector: 2-column grid of Buy/Sell buttons",
+          "Stake input: Full-width input with label and hint",
+          "Estimated payout: Conditional display card",
+          "Error message: Conditional alert",
+          "Trade button: Full-width action button"
+        ],
+        "spacing": {
+          "between_sections": "mb-4 sm:mb-6",
+          "internal": "p-3 sm:p-4"
+        }
+      },
+      "style": {
+        "background": "colors.background.surface",
+        "border": "borders.medium",
+        "border_radius": "border_radius.xl",
+        "padding": "spacing.xl",
+        "title": {
+          "font_size": "typography.sizes.lg",
+          "font_weight": "typography.weights.bold",
+          "color": "colors.text.primary",
+          "margin_bottom": "spacing.xl"
+        }
+      },
+      "states": {
+        "default": "Subtle border, dark background",
+        "hover": "Border brightens slightly",
+        "focus": "Border color intensifies"
+      }
+    },
+    "team_selector_button": {
+      "description": "Button for selecting which team to trade. Two buttons side-by-side in a grid.",
+      "layout": {
+        "container": "grid grid-cols-2 gap-2 sm:gap-3",
+        "button": "rounded-lg border px-4 py-3 text-sm font-semibold transition-all"
+      },
+      "style": {
+        "default": {
+          "background": "colors.background.surface_low",
+          "border": "borders.subtle",
+          "text_color": "colors.text.muted",
+          "border_radius": "border_radius.lg"
+        },
+        "team1_selected": {
+          "border": "colors.team_colors.team1.border",
+          "background": "colors.team_colors.team1.background",
+          "text_color": "colors.team_colors.team1.text"
+        },
+        "team2_selected": {
+          "border": "colors.team_colors.team2.border",
+          "background": "colors.team_colors.team2.background",
+          "text_color": "colors.team_colors.team2.text"
+        },
+        "hover": {
+          "border": "borders.medium",
+          "text_color": "colors.text.secondary"
+        }
+      }
+    },
+    "action_selector_button": {
+      "description": "Button for selecting Buy or Sell action. Two buttons side-by-side.",
+      "layout": {
+        "container": "grid grid-cols-2 gap-2 sm:gap-3",
+        "button": "rounded-lg border px-4 py-3 text-sm font-semibold transition-all"
+      },
+      "style": {
+        "default": {
+          "background": "colors.background.surface_low",
+          "border": "borders.subtle",
+          "text_color": "colors.text.muted"
+        },
+        "buy_selected": {
+          "border": "colors.action_colors.buy.border",
+          "background": "colors.action_colors.buy.background",
+          "text_color": "colors.action_colors.buy.text"
+        },
+        "sell_selected": {
+          "border": "colors.action_colors.sell.border",
+          "background": "colors.action_colors.sell.background",
+          "text_color": "colors.action_colors.sell.text"
+        },
+        "hover": {
+          "border": "borders.medium",
+          "text_color": "colors.text.secondary"
+        }
+      }
+    },
+    "stake_input": {
+      "description": "Number input for entering stake amount or shares to sell.",
+      "layout": {
+        "container": "mb-4 sm:mb-6",
+        "label": "mb-2 block text-sm font-semibold text-white/80",
+        "hint": "mb-2 text-xs text-white/50",
+        "input": "w-full rounded-lg border-2 border-white/20 bg-[#090E1C] px-3 py-3 sm:px-4 sm:py-4 text-base sm:text-lg font-mono font-semibold text-white placeholder:text-white/40"
+      },
+      "style": {
+        "background": "colors.background.surface_low",
+        "border": "borders.medium",
+        "border_radius": "border_radius.lg",
+        "font_family": "typography.font_families.mono",
+        "font_size": "typography.sizes.lg",
+        "font_weight": "typography.weights.semibold",
+        "text_color": "colors.text.primary",
+        "placeholder_color": "colors.text.disabled"
+      },
+      "states": {
+        "default": "Subtle border, dark background",
+        "focus": {
+          "border": "colors.action_colors.buy.border",
+          "outline": "none",
+          "ring": "2px",
+          "ring_color": "colors.action_colors.buy.shadow"
+        },
+        "disabled": {
+          "opacity": 0.5,
+          "cursor": "not-allowed"
+        }
+      }
+    },
+    "estimated_payout_card": {
+      "description": "Conditional card showing estimated shares (for buy) or estimated receipt (for sell). Only displays when stake > 0.",
+      "layout": {
+        "container": "mb-4 sm:mb-6 rounded-lg border border-white/10 bg-[#090E1C] p-3 sm:p-4",
+        "row": "flex items-center justify-between",
+        "label": "text-sm font-medium text-white/70",
+        "value": "font-mono text-lg font-bold text-white",
+        "hint": "mt-2 text-xs text-white/50"
+      },
+      "style": {
+        "background": "colors.background.surface_low",
+        "border": "borders.subtle",
+        "border_radius": "border_radius.lg",
+        "value_font": "typography.font_families.mono",
+        "value_size": "typography.sizes.lg",
+        "value_weight": "typography.weights.bold"
+      }
+    },
+    "trade_button": {
+      "description": "Primary action button for placing trades. Full width, color-coded by action (buy=green, sell=red).",
+      "layout": {
+        "container": "w-full rounded-lg px-4 py-3 sm:px-6 sm:py-4 text-sm sm:text-base font-bold text-white transition-all shadow-lg"
+      },
+      "style": {
+        "buy": {
+          "background": "colors.action_colors.buy.primary",
+          "hover_background": "colors.action_colors.buy.hover",
+          "hover_shadow": "colors.action_colors.buy.shadow"
+        },
+        "sell": {
+          "background": "colors.action_colors.sell.primary",
+          "hover_background": "colors.action_colors.sell.hover",
+          "hover_shadow": "colors.action_colors.sell.shadow"
+        },
+        "disabled": {
+          "opacity": 0.5,
+          "cursor": "not-allowed"
+        }
+      },
+      "states": {
+        "hover": "Brighten background, add colored shadow glow",
+        "active": "Scale 0.98",
+        "disabled": "Reduce opacity, disable pointer events"
+      }
+    },
+    "price_display_card": {
+      "description": "Card showing team prices side-by-side with 24h stats below.",
+      "layout": {
+        "container": "rounded-xl border border-white/10 bg-[#121A30] p-4 sm:p-6",
+        "team_prices": "grid grid-cols-2 gap-3 sm:gap-4",
+        "stats_section": "space-y-2 sm:space-y-3 border-t border-white/10 pt-3 sm:pt-4"
+      },
+      "style": {
+        "background": "colors.background.surface",
+        "border": "borders.subtle",
+        "border_radius": "border_radius.xl"
+      }
+    },
+    "team_price_card": {
+      "description": "Individual price card for each team showing name, price, and 24h change.",
+      "layout": {
+        "container": "rounded-lg border p-3 sm:p-4 md:p-5",
+        "team_name": "mb-1 sm:mb-2 text-xs font-semibold uppercase tracking-wider truncate",
+        "price": "text-2xl sm:text-3xl font-mono font-bold",
+        "change": "mt-1 text-xs font-mono"
+      },
+      "style": {
+        "team1": {
+          "border": "colors.team_colors.team1.border",
+          "background": "colors.team_colors.team1.background",
+          "name_color": "colors.team_colors.team1.text",
+          "price_color": "colors.team_colors.team1.primary"
+        },
+        "team2": {
+          "border": "colors.team_colors.team2.border",
+          "background": "colors.team_colors.team2.background",
+          "name_color": "colors.team_colors.team2.text",
+          "price_color": "colors.team_colors.team2.primary"
+        },
+        "price_font": "typography.font_families.mono",
+        "price_size": "typography.sizes.3xl",
+        "price_weight": "typography.weights.bold",
+        "change_positive": "colors.semantic.positive",
+        "change_negative": "colors.semantic.negative"
+      }
+    },
+    "stat_row": {
+      "description": "Row displaying a single stat (24h Volume, Liquidity, Spread) in the price display card.",
+      "layout": {
+        "container": "space-y-2 sm:space-y-3",
+        "label": "text-xs font-medium text-white/60",
+        "value": "mt-1 text-lg sm:text-xl font-mono font-semibold text-white"
+      },
+      "style": {
+        "label_color": "colors.text.muted",
+        "value_font": "typography.font_families.mono",
+        "value_size": "typography.sizes.xl",
+        "value_weight": "typography.weights.semibold",
+        "value_color": "colors.text.primary"
+      }
+    },
+    "recent_trades_card": {
+      "description": "Card displaying a scrollable list of recent trades for the market.",
+      "layout": {
+        "container": "rounded-xl border border-white/10 bg-[#121A30] p-4 sm:p-5",
+        "header": "mb-3 sm:mb-4 text-sm sm:text-base font-semibold text-white/80",
+        "list": "max-h-[320px] sm:max-h-[380px] overflow-y-auto space-y-1.5 sm:space-y-2 pr-2 scrollbar-thin"
+      },
+      "style": {
+        "background": "colors.background.surface",
+        "border": "borders.subtle",
+        "border_radius": "border_radius.xl"
+      }
+    },
+    "trade_item": {
+      "description": "Individual trade row in the recent trades list.",
+      "layout": {
+        "container": "flex items-center justify-between rounded-lg border border-white/5 bg-[#090E1C] px-2.5 py-1.5 sm:px-3 sm:py-2 text-[10px] sm:text-xs",
+        "content": "flex items-center gap-1 sm:gap-1.5 text-white/80 flex-wrap"
+      },
+      "style": {
+        "background": "colors.background.surface_low",
+        "border": "rgba(255, 255, 255, 0.05)",
+        "border_radius": "border_radius.lg",
+        "team1_color": "colors.team_colors.team1.primary",
+        "team2_color": "colors.team_colors.team2.primary",
+        "bought_color": "colors.action_colors.buy.text",
+        "sold_color": "colors.action_colors.sell.text",
+        "font_size": "typography.sizes.xs",
+        "price_font": "typography.font_families.mono"
+      },
+      "content_structure": [
+        "Team name (colored by team)",
+        "Action (bought/sold, colored by action)",
+        "Price (@ X.XX, monospace)",
+        "Amount ($XXX, monospace)",
+        "Trader name (muted)",
+        "Time ago (muted)"
+      ]
+    },
+    "error_message": {
+      "description": "Alert card for displaying error messages in the trade box.",
+      "layout": {
+        "container": "mb-4 rounded-lg border border-red-500/50 bg-red-500/10 p-3 text-xs text-red-400"
+      },
+      "style": {
+        "background": "rgba(239, 68, 68, 0.1)",
+        "border": "rgba(239, 68, 68, 0.5)",
+        "border_radius": "border_radius.lg",
+        "text_color": "colors.action_colors.sell.text",
+        "font_size": "typography.sizes.xs"
+      }
+    }
+  },
+  "layout_patterns": {
+    "trade_page_structure": {
+      "description": "Overall page layout for market detail/trade pages.",
+      "desktop": {
+        "container": "mx-auto w-full max-w-screen-2xl px-4 py-4 sm:px-6 sm:py-6 md:px-6 xl:px-10",
+        "grid": "grid gap-4 sm:mt-6 sm:gap-6 lg:grid-cols-12 xl:grid-cols-12",
+        "price_display": "lg:col-span-4 xl:col-span-4",
+        "trade_box": "lg:col-span-5 xl:col-span-5",
+        "market_info": "lg:col-span-3 xl:col-span-3",
+        "recent_trades": "mt-6 sm:mt-8 (full width)"
+      },
+      "mobile": {
+        "order": [
+          "Trade box (most important, appears first)",
+          "Price display",
+          "Market info",
+          "Recent trades (full width)"
+        ],
+        "stacking": "All columns stack vertically with consistent spacing"
+      }
+    },
+    "card_grouping": {
+      "description": "How cards are grouped and spaced on the page.",
+      "vertical_spacing": "mt-4 sm:mt-6 for sections, gap-4 sm:gap-6 for grid items",
+      "internal_spacing": "p-4 sm:p-6 for card padding, space-y-4 sm:space-y-6 for internal sections"
+    }
+  },
+  "responsive_breakpoints": {
+    "sm": "640px",
+    "md": "768px",
+    "lg": "1024px",
+    "xl": "1280px",
+    "2xl": "1536px",
+    "description": "Use Tailwind's default breakpoints. Mobile-first approach: design for mobile, enhance for larger screens."
+  },
+  "accessibility_guidelines": {
+    "color_contrast": "Ensure all text meets WCAG AA standards (4.5:1 for normal text, 3:1 for large text)",
+    "focus_states": "All interactive elements must have visible focus indicators (colored borders, rings)",
+    "keyboard_navigation": "All interactive elements must be keyboard accessible",
+    "screen_readers": "Use semantic HTML and ARIA labels where appropriate",
+    "error_communication": "Errors must be communicated both visually (color, icons) and textually"
+  },
+  "implementation_notes": {
+    "tailwind_classes": "Use Tailwind utility classes. Prefer composition over custom CSS.",
+    "conditional_styling": "Use cn() utility for conditional class application (e.g., selected states).",
+    "monospace_numbers": "Always use font-mono for prices, amounts, percentages, and any numeric data.",
+    "opacity_variants": "Use Tailwind's opacity utilities (text-white/60, border-white/20) for consistent opacity levels.",
+    "transitions": "Apply transition-all to interactive elements for smooth state changes.",
+    "responsive_text": "Use responsive text sizes (text-sm sm:text-base) for better mobile experience.",
+    "scrollbars": "Use scrollbar-thin utility class for custom scrollbar styling on scrollable containers."
+  }
+}

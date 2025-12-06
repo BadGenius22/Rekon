@@ -8,6 +8,7 @@ import {
   getActiveMarkets,
   getFeaturedMarkets,
   getMarketsByCategory,
+  getMarketsByEventSlug,
   type GetMarketsParams,
 } from "../services/markets";
 import { getTradesByMarketId } from "../services/trades";
@@ -314,4 +315,19 @@ export async function getMarketChartController(c: Context) {
   }
 
   return c.json(chartData);
+}
+
+/**
+ * GET /api/markets/event/:eventSlug
+ * Get all markets for a specific event (useful for DOTA 2 subevents).
+ */
+export async function getMarketsByEventSlugController(c: Context) {
+  const { eventSlug } = c.req.param();
+
+  if (!eventSlug) {
+    return c.json({ error: "Event slug is required" }, 400);
+  }
+
+  const markets = await getMarketsByEventSlug(eventSlug);
+  return c.json(markets);
 }

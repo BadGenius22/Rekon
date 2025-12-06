@@ -24,6 +24,7 @@ export {
   fetchPolymarketMarketById,
   fetchPolymarketMarketByConditionId,
   fetchGammaEvents,
+  fetchGammaEventBySlug,
   fetchGammaMarketBySlug,
   fetchGammaTags,
   fetchGammaSports,

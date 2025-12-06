@@ -192,6 +192,12 @@ export function mapPolymarketMarket(pmMarket: PolymarketMarket): Market {
     priceChange24h: pmMarket.oneDayPriceChange || undefined,
     priceChange1h: pmMarket.oneHourPriceChange || undefined,
     priceChange1w: pmMarket.oneWeekPriceChange || undefined,
+    // Market grouping (for DOTA 2 subevents)
+    marketGroup: pmMarket.marketGroup || undefined,
+    groupItemTitle: pmMarket.groupItemTitle || undefined,
+    sportsMarketType: pmMarket.sportsMarketType || undefined,
+    // Event slug from events array
+    eventSlug: pmMarket.events?.[0]?.slug || undefined,
   };
 }
 

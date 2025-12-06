@@ -49,6 +49,12 @@ export interface Market {
   trendingScore?: number;
   // Game categorization (cs2, lol, dota2, valorant)
   game?: "cs2" | "lol" | "dota2" | "valorant";
+  // Market grouping (for DOTA 2 subevents: moneyline, game 1, game 2, etc.)
+  marketGroup?: number;
+  groupItemTitle?: string; // e.g., "Moneyline", "Game 1", "Game 2"
+  sportsMarketType?: string; // e.g., "moneyline"
+  // Event slug for grouping related markets
+  eventSlug?: string;
 }
 
 export interface MarketOutcome {

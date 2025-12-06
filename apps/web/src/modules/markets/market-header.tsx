@@ -160,16 +160,16 @@ export async function MarketHeader({
             )
           )}
 
-          {/* Match Title and Tournament */}
+        {/* Match Title and Tournament */}
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold text-white sm:text-2xl md:text-3xl break-words">
-              {matchTitle}
-            </h1>
-            {tournamentName && (
+            {matchTitle}
+          </h1>
+          {tournamentName && (
               <p className="mt-1 text-xs sm:text-sm font-medium text-white/60">
-                {tournamentName}
-              </p>
-            )}
+              {tournamentName}
+            </p>
+          )}
           </div>
         </div>
 

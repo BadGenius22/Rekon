@@ -87,7 +87,7 @@ export function TradeBox({
 
   return (
     <div className="rounded-xl border-2 border-white/20 bg-[#121A30] p-4 sm:p-6 shadow-lg">
-      <h2 className="mb-4 sm:mb-6 text-lg sm:text-xl font-bold text-white">
+      <h2 className="mb-4 sm:mb-6 text-lg font-bold text-white">
         Place Prediction
       </h2>
 
@@ -98,8 +98,8 @@ export function TradeBox({
           className={cn(
             "rounded-lg border px-4 py-3 text-sm font-semibold transition-all",
             selectedTeam === "team1"
-              ? "border-yellow-500/50 bg-yellow-500/20 text-yellow-300"
-              : "border-white/10 bg-[#090E1C] text-white/60 hover:border-white/20"
+              ? "border-[#FACC15]/50 bg-[#FACC15]/20 text-[#FCD34D]"
+              : "border-white/10 bg-[#090E1C] text-white/60 hover:border-white/20 hover:text-white/80"
           )}
         >
           {team1Name}
@@ -109,8 +109,8 @@ export function TradeBox({
           className={cn(
             "rounded-lg border px-4 py-3 text-sm font-semibold transition-all",
             selectedTeam === "team2"
-              ? "border-blue-500/50 bg-blue-500/20 text-blue-300"
-              : "border-white/10 bg-[#090E1C] text-white/60 hover:border-white/20"
+              ? "border-[#3B82F6]/50 bg-[#3B82F6]/20 text-[#93C5FD]"
+              : "border-white/10 bg-[#090E1C] text-white/60 hover:border-white/20 hover:text-white/80"
           )}
         >
           {team2Name}
@@ -124,8 +124,8 @@ export function TradeBox({
           className={cn(
             "rounded-lg border px-4 py-3 text-sm font-semibold transition-all",
             tradeAction === "buy"
-              ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-300"
-              : "border-white/10 bg-[#090E1C] text-white/60 hover:border-white/20"
+              ? "border-[#22C55E]/50 bg-[#22C55E]/20 text-[#86EFAC]"
+              : "border-white/10 bg-[#090E1C] text-white/60 hover:border-white/20 hover:text-white/80"
           )}
         >
           Buy
@@ -135,8 +135,8 @@ export function TradeBox({
           className={cn(
             "rounded-lg border px-4 py-3 text-sm font-semibold transition-all",
             tradeAction === "sell"
-              ? "border-red-500/50 bg-red-500/20 text-red-300"
-              : "border-white/10 bg-[#090E1C] text-white/60 hover:border-white/20"
+              ? "border-[#EF4444]/50 bg-[#EF4444]/20 text-[#FCA5A5]"
+              : "border-white/10 bg-[#090E1C] text-white/60 hover:border-white/20 hover:text-white/80"
           )}
         >
           Sell
@@ -160,7 +160,7 @@ export function TradeBox({
           value={stake}
           onChange={(e) => setStake(e.target.value)}
           placeholder="0.00"
-          className="w-full rounded-lg border-2 border-white/20 bg-[#090E1C] px-3 py-3 sm:px-4 sm:py-4 text-base sm:text-lg font-mono font-semibold text-white placeholder:text-white/40 focus:border-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+          className="w-full rounded-lg border-2 border-white/20 bg-[#090E1C] px-3 py-3 sm:px-4 sm:py-4 text-base sm:text-lg font-mono font-semibold text-white placeholder:text-white/40 focus:border-[#22C55E]/50 focus:outline-none focus:ring-2 focus:ring-[#22C55E]/20"
         />
       </div>
 
@@ -169,18 +169,18 @@ export function TradeBox({
         <div className="mb-4 sm:mb-6 rounded-lg border border-white/10 bg-[#090E1C] p-3 sm:p-4">
           {tradeAction === "buy" ? (
             <>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-white/70">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-white/70">
                   Estimated Shares
-                </span>
-                <span className="font-mono text-lg font-bold text-white">
-                  {estimatedPayout.toFixed(4)} shares
-                </span>
-              </div>
-              <div className="mt-2 text-xs text-white/50">
+            </span>
+            <span className="font-mono text-lg font-bold text-white">
+              {estimatedPayout.toFixed(4)} shares
+            </span>
+          </div>
+          <div className="mt-2 text-xs text-white/50">
                 If {selectedTeamName} wins, you receive{" "}
-                {estimatedPayout.toFixed(4)} shares
-              </div>
+            {estimatedPayout.toFixed(4)} shares
+          </div>
             </>
           ) : (
             <>
@@ -213,10 +213,10 @@ export function TradeBox({
         onClick={handlePlaceTrade}
         disabled={isPlacing || !stake || stakeNum < 0.01}
         className={cn(
-          "w-full rounded-lg px-4 py-3 sm:px-6 sm:py-4 text-sm sm:text-base font-bold text-white transition-all shadow-lg",
+          "w-full rounded-lg px-4 py-3 sm:px-6 sm:py-4 text-sm sm:text-base font-bold text-white transition-all shadow-lg active:scale-[0.98]",
           tradeAction === "buy"
-            ? "bg-emerald-500 hover:bg-emerald-600 hover:shadow-emerald-500/50"
-            : "bg-red-500 hover:bg-red-600 hover:shadow-red-500/50",
+            ? "bg-[#22C55E] hover:bg-[#16A34A] hover:shadow-[0_0_20px_rgba(34,197,94,0.5)]"
+            : "bg-[#EF4444] hover:bg-[#DC2626] hover:shadow-[0_0_20px_rgba(239,68,68,0.5)]",
           (isPlacing || !stake || stakeNum < 0.01) &&
             "cursor-not-allowed opacity-50"
         )}

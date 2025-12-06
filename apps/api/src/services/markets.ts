@@ -10,6 +10,7 @@ import {
   type FetchMarketsParams,
   type FetchGammaEventsParams,
 } from "../adapters/polymarket";
+import type { PolymarketMarket } from "../adapters/polymarket/types";
 import { marketsListCacheService, marketCacheService } from "./cache";
 
 /**
@@ -288,6 +289,78 @@ export async function getMarketsByCategory(
     ...params,
     category,
   });
+}
+
+/**
+ * Gets all markets for a specific event (by event slug).
+ * Uses Gamma API /events/slug/{slug} endpoint which returns event with all markets.
+ * Useful for DOTA 2 subevents (Moneyline, Game 1, Game 2, etc.).
+ * Returns markets sorted by groupItemTitle (Moneyline first, then Game 1, Game 2, etc.).
+ */
+export async function getMarketsByEventSlug(
+  eventSlug: string
+): Promise<Market[]> {
+  try {
+    const { fetchGammaEventBySlug } = await import(
+      "../adapters/polymarket/client"
+    );
+    const event = await fetchGammaEventBySlug(eventSlug);
+
+    if (!event || !event.markets || !Array.isArray(event.markets)) {
+      return [];
+    }
+
+    // Map all markets from the event
+    const markets = (event.markets as PolymarketMarket[])
+      .map((pmMarket) => mapPolymarketMarket(pmMarket))
+      .map((market) => enrichMarket(market));
+
+    // Sort by groupItemTitle: Moneyline/Match Winner first, then Game 1, Game 2, etc.
+    markets.sort((a, b) => {
+      const getSortOrder = (title?: string, sportsType?: string): number => {
+        // Check sportsMarketType first (more reliable)
+        if (sportsType) {
+          const lowerType = sportsType.toLowerCase();
+          if (lowerType === "moneyline") return 0;
+          if (lowerType === "child_moneyline") {
+            // For child_moneyline, check title for game number
+            if (title) {
+              const lower = title.toLowerCase();
+              if (lower.includes("game 1") || lower.includes("game1")) return 1;
+              if (lower.includes("game 2") || lower.includes("game2")) return 2;
+              if (lower.includes("game 3") || lower.includes("game3")) return 3;
+            }
+            return 10; // Child moneyline without game number
+          }
+          if (lowerType === "totals") return 4;
+        }
+
+        // Fallback to title-based sorting
+        if (!title) return 999;
+        const lower = title.toLowerCase();
+        if (lower.includes("moneyline") || lower.includes("match winner"))
+          return 0;
+        if (lower.includes("game 1") || lower.includes("game1")) return 1;
+        if (lower.includes("game 2") || lower.includes("game2")) return 2;
+        if (lower.includes("game 3") || lower.includes("game3")) return 3;
+        if (lower.includes("o/u") || lower.includes("total")) return 4;
+        return 999;
+      };
+
+      return (
+        getSortOrder(a.groupItemTitle, a.sportsMarketType) -
+        getSortOrder(b.groupItemTitle, b.sportsMarketType)
+      );
+    });
+
+    return markets;
+  } catch (error) {
+    console.error(
+      `Failed to fetch markets for event slug ${eventSlug}:`,
+      error
+    );
+    return [];
+  }
 }
 
 /**

@@ -31,7 +31,7 @@ export function MarketInfo({ market }: MarketInfoProps) {
 
   return (
     <div className="rounded-xl border border-white/10 bg-[#121A30] p-4 sm:p-5">
-      <h2 className="mb-3 sm:mb-4 text-xs sm:text-sm font-semibold text-white/80">
+      <h2 className="mb-3 sm:mb-4 text-sm font-semibold text-white/80">
         Market Info
       </h2>
 
