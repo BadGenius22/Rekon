@@ -618,7 +618,20 @@ export async function fetchGammaCommentsByUserAddress(
 export async function fetchGammaPublicSearch(params: {
   query: string;
   limit?: number;
+  limitPerType?: number;
   type?: string;
+  cache?: boolean;
+  eventsStatus?: string;
+  page?: number;
+  eventsTag?: string[];
+  keepClosedMarkets?: number;
+  sort?: string;
+  ascending?: boolean;
+  searchTags?: boolean;
+  searchProfiles?: boolean;
+  recurrence?: string;
+  excludeTagId?: number[];
+  optimized?: boolean;
 }): Promise<unknown> {
   if (OFFLINE_MODE) {
     console.warn(
@@ -633,8 +646,51 @@ export async function fetchGammaPublicSearch(params: {
   if (params.limit !== undefined) {
     searchParams.append("limit", String(params.limit));
   }
+  if (params.limitPerType !== undefined) {
+    searchParams.append("limit_per_type", String(params.limitPerType));
+  }
   if (params.type) {
     searchParams.append("type", params.type);
+  }
+  if (params.cache !== undefined) {
+    searchParams.append("cache", String(params.cache));
+  }
+  if (params.eventsStatus) {
+    searchParams.append("events_status", params.eventsStatus);
+  }
+  if (params.page !== undefined) {
+    searchParams.append("page", String(params.page));
+  }
+  if (params.eventsTag && params.eventsTag.length > 0) {
+    params.eventsTag.forEach((tag) => {
+      searchParams.append("events_tag", tag);
+    });
+  }
+  if (params.keepClosedMarkets !== undefined) {
+    searchParams.append("keep_closed_markets", String(params.keepClosedMarkets));
+  }
+  if (params.sort) {
+    searchParams.append("sort", params.sort);
+  }
+  if (params.ascending !== undefined) {
+    searchParams.append("ascending", String(params.ascending));
+  }
+  if (params.searchTags !== undefined) {
+    searchParams.append("search_tags", String(params.searchTags));
+  }
+  if (params.searchProfiles !== undefined) {
+    searchParams.append("search_profiles", String(params.searchProfiles));
+  }
+  if (params.recurrence) {
+    searchParams.append("recurrence", params.recurrence);
+  }
+  if (params.excludeTagId && params.excludeTagId.length > 0) {
+    params.excludeTagId.forEach((id) => {
+      searchParams.append("exclude_tag_id", String(id));
+    });
+  }
+  if (params.optimized !== undefined) {
+    searchParams.append("optimized", String(params.optimized));
   }
 
   const url = `${GAMMA_API_URL}/public-search?${searchParams.toString()}`;
