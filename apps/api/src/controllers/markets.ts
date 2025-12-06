@@ -81,12 +81,12 @@ export async function getMarketsController(c: Context) {
   const includeResolved = query.includeResolved ?? false;
 
   // By default, only show non-closed (unresolved) markets.
-  // When includeResolved=true, let the service include both open and resolved.
+  // When includeResolved=true, explicitly fetch closed markets (resolved matches).
   // When using tag-based filtering, rely on Polymarket's closed filter only.
   const { esportsOnly: _ignore, ...rest } = params;
   let markets = await getEsportsMarkets({
     ...rest,
-    closed: includeResolved ? undefined : false,
+    closed: includeResolved ? true : false,
   });
 
   // Only filter by resolved status if not using tag-based filtering.

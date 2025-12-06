@@ -109,10 +109,11 @@ export async function HomePage() {
                   </span>
                 </h1>
                 <p className="text-base leading-relaxed text-white/90 sm:text-lg">
-                  Live odds, instant settlement, powered by Polymarket.
+                  Real-time odds with instant settlements. Powered by
+                  Polymarket.
                   <br />
                   <span className="text-sm text-white/75">
-                    No gas. No wallet needed.
+                    Connect your wallet to start trading.
                   </span>
                 </p>
                 <div className="flex flex-wrap items-center gap-3 pt-2">
