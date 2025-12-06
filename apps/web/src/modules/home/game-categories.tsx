@@ -20,22 +20,22 @@ interface GameCategoriesProps {
 
 const gameCategories = [
   {
-    id: "valorant",
-    label: "Valorant",
-  },
-  {
     id: "cs2",
     label: "CS2",
     shortLabel: "CS2",
+  },
+  {
+    id: "lol",
+    label: "League of Legends",
+    shortLabel: "LoL",
   },
   {
     id: "dota2",
     label: "Dota 2",
   },
   {
-    id: "lol",
-    label: "League of Legends",
-    shortLabel: "LoL",
+    id: "valorant",
+    label: "Valorant",
   },
 ] as const;
 

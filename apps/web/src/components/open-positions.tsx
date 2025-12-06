@@ -164,7 +164,7 @@ export function OpenPositions({ userAddress }: OpenPositionsProps) {
                 )}
                 <div className="min-w-0 flex-1">
                   <Link
-                    href={`/markets/${position.conditionId}`}
+                    href={`/markets/${position.slug || position.conditionId}`}
                     className="block truncate text-sm font-medium text-white/96 hover:text-white hover:underline"
                   >
                     {position.title}

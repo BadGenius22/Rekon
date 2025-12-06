@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import type { Market } from "@rekon/types";
 import { formatVolume } from "@rekon/utils";
 import { cn } from "@rekon/ui";
@@ -148,15 +149,8 @@ export function MarketGrid({
         const timeUntilEnd = endDate.getTime() - now.getTime();
         const hoursUntilEnd = timeUntilEnd / (1000 * 60 * 60);
 
-        // Format game name
-        const gameName = market.game
-          ? {
-              cs2: "CS2",
-              lol: "LoL",
-              dota2: "Dota 2",
-              valorant: "Valorant",
-            }[market.game] ?? market.game.toUpperCase()
-          : undefined;
+        // Get game icon from market imageUrl
+        const gameIconUrl = market.imageUrl;
 
         // Format match info (Team A vs Team B)
         const matchInfo =
@@ -168,8 +162,10 @@ export function MarketGrid({
           <MarketCard
             key={market.id}
             marketId={market.id}
+            marketSlug={market.slug}
             title={market.question}
-            game={gameName}
+            game={market.game}
+            gameIconUrl={gameIconUrl}
             matchInfo={matchInfo}
             isLive={isLive}
             hoursUntilEnd={hoursUntilEnd}
@@ -190,8 +186,10 @@ export function MarketGrid({
 
 function MarketCard({
   marketId,
+  marketSlug,
   title,
   game,
+  gameIconUrl,
   matchInfo,
   isLive,
   hoursUntilEnd,
@@ -205,8 +203,10 @@ function MarketCard({
   badge,
 }: {
   marketId: string;
+  marketSlug?: string;
   title: string;
   game?: string;
+  gameIconUrl?: string;
   matchInfo?: string;
   isLive?: boolean;
   hoursUntilEnd?: number;
@@ -219,7 +219,16 @@ function MarketCard({
   liquidity: string;
   badge?: "New" | "Trending";
 }) {
-  // Format date/time for display
+  // Get game label for fallback
+  const gameLabel = game
+    ? {
+        cs2: "CS2",
+        lol: "LoL",
+        dota2: "Dota 2",
+        valorant: "Valorant",
+      }[game] ?? game.toUpperCase()
+    : undefined;
+  // Format date/time for display with timezone
   const formatDateTime = (isoDate: string): string => {
     const date = new Date(isoDate);
     if (Number.isNaN(date.getTime())) return isoDate;
@@ -230,12 +239,17 @@ function MarketCard({
       date.toDateString() ===
       new Date(now.getTime() + 24 * 60 * 60 * 1000).toDateString();
 
+    // Get timezone abbreviation (e.g., "EST", "PST", "UTC")
+    const timeZone = Intl.DateTimeFormat("en-US", {
+      timeZoneName: "short",
+    }).formatToParts(date).find((part) => part.type === "timeZoneName")?.value;
+
     if (isToday) {
-      return date.toLocaleTimeString("en-US", {
+      return `${date.toLocaleTimeString("en-US", {
         hour: "numeric",
         minute: "2-digit",
         hour12: true,
-      });
+      })} ${timeZone || ""}`.trim();
     }
 
     if (isTomorrow) {
@@ -243,17 +257,17 @@ function MarketCard({
         hour: "numeric",
         minute: "2-digit",
         hour12: true,
-      })}`;
+      })} ${timeZone || ""}`.trim();
     }
 
-    // More than 1 day away - show date and time
-    return date.toLocaleDateString("en-US", {
+    // More than 1 day away - show date and time with timezone
+    return `${date.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
-    });
+    })} ${timeZone || ""}`.trim();
   };
 
   // Smart time status display based on market state
@@ -282,16 +296,29 @@ function MarketCard({
 
   return (
     <Link
-      href={`/markets/${marketId}`}
+      href={`/markets/${marketSlug || marketId}`}
       className="group flex h-full flex-col justify-between rounded-xl border border-white/10 bg-[#121A30] p-6 text-left shadow-[0_8px_24px_rgba(15,23,42,0.8)] transition-all hover:-translate-y-1 hover:border-white/20 hover:shadow-[0_12px_32px_rgba(15,23,42,0.95)]"
     >
       <div className="space-y-3">
-        {/* Game title and status */}
+        {/* Game icon and status */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             {game && (
-              <div className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-[10px] font-medium text-white/70">
-                {game}
+              <div className="mb-1.5 inline-flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-[#3B82F6] via-[#22D3EE] to-[#8B5CF6] opacity-80 overflow-hidden">
+                {gameIconUrl ? (
+                  <Image
+                    src={gameIconUrl}
+                    alt={gameLabel || game}
+                    width={24}
+                    height={24}
+                    className="object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <span className="text-[10px] font-bold text-white">
+                    {gameLabel?.charAt(0) || game.charAt(0).toUpperCase()}
+                  </span>
+                )}
               </div>
             )}
           </div>
