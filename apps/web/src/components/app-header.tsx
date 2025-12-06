@@ -3,48 +3,60 @@
 import Link from "next/link";
 import { Bell, Wallet, Search } from "lucide-react";
 import { Navigation } from "./navigation";
+import { MobileMenu } from "./mobile-menu";
 
 export function AppHeader() {
   return (
-    <header className="sticky top-0 z-20 h-16 border-b border-white/5 bg-[#050816]/95 backdrop-blur-sm">
-      <div className="mx-auto flex h-full w-full max-w-screen-2xl items-center justify-between gap-4 px-4 sm:px-6 xl:px-8">
+    <header className="sticky top-0 z-20 h-14 sm:h-16 border-b border-white/5 bg-[#050816]">
+      <div className="mx-auto flex h-full w-full max-w-screen-2xl items-center justify-between gap-2 sm:gap-4 px-3 sm:px-4 md:px-6 xl:px-8">
         {/* Logo + name */}
-        <Link href="/" className="flex min-w-0 items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#3B82F6] via-[#22D3EE] to-[#8B5CF6] shadow-[0_0_20px_rgba(59,130,246,0.5)]" />
+        <Link href="/" className="flex min-w-0 items-center gap-1.5 sm:gap-2.5 shrink-0">
+          <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#3B82F6] via-[#22D3EE] to-[#8B5CF6] shadow-[0_0_20px_rgba(59,130,246,0.5)]" />
           <div className="flex flex-col leading-tight">
-            <span className="truncate text-sm font-semibold tracking-tight text-white">
+            <span className="truncate text-xs sm:text-sm font-semibold tracking-tight text-white">
               Rekon
             </span>
-            <span className="text-[10px] font-medium uppercase tracking-wider text-white/50">
+            <span className="hidden text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-white/50 sm:block">
               Esports Markets
             </span>
           </div>
         </Link>
 
-        {/* Primary nav */}
+        {/* Primary nav - hidden on mobile */}
         <Navigation />
 
         {/* Search + actions */}
-        <div className="flex flex-shrink-0 items-center justify-end gap-2.5">
-          <div className="hidden max-w-[280px] flex-1 items-center gap-2 rounded-lg border border-white/10 bg-[#0C1224]/80 px-3 py-1.5 text-xs text-white/70 shadow-[0_0_20px_rgba(15,23,42,0.8)] backdrop-blur-sm md:flex">
-            <Search className="h-4 w-4 shrink-0 text-white/40" />
+        <div className="flex flex-shrink-0 items-center justify-end gap-1.5 sm:gap-2.5">
+          {/* Search - hidden on mobile, visible on tablet+ */}
+          <div className="hidden max-w-[200px] lg:max-w-[280px] flex-1 items-center gap-2 rounded-lg border border-white/10 bg-[#0C1224]/80 px-2 lg:px-3 py-1.5 text-xs text-white/70 shadow-[0_0_20px_rgba(15,23,42,0.8)] backdrop-blur-sm md:flex">
+            <Search className="h-3.5 w-3.5 lg:h-4 lg:w-4 shrink-0 text-white/40" />
             <input
-              placeholder="Search teams, events, markets"
+              placeholder="Search..."
               className="w-full bg-transparent text-xs text-white placeholder:text-white/40 focus:outline-none"
             />
-            <kbd className="shrink-0 rounded bg-[#121A30] px-1.5 py-0.5 text-[10px] font-medium text-white/45">
+            <kbd className="hidden lg:inline-flex shrink-0 rounded bg-[#121A30] px-1.5 py-0.5 text-[10px] font-medium text-white/45">
               ⌘K
             </kbd>
           </div>
 
-          <button className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-[#090E1C] text-white/60 transition-colors hover:border-white/20 hover:bg-white/5 hover:text-white">
+          {/* Search icon button for mobile */}
+          <button className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-[#090E1C] text-white/60 transition-colors hover:border-white/20 hover:bg-white/5 hover:text-white md:hidden">
+            <Search className="h-4 w-4" />
+          </button>
+
+          {/* Notifications - hidden on very small screens */}
+          <button className="hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-[#090E1C] text-white/60 transition-colors hover:border-white/20 hover:bg-white/5 hover:text-white">
             <Bell className="h-4 w-4" />
           </button>
 
-          <button className="hidden items-center gap-2 rounded-lg bg-[#FACC15] px-4 py-2 text-xs font-semibold text-[#020617] shadow-[0_4px_12px_rgba(250,204,21,0.4)] transition-all hover:bg-[#FCD34D] hover:shadow-[0_6px_16px_rgba(250,204,21,0.5)] active:scale-[0.98] md:inline-flex">
+          {/* Connect wallet - hidden on mobile, icon only on tablet, full on desktop */}
+          <button className="hidden items-center gap-1.5 lg:gap-2 rounded-lg bg-[#FACC15] px-3 lg:px-4 py-2 text-xs font-semibold text-[#020617] shadow-[0_4px_12px_rgba(250,204,21,0.4)] transition-all hover:bg-[#FCD34D] hover:shadow-[0_6px_16px_rgba(250,204,21,0.5)] active:scale-[0.98] md:inline-flex">
             <Wallet className="h-4 w-4" />
-            <span>Connect wallet</span>
+            <span className="hidden lg:inline">Connect wallet</span>
           </button>
+
+          {/* Mobile menu button */}
+          <MobileMenu />
         </div>
       </div>
     </header>

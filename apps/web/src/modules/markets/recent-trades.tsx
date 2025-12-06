@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { formatVolume } from "@rekon/utils";
 import { cn } from "@rekon/ui";
 import { API_CONFIG } from "@rekon/config";
@@ -52,8 +55,7 @@ async function fetchRecentTrades(
   }
 }
 
-function formatTimeAgo(timestamp: number): string {
-  const now = Date.now();
+function formatTimeAgo(timestamp: number, now: number = Date.now()): string {
   const diffMs = now - timestamp * 1000; // Convert Unix timestamp to milliseconds
   const diffMins = Math.floor(diffMs / (1000 * 60));
 
@@ -69,37 +71,90 @@ function formatTimeAgo(timestamp: number): string {
   return `${diffDays}d ago`;
 }
 
-export async function RecentTrades({
+interface Trade {
+  id: string;
+  price: number;
+  amount: number;
+  timestamp: number;
+  side: "yes" | "no";
+  teamName: string;
+  traderName: string;
+  action: string;
+}
+
+export function RecentTrades({
   conditionId,
   team1Name,
   team2Name,
 }: RecentTradesProps) {
-  const rawTrades = await fetchRecentTrades(conditionId);
+  const [trades, setTrades] = useState<Trade[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(Date.now());
 
-  // Map Polymarket Data API trades to display format
-  const trades = rawTrades.map((trade) => {
-    // Determine side: outcomeIndex 0 (team1) BUY = "yes", SELL = "no"
-    // outcomeIndex 1 (team2) BUY = "no", SELL = "yes"
-    const isTeam1 = trade.outcomeIndex === 0;
-    const side: "yes" | "no" =
-      (isTeam1 && trade.side === "BUY") || (!isTeam1 && trade.side === "SELL")
-        ? "yes"
-        : "no";
+  useEffect(() => {
+    async function loadTrades() {
+      try {
+        setLoading(true);
+        const rawTrades = await fetchRecentTrades(conditionId);
 
-    // Map BUY/SELL to bought/sold
-    const action = trade.side === "BUY" ? "bought" : "sold";
+        // Map Polymarket Data API trades to display format
+        const mappedTrades = rawTrades.map((trade) => {
+          // Determine side: outcomeIndex 0 (team1) BUY = "yes", SELL = "no"
+          // outcomeIndex 1 (team2) BUY = "no", SELL = "yes"
+          const isTeam1 = trade.outcomeIndex === 0;
+          const side: "yes" | "no" =
+            (isTeam1 && trade.side === "BUY") ||
+            (!isTeam1 && trade.side === "SELL")
+              ? "yes"
+              : "no";
 
-    return {
-      id: trade.transactionHash,
-      price: trade.price,
-      amount: trade.size,
-      timestamp: trade.timestamp,
-      side,
-      teamName: isTeam1 ? team1Name : team2Name,
-      traderName: trade.name || "Anonymous",
-      action,
-    };
-  });
+          // Map BUY/SELL to bought/sold
+          const action = trade.side === "BUY" ? "bought" : "sold";
+
+          return {
+            id: trade.transactionHash,
+            price: trade.price,
+            amount: trade.size,
+            timestamp: trade.timestamp,
+            side,
+            teamName: isTeam1 ? team1Name : team2Name,
+            traderName: trade.name || "Anonymous",
+            action,
+          };
+        });
+
+        setTrades(mappedTrades);
+      } catch (error) {
+        console.error("Failed to load trades:", error);
+        setTrades([]);
+      } finally {
+        setLoading(false);
+        setCurrentTime(Date.now());
+      }
+    }
+
+    loadTrades();
+
+    // Update time every minute for "time ago" display
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, [conditionId, team1Name, team2Name]);
+
+  if (loading) {
+    return (
+      <div className="rounded-xl border border-white/10 bg-[#121A30] p-4 sm:p-5">
+        <h2 className="mb-3 sm:mb-4 text-sm sm:text-base font-semibold text-white/80">
+          Recent Trades
+        </h2>
+        <div className="space-y-2">
+          <p className="text-xs text-white/60">Loading trades...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (trades.length === 0) {
     return (
@@ -166,7 +221,7 @@ export async function RecentTrades({
                 </span>
                 <span className="text-white/40 hidden sm:inline">—</span>
                 <span className="text-white/60 whitespace-nowrap">
-                  {formatTimeAgo(trade.timestamp)}
+                  {formatTimeAgo(trade.timestamp, currentTime)}
                 </span>
               </div>
             </div>

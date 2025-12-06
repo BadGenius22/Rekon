@@ -1,15 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import type { Market } from "@rekon/types";
-import { cn } from "@rekon/ui";
 
 interface MarketInfoProps {
   market: Market;
 }
 
 export function MarketInfo({ market }: MarketInfoProps) {
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
@@ -30,95 +27,80 @@ export function MarketInfo({ market }: MarketInfoProps) {
     : null;
 
   return (
-    <div className="rounded-xl border border-white/10 bg-[#121A30] p-4 sm:p-5">
-      <h2 className="mb-3 sm:mb-4 text-sm font-semibold text-white/80">
-        Market Info
-      </h2>
-
-      <div className="space-y-2.5 sm:space-y-3 text-xs">
-        {/* Market ID */}
-        <div className="flex items-start justify-between gap-2">
-          <span className="text-white/60 flex-shrink-0 font-medium">
-            Market ID
-          </span>
-          <span className="text-right font-mono text-xs text-white/70 break-all min-w-0 max-w-[60%]">
-            {market.id}
-          </span>
-        </div>
-
-        {/* Created At */}
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-white/60 flex-shrink-0 font-medium">
-            Created
-          </span>
-          <span className="text-right font-mono text-xs text-white/80">
-            {formatDate(market.createdAt)}
-          </span>
-        </div>
-
-        {/* Liquidity Source */}
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-white/60 flex-shrink-0 font-medium">
-            Liquidity Source
-          </span>
-          <span className="text-xs text-white/80">Polymarket CLOB</span>
-        </div>
-
-        {/* Resolution Source */}
-        <div className="flex items-start justify-between gap-2">
-          <span className="text-white/60 flex-shrink-0 font-medium">
-            Resolution Source
-          </span>
-          <span className="text-right text-xs text-white/80 break-words min-w-0 max-w-[60%]">
-            {market.resolutionSource || "esports official API"}
-          </span>
-        </div>
-
-        {/* Category */}
-        {categoryPath && (
-          <div className="flex items-start justify-between gap-2">
-            <span className="text-white/60 flex-shrink-0 font-medium">
-              Category
-            </span>
-            <span className="text-right text-xs text-white/80 break-words min-w-0 max-w-[60%]">
-              {categoryPath}
-            </span>
-          </div>
-        )}
+    <div className="rounded-lg border border-white/10 bg-[#121A30]">
+      {/* Header */}
+      <div className="border-b border-white/10 px-4 py-2.5">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-white/60">
+          Market Information
+        </h2>
       </div>
 
-      {/* Market Description - Expandable */}
-      {market.description && (
-        <div className="mt-4 sm:mt-5 border-t border-white/10 pt-3 sm:pt-4">
-          <button
-            onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-            className="flex w-full items-center justify-between text-xs sm:text-sm font-semibold text-white/80 hover:text-white transition-colors"
-          >
-            <span>Market Description</span>
-            <svg
-              className={cn(
-                "h-4 w-4 transition-transform",
-                isDescriptionExpanded && "rotate-180"
-              )}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </button>
-          {isDescriptionExpanded && (
-            <div className="mt-3 text-xs sm:text-sm text-white/70 leading-relaxed whitespace-pre-line break-words min-w-0 overflow-wrap-anywhere">
-              {market.description}
+      {/* Content Grid */}
+      <div className="p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-[11px]">
+          {/* Market ID */}
+          <div className="space-y-1">
+            <div className="text-[10px] uppercase tracking-wider text-white/50 font-medium">
+              Market ID
+            </div>
+            <div className="font-mono text-xs text-white/80 break-all">
+              {market.id}
+            </div>
+          </div>
+
+          {/* Created At */}
+          <div className="space-y-1">
+            <div className="text-[10px] uppercase tracking-wider text-white/50 font-medium">
+              Created
+            </div>
+            <div className="font-mono text-xs text-white/80">
+              {formatDate(market.createdAt)}
+            </div>
+          </div>
+
+          {/* Liquidity Source */}
+          <div className="space-y-1">
+            <div className="text-[10px] uppercase tracking-wider text-white/50 font-medium">
+              Liquidity
+            </div>
+            <div className="text-xs text-white/80">Polymarket CLOB</div>
+          </div>
+
+          {/* Resolution Source */}
+          <div className="space-y-1">
+            <div className="text-[10px] uppercase tracking-wider text-white/50 font-medium">
+              Resolution
+            </div>
+            <div className="text-xs text-white/80 break-words">
+              {market.resolutionSource || "esports official API"}
+            </div>
+          </div>
+
+          {/* Category */}
+          {categoryPath && (
+            <div className="space-y-1">
+              <div className="text-[10px] uppercase tracking-wider text-white/50 font-medium">
+                Category
+              </div>
+              <div className="text-xs text-white/80 break-words">
+                {categoryPath}
+              </div>
             </div>
           )}
         </div>
-      )}
+
+        {/* Market Description - Always Visible */}
+        {market.description && (
+          <div className="mt-4 pt-4 border-t border-white/10">
+            <div className="mb-3 text-[10px] uppercase tracking-wider text-white/50 font-semibold">
+              Description
+            </div>
+            <div className="text-sm text-white/85 leading-relaxed whitespace-pre-wrap break-words font-normal">
+              {market.description.trim()}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

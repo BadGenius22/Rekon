@@ -9,21 +9,21 @@ interface AppFooterProps {
 export function AppFooter({ marketSlug }: AppFooterProps = {}) {
   return (
     <footer className="border-t border-white/10 bg-[#050816]">
-      <div className="mx-auto w-full max-w-screen-2xl px-4 py-12 md:px-6 xl:px-10">
-        <div className="grid gap-8 md:grid-cols-4">
+      <div className="mx-auto w-full max-w-screen-2xl px-4 py-8 sm:py-10 md:py-12 sm:px-6 xl:px-10">
+        <div className="grid gap-6 sm:gap-8 grid-cols-2 md:grid-cols-4">
           {/* About */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-white">About REKON</h3>
-            <p className="text-xs leading-relaxed text-white/60">
+          <div className="space-y-3 sm:space-y-4 col-span-2 md:col-span-1">
+            <h3 className="text-xs sm:text-sm font-semibold text-white">About REKON</h3>
+            <p className="text-[11px] sm:text-xs leading-relaxed text-white/60">
               Real-time esports prediction markets. Simple. Fast. Powered by
               Polymarket.
             </p>
           </div>
 
           {/* Links */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-white">Links</h3>
-            <ul className="space-y-2 text-xs text-white/60">
+          <div className="space-y-3 sm:space-y-4">
+            <h3 className="text-xs sm:text-sm font-semibold text-white">Links</h3>
+            <ul className="space-y-1.5 sm:space-y-2 text-[11px] sm:text-xs text-white/60">
               <li>
                 <Link
                   href="/markets"
@@ -56,9 +56,9 @@ export function AppFooter({ marketSlug }: AppFooterProps = {}) {
           </div>
 
           {/* Legal */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-white">Legal</h3>
-            <ul className="space-y-2 text-xs text-white/60">
+          <div className="space-y-3 sm:space-y-4">
+            <h3 className="text-xs sm:text-sm font-semibold text-white">Legal</h3>
+            <ul className="space-y-1.5 sm:space-y-2 text-[11px] sm:text-xs text-white/60">
               <li>
                 <Link
                   href="/terms"
@@ -79,27 +79,27 @@ export function AppFooter({ marketSlug }: AppFooterProps = {}) {
           </div>
 
           {/* Social & Attribution */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-white">Connect</h3>
-            <div className="flex items-center gap-3">
+          <div className="space-y-3 sm:space-y-4 col-span-2 md:col-span-1">
+            <h3 className="text-xs sm:text-sm font-semibold text-white">Connect</h3>
+            <div className="flex items-center gap-2 sm:gap-3">
               <a
                 href="https://x.com/rekon"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-[#090E1C] text-white/60 transition-colors hover:border-white/20 hover:bg-white/5 hover:text-white"
+                className="inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg border border-white/10 bg-[#090E1C] text-white/60 transition-colors hover:border-white/20 hover:bg-white/5 hover:text-white"
                 aria-label="X"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </a>
               <a
                 href="https://discord.gg/rekon"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-[#090E1C] text-white/60 transition-colors hover:border-white/20 hover:bg-white/5 hover:text-white"
+                className="inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg border border-white/10 bg-[#090E1C] text-white/60 transition-colors hover:border-white/20 hover:bg-white/5 hover:text-white"
                 aria-label="Discord"
               >
                 <svg
-                  className="h-4 w-4"
+                  className="h-3.5 w-3.5 sm:h-4 sm:w-4"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                   xmlns="http://www.w3.org/2000/svg"
@@ -108,8 +108,8 @@ export function AppFooter({ marketSlug }: AppFooterProps = {}) {
                 </svg>
               </a>
             </div>
-            <div className="pt-4 text-xs text-white/40">
-              <p className="flex items-center gap-1.5">
+            <div className="pt-2 sm:pt-4 text-[10px] sm:text-xs text-white/40">
+              <p className="flex flex-wrap items-center gap-1.5">
                 Powered by{" "}
                 <a
                   href="https://polymarket.com"
@@ -123,7 +123,7 @@ export function AppFooter({ marketSlug }: AppFooterProps = {}) {
                     alt="Polymarket"
                     width={80}
                     height={27}
-                    className="h-5"
+                    className="h-4 sm:h-5"
                   />
                 </a>
               </p>
@@ -132,7 +132,7 @@ export function AppFooter({ marketSlug }: AppFooterProps = {}) {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-8 border-t border-white/5 pt-8 text-center text-xs text-white/40">
+        <div className="mt-6 sm:mt-8 border-t border-white/5 pt-6 sm:pt-8 text-center text-[10px] sm:text-xs text-white/40">
           <p>© {new Date().getFullYear()} REKON. All rights reserved.</p>
         </div>
       </div>

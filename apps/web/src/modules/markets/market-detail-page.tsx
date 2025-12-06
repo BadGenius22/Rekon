@@ -8,7 +8,6 @@ import { TradeBox } from "@/modules/markets/trade-box";
 import { MarketInfo } from "@/modules/markets/market-info";
 import { RecentTrades } from "@/modules/markets/recent-trades";
 import { MarketSubevents } from "@/modules/markets/market-subevents";
-import { AppFooter } from "@/modules/home/app-footer";
 
 async function getMarketFull(
   identifier: string
@@ -449,7 +448,7 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
 
           {/* Mobile/Tablet: Trade Box Second */}
           {/* Desktop: Center Column - Trade Box (MOST IMPORTANT) */}
-          <div className="order-1 lg:order-2 lg:col-span-5 xl:col-span-5">
+          <div className="order-1 lg:order-2 lg:col-span-8 xl:col-span-8">
             <TradeBox
               marketId={market.id}
               team1Name={team1Name}
@@ -458,13 +457,11 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
               team2Price={team2Price}
             />
           </div>
+        </div>
 
-          {/* Mobile/Tablet: Market Info Last */}
-          {/* Desktop: Right Column - Market Info */}
-          <div className="order-3 lg:col-span-3 xl:col-span-3 space-y-4 sm:space-y-6 min-w-0">
-            {/* Minimal Market Info */}
-            <MarketInfo market={market} />
-          </div>
+        {/* Market Info - Below Trade Box */}
+        <div className="mt-4 sm:mt-6">
+          <MarketInfo market={market} />
         </div>
 
         {/* Recent Trades - Centered Full Width */}
@@ -474,11 +471,6 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
             team1Name={team1Name}
             team2Name={team2Name}
           />
-        </div>
-
-        {/* Footer */}
-        <div className="mt-12 sm:mt-16 md:mt-20 lg:mt-24">
-          <AppFooter marketSlug={market.slug} />
         </div>
       </div>
     </div>
