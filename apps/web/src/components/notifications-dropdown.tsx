@@ -65,15 +65,19 @@ export function NotificationsDropdown({ className }: NotificationsDropdownProps)
     } catch (error) {
       // Handle network errors (API not running, CORS, etc.)
       if (error instanceof TypeError && error.message === "Failed to fetch") {
-        console.error(
-          `[Notifications] Network error - API may not be running or CORS issue. URL: ${API_CONFIG.baseUrl}/notifications`
-        );
+        // Only log in development to reduce console noise
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            `[Notifications] Network error - API may not be running or CORS issue. URL: ${API_CONFIG.baseUrl}/notifications`
+          );
+        }
         // Don't show error to user if API is down - just show empty state
         setNotifications([]);
         setUnreadCount(0);
         return;
       }
 
+      // Log other errors
       console.error("[Notifications] Error fetching notifications:", error);
       setNotifications([]);
       setUnreadCount(0);

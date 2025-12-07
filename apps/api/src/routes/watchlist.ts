@@ -11,16 +11,16 @@ import { sessionMiddleware } from "../middleware/session";
  *
  * Defines watchlist-related HTTP endpoints.
  * 
- * GET /watchlist/:sessionId - Get user watchlist
- * POST /watchlist/:sessionId - Add market to watchlist
- * DELETE /watchlist/:sessionId - Remove market from watchlist (or clear all)
+ * GET /watchlist/me - Get user watchlist
+ * POST /watchlist/me - Add market to watchlist
+ * DELETE /watchlist/me - Remove market from watchlist (or clear all)
  */
 
 const watchlistRoutes = new Hono()
   .use("*", sessionMiddleware)
-  .get("/:sessionId", getWatchlistController)
-  .post("/:sessionId", addToWatchlistController)
-  .delete("/:sessionId", removeFromWatchlistController);
+  .get("/me", getWatchlistController)
+  .post("/me", addToWatchlistController)
+  .delete("/me", removeFromWatchlistController);
 
 export { watchlistRoutes };
 

@@ -21,6 +21,11 @@ import { BadRequest, NotFound } from "../utils/http-errors";
  * - User engagement metric (builder ranking points)
  * - Personal market tracking
  * - Foundation for alerts and notifications
+ * 
+ * Identifier Strategy:
+ * - Prefer walletAddress for persistence across devices
+ * - Fall back to sessionId for anonymous users
+ * - When wallet is linked, watchlist persists across devices/browsers
  */
 
 // Watchlist storage (in-memory for MVP, replace with Redis/database for production)
@@ -30,14 +35,28 @@ const watchlistCache = new LRUCache<string, Watchlist>({
 });
 
 /**
- * Gets user watchlist by session ID.
+ * Builds watchlist key from identifier.
+ * Supports both sessionId and walletAddress as identifiers.
+ * When walletAddress is provided, watchlist persists across devices.
+ */
+function buildWatchlistKey(identifier: string): string {
+  return `watchlist:${identifier}`;
+}
+
+/**
+ * Gets user watchlist by identifier (walletAddress or sessionId).
  * Creates empty watchlist if it doesn't exist.
  *
- * @param sessionId - User session ID
+ * @param identifier - Wallet address (preferred) or session ID
+ * @param sessionId - Session ID (for backward compatibility and anonymous users)
  * @returns Watchlist
  */
-export function getWatchlist(sessionId: string): Watchlist {
-  const existing = watchlistCache.get(sessionId);
+export function getWatchlist(
+  identifier: string,
+  sessionId?: string
+): Watchlist {
+  const key = buildWatchlistKey(identifier);
+  const existing = watchlistCache.get(key);
 
   if (existing) {
     return existing;
@@ -45,34 +64,51 @@ export function getWatchlist(sessionId: string): Watchlist {
 
   // Create new empty watchlist
   const newWatchlist: Watchlist = {
-    sessionId,
+    sessionId: sessionId || identifier, // Keep sessionId for backward compatibility
     entries: [],
     updatedAt: new Date().toISOString(),
   };
 
-  watchlistCache.set(sessionId, newWatchlist);
+  watchlistCache.set(key, newWatchlist);
   return newWatchlist;
 }
 
 /**
  * Adds a market to user's watchlist.
  *
- * @param sessionId - User session ID
+ * @param identifier - Wallet address (preferred) or session ID
  * @param request - Add to watchlist request
+ * @param sessionId - Session ID (for backward compatibility)
  * @returns Updated watchlist
  */
 export async function addToWatchlist(
-  sessionId: string,
-  request: AddToWatchlistRequest
+  identifier: string,
+  request: AddToWatchlistRequest,
+  sessionId?: string
 ): Promise<Watchlist> {
-  // Validate market exists
-  const market = await getMarketById(request.marketId);
-  if (!market) {
-    throw NotFound(`Market not found: ${request.marketId}`);
+  // Validate marketId is provided (basic validation)
+  if (!request.marketId || request.marketId.trim() === "") {
+    throw BadRequest("Market ID is required");
+  }
+
+  // Try to validate market exists, but don't fail if it doesn't
+  // (markets might be resolved/closed and no longer accessible via API)
+  let marketExists = false;
+  try {
+    const market = await getMarketById(request.marketId);
+    marketExists = market !== null;
+  } catch (error) {
+    // Market not found or API error - allow adding anyway
+    // User might want to watch resolved/closed markets
+    console.warn(
+      `[Watchlist] Could not validate market ${request.marketId}, adding to watchlist anyway:`,
+      error instanceof Error ? error.message : String(error)
+    );
   }
 
   // Get existing watchlist
-  const watchlist = getWatchlist(sessionId);
+  const key = buildWatchlistKey(identifier);
+  const watchlist = getWatchlist(identifier, sessionId);
 
   // Check if market already in watchlist
   const existingIndex = watchlist.entries.findIndex(
@@ -96,7 +132,7 @@ export async function addToWatchlist(
   }
 
   watchlist.updatedAt = new Date().toISOString();
-  watchlistCache.set(sessionId, watchlist);
+  watchlistCache.set(key, watchlist);
 
   return watchlist;
 }
@@ -104,15 +140,18 @@ export async function addToWatchlist(
 /**
  * Removes a market from user's watchlist.
  *
- * @param sessionId - User session ID
+ * @param identifier - Wallet address (preferred) or session ID
  * @param request - Remove from watchlist request
+ * @param sessionId - Session ID (for backward compatibility)
  * @returns Updated watchlist
  */
 export function removeFromWatchlist(
-  sessionId: string,
-  request: RemoveFromWatchlistRequest
+  identifier: string,
+  request: RemoveFromWatchlistRequest,
+  sessionId?: string
 ): Watchlist {
-  const watchlist = getWatchlist(sessionId);
+  const key = buildWatchlistKey(identifier);
+  const watchlist = getWatchlist(identifier, sessionId);
 
   // Remove entry
   watchlist.entries = watchlist.entries.filter(
@@ -120,7 +159,7 @@ export function removeFromWatchlist(
   );
 
   watchlist.updatedAt = new Date().toISOString();
-  watchlistCache.set(sessionId, watchlist);
+  watchlistCache.set(key, watchlist);
 
   return watchlist;
 }
@@ -128,17 +167,22 @@ export function removeFromWatchlist(
 /**
  * Clears entire watchlist for a user.
  *
- * @param sessionId - User session ID
+ * @param identifier - Wallet address (preferred) or session ID
+ * @param sessionId - Session ID (for backward compatibility)
  * @returns Empty watchlist
  */
-export function clearWatchlist(sessionId: string): Watchlist {
+export function clearWatchlist(
+  identifier: string,
+  sessionId?: string
+): Watchlist {
+  const key = buildWatchlistKey(identifier);
   const watchlist: Watchlist = {
-    sessionId,
+    sessionId: sessionId || identifier, // Keep sessionId for backward compatibility
     entries: [],
     updatedAt: new Date().toISOString(),
   };
 
-  watchlistCache.set(sessionId, watchlist);
+  watchlistCache.set(key, watchlist);
   return watchlist;
 }
 

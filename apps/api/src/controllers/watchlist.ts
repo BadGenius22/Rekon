@@ -20,45 +20,34 @@ import type {
  */
 
 /**
- * GET /watchlist/:sessionId
+ * GET /watchlist/me
  * Gets user's watchlist.
  */
 export async function getWatchlistController(c: Context) {
-  const sessionId = z.string().min(1).parse(c.req.param("sessionId"));
-
   // Get session from context
   const session = getSessionFromContext(c);
   if (!session) {
     return c.json({ error: "Session not found" }, 404);
   }
 
-  // Verify session ID matches
-  if (session.sessionId !== sessionId) {
-    return c.json({ error: "Session ID mismatch" }, 403);
-  }
+  // Prefer walletAddress for persistence across devices
+  const identifier = session.walletAddress || session.sessionId;
 
   // Get watchlist
-  const watchlist = getWatchlist(sessionId);
+  const watchlist = getWatchlist(identifier, session.sessionId);
 
   return c.json(watchlist);
 }
 
 /**
- * POST /watchlist/:sessionId
+ * POST /watchlist/me
  * Adds a market to user's watchlist.
  */
 export async function addToWatchlistController(c: Context) {
-  const sessionId = z.string().min(1).parse(c.req.param("sessionId"));
-
   // Get session from context
   const session = getSessionFromContext(c);
   if (!session) {
     return c.json({ error: "Session not found" }, 404);
-  }
-
-  // Verify session ID matches
-  if (session.sessionId !== sessionId) {
-    return c.json({ error: "Session ID mismatch" }, 403);
   }
 
   // Validate request body
@@ -75,14 +64,17 @@ export async function addToWatchlistController(c: Context) {
     notes: validated.notes,
   };
 
+  // Prefer walletAddress for persistence across devices
+  const identifier = session.walletAddress || session.sessionId;
+
   // Add to watchlist
-  const watchlist = await addToWatchlist(sessionId, request);
+  const watchlist = await addToWatchlist(identifier, request, session.sessionId);
 
   return c.json(watchlist, 201);
 }
 
 /**
- * DELETE /watchlist/:sessionId
+ * DELETE /watchlist/me
  * Removes a market from user's watchlist or clears entire watchlist.
  *
  * Query params:
@@ -90,18 +82,14 @@ export async function addToWatchlistController(c: Context) {
  * - If no marketId, clears entire watchlist
  */
 export async function removeFromWatchlistController(c: Context) {
-  const sessionId = z.string().min(1).parse(c.req.param("sessionId"));
-
   // Get session from context
   const session = getSessionFromContext(c);
   if (!session) {
     return c.json({ error: "Session not found" }, 404);
   }
 
-  // Verify session ID matches
-  if (session.sessionId !== sessionId) {
-    return c.json({ error: "Session ID mismatch" }, 403);
-  }
+  // Prefer walletAddress for persistence across devices
+  const identifier = session.walletAddress || session.sessionId;
 
   // Check if marketId is provided in query params
   const marketId = c.req.query("marketId");
@@ -111,11 +99,11 @@ export async function removeFromWatchlistController(c: Context) {
     const request: RemoveFromWatchlistRequest = {
       marketId,
     };
-    const watchlist = removeFromWatchlist(sessionId, request);
+    const watchlist = removeFromWatchlist(identifier, request, session.sessionId);
     return c.json(watchlist);
   } else {
     // Clear entire watchlist
-    const watchlist = clearWatchlist(sessionId);
+    const watchlist = clearWatchlist(identifier, session.sessionId);
     return c.json(watchlist);
   }
 }

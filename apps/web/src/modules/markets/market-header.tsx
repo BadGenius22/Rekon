@@ -1,6 +1,7 @@
 import type { Market } from "@rekon/types";
 import { API_CONFIG } from "@rekon/config";
 import { MarketCountdown } from "./market-countdown";
+import { WatchlistButton } from "@/components/watchlist-button";
 
 interface MarketHeaderProps {
   market: Market;
@@ -173,7 +174,7 @@ export async function MarketHeader({
           </div>
         </div>
 
-        {/* Status and Countdown */}
+        {/* Status, Countdown, and Watchlist */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-4">
           <div className="flex items-center gap-2">
             {status === "LIVE" && (
@@ -195,6 +196,9 @@ export async function MarketHeader({
           </div>
 
           <MarketCountdown market={market} status={status} />
+
+          {/* Watchlist Button */}
+          <WatchlistButton marketId={market.id} size="md" />
         </div>
       </div>
     </div>

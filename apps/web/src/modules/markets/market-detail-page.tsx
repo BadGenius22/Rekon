@@ -2,6 +2,7 @@ import type { MarketFullResponse, Market } from "@rekon/types";
 import { API_CONFIG } from "@rekon/config";
 import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
+import { WatchlistProviderWrapper } from "@/components/watchlist-provider-wrapper";
 import { MarketHeader } from "@/modules/markets/market-header";
 import { PriceDisplay } from "@/modules/markets/price-display";
 import { TradeBox } from "@/modules/markets/trade-box";
@@ -233,31 +234,32 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
   return (
     <div className="min-h-screen bg-[#030711] text-white">
       <AppHeader />
-      <div className="mx-auto w-full max-w-screen-2xl px-4 py-4 sm:px-6 sm:py-6 md:px-6 xl:px-10">
-        {/* Back Button */}
-        <Link
-          href="/markets"
-          className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-white/60 transition-colors hover:text-white/90 sm:mb-4"
-        >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
+      <WatchlistProviderWrapper>
+        <div className="mx-auto w-full max-w-screen-2xl px-4 py-4 sm:px-6 sm:py-6 md:px-6 xl:px-10">
+          {/* Back Button */}
+          <Link
+            href="/markets"
+            className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-white/60 transition-colors hover:text-white/90 sm:mb-4"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-          Back to Markets
-        </Link>
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+            Back to Markets
+          </Link>
 
-        {/* Market Header */}
-        <MarketHeader
+          {/* Market Header */}
+          <MarketHeader
           market={market}
           status={status}
           team1Name={team1Name}
@@ -464,15 +466,16 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
           <MarketInfo market={market} />
         </div>
 
-        {/* Recent Trades - Centered Full Width */}
-        <div className="mt-6 sm:mt-8">
-          <RecentTrades
-            conditionId={market.conditionId}
-            team1Name={team1Name}
-            team2Name={team2Name}
-          />
+          {/* Recent Trades - Centered Full Width */}
+          <div className="mt-6 sm:mt-8">
+            <RecentTrades
+              conditionId={market.conditionId}
+              team1Name={team1Name}
+              team2Name={team2Name}
+            />
+          </div>
         </div>
-      </div>
+      </WatchlistProviderWrapper>
     </div>
   );
 }

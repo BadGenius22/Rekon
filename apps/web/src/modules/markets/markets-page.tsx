@@ -6,7 +6,7 @@ import { cn } from "@rekon/ui";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/modules/home/app-footer";
 import { ScrollToTop } from "@/components/scroll-to-top";
-import { MarketCard } from "./market-card";
+import { MarketsPageClient } from "./markets-page-client";
 
 async function getMarkets(
   includeResolved: boolean,
@@ -73,8 +73,7 @@ export async function MarketsPage(props: {
     0
   );
 
-  // Use game field from API instead of frontend categorization
-  const categorized = categorizeByGame(markets);
+  // Markets are categorized in the client component
 
   return (
     <div className="min-h-screen bg-[#030711] text-white">
@@ -177,112 +176,8 @@ export async function MarketsPage(props: {
               </div>
             </div>
 
-            {markets.length === 0 ? (
-              <div className="flex justify-center py-16">
-                <div className="inline-flex max-w-md flex-col items-center gap-3 rounded-2xl border border-dashed border-white/15 bg-white/5 px-6 py-6 text-sm text-white/70">
-                  <p className="font-medium">
-                    No markets found for this filter.
-                  </p>
-                  <p className="text-xs text-white/55">
-                    Try switching game or status, or go back to all live esports
-                    markets.
-                  </p>
-                  <Link
-                    href="/markets"
-                    className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:border-white/40"
-                  >
-                    Back to all markets
-                    <span aria-hidden>↺</span>
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <>
-                {categorized.cs2.length > 0 && (
-                  <section className="space-y-4 mb-12 border-t border-white/5 pt-6">
-                    <SectionHeader
-                      title="CS2 Markets"
-                      markets={categorized.cs2}
-                    />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
-                      {categorized.cs2.map((market) => (
-                        <MarketCard key={market.id} market={market} compact />
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-                {categorized.lol.length > 0 && (
-                  <section className="space-y-4 mb-12 border-t border-white/5 pt-6">
-                    <SectionHeader
-                      title="League of Legends Markets"
-                      markets={categorized.lol}
-                    />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
-                      {categorized.lol.map((market) => (
-                        <MarketCard key={market.id} market={market} compact />
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-                {categorized.dota2.length > 0 && (
-                  <section className="space-y-4 mb-12 border-t border-white/5 pt-6">
-                    <SectionHeader
-                      title="Dota 2 Markets"
-                      markets={categorized.dota2}
-                    />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
-                      {categorized.dota2.map((market) => (
-                        <MarketCard key={market.id} market={market} compact />
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-                {categorized.valorant.length > 0 && (
-                  <section className="space-y-4 mb-12 border-t border-white/5 pt-6">
-                    <SectionHeader
-                      title="Valorant Markets"
-                      markets={categorized.valorant}
-                    />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
-                      {categorized.valorant.map((market) => (
-                        <MarketCard key={market.id} market={market} compact />
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-                {/* Show uncategorized markets if any */}
-                {(() => {
-                  const uncategorized = markets.filter(
-                    (m) =>
-                      !categorized.cs2.includes(m) &&
-                      !categorized.lol.includes(m) &&
-                      !categorized.dota2.includes(m) &&
-                      !categorized.valorant.includes(m)
-                  );
-                  return uncategorized.length > 0 ? (
-                    <section className="space-y-5">
-                      <div className="flex items-center gap-3">
-                        <h2 className="text-2xl font-bold text-white">
-                          Other Markets
-                        </h2>
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs font-semibold text-white/70">
-                          {uncategorized.length}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
-                        {uncategorized.map((market) => (
-                          <MarketCard key={market.id} market={market} compact />
-                        ))}
-                      </div>
-                    </section>
-                  ) : null;
-                })()}
-              </>
-            )}
+            {/* Market listings with watchlist filter */}
+            <MarketsPageClient markets={markets} game={game} status={status} />
           </div>
         </div>
 
@@ -298,103 +193,7 @@ export async function MarketsPage(props: {
   );
 }
 
-function categorizeByGame(markets: Market[]): {
-  cs2: Market[];
-  lol: Market[];
-  dota2: Market[];
-  valorant: Market[];
-} {
-  const result = {
-    cs2: [] as Market[],
-    lol: [] as Market[],
-    dota2: [] as Market[],
-    valorant: [] as Market[],
-  };
-
-  // Use game field from API (set by backend enrichment)
-  for (const market of markets) {
-    if (market.game && market.game in result) {
-      result[market.game].push(market);
-    }
-  }
-
-  return result;
-}
-
-function SectionHeader({
-  title,
-  markets,
-}: {
-  title: string;
-  markets: Market[];
-}) {
-  const stats = getSectionStats(markets);
-
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center gap-2.5">
-        <h2 className="text-2xl font-bold text-white">{title}</h2>
-        <span className="group relative ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/15 text-[10px] text-white/60 cursor-default">
-          i
-          <span className="pointer-events-none absolute -top-10 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-md bg-black/90 px-3 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg ring-1 ring-white/10 transition-opacity group-hover:opacity-100">
-            Live esports match markets only.
-          </span>
-        </span>
-      </div>
-      <div className="flex flex-wrap items-center gap-3 text-xs text-white/55">
-        <span>
-          <span className="font-semibold text-white/80">{stats.live}</span> live
-        </span>
-        <span>•</span>
-        <span>
-          <span className="font-semibold text-white/80">{stats.today}</span>{" "}
-          today
-        </span>
-        <span>•</span>
-        <span>
-          24h Vol{" "}
-          <span className="font-mono text-[11px] font-semibold text-emerald-300">
-            {formatVolume(stats.volume24h)}
-          </span>
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function getSectionStats(markets: Market[]): {
-  live: number;
-  today: number;
-  volume24h: number;
-} {
-  const todayStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-
-  let live = 0;
-  let today = 0;
-  let volume24h = 0;
-
-  for (const m of markets) {
-    // Treat a market as live using the same semantics as the backend
-    // controller: not resolved, not closed, and accepting orders.
-    const isLive = !m.isResolved && !m.closed && m.acceptingOrders;
-
-    if (isLive) {
-      live += 1;
-    }
-
-    const created = m.createdAt ? new Date(m.createdAt) : undefined;
-    if (created) {
-      const createdDay = created.toISOString().slice(0, 10);
-      if (createdDay === todayStr) {
-        today += 1;
-      }
-    }
-
-    volume24h += m.volume24h ?? 0;
-  }
-
-  return { live, today, volume24h };
-}
+// Market categorization and rendering moved to MarketsPageClient component
 
 async function getTeams(): Promise<TeamMeta[]> {
   try {

@@ -85,8 +85,19 @@ app.use("*", logger());
 app.use(
   "*",
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: (origin) => {
+      // Allow requests from localhost (any port) in development
+      if (process.env.NODE_ENV !== "production") {
+        if (!origin || origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
+          return origin;
+        }
+      }
+      // In production, use configured frontend URL
+      return process.env.FRONTEND_URL || "http://localhost:3000";
+    },
     credentials: true,
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
   })
 );
 

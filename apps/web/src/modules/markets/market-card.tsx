@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Star } from "lucide-react";
 import type { Market } from "@rekon/types";
 import { formatVolume } from "@rekon/utils";
 import { cn } from "@rekon/ui";
+import { useWatchlist } from "../../hooks/use-watchlist";
 
 function formatDateShort(isoDate: string): string {
   const date = new Date(isoDate);
@@ -133,11 +135,31 @@ export function MarketCard({
   market: Market;
   compact?: boolean;
 }) {
+  const { isInWatchlist, toggleWatchlist } = useWatchlist();
+  const [isToggling, setIsToggling] = useState(false);
+  const inWatchlist = isInWatchlist(market.id);
+
   const yesOutcome = market.outcomes.find(
     (o) => o.name.toLowerCase() === "yes"
   );
   const primaryOutcome = yesOutcome || market.outcomes[0];
   const { team1, team2 } = getTeamPrices(market);
+
+  const handleWatchlistToggle = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (isToggling) return;
+    
+    setIsToggling(true);
+    try {
+      await toggleWatchlist(market.id);
+    } catch (error) {
+      console.error("Failed to toggle watchlist:", error);
+    } finally {
+      setIsToggling(false);
+    }
+  };
 
   const startLabel = market.createdAt
     ? formatDateShort(market.createdAt)
@@ -204,12 +226,35 @@ export function MarketCard({
     <Link
       href={`/markets/${market.slug || market.id}`}
       className={cn(
-        "group block border border-white/10 rounded-lg bg-[#121A30] hover:border-white/20 transition-all duration-200 hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)]",
+        "group block border border-white/10 rounded-lg bg-[#121A30] hover:border-white/20 transition-all duration-200 hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)] relative",
         compact ? "p-4" : "p-5"
       )}
     >
+      {/* Watchlist button - positioned absolutely to avoid Link navigation */}
+      <button
+        onClick={handleWatchlistToggle}
+        disabled={isToggling}
+        className={cn(
+          "absolute top-3 right-3 z-10 flex h-7 w-7 items-center justify-center rounded-lg border transition-all",
+          "focus:outline-none focus:ring-2 focus:ring-[#FACC15]/50 focus:ring-offset-2 focus:ring-offset-[#121A30]",
+          inWatchlist
+            ? "border-[#FACC15]/50 bg-[#FACC15]/20 text-[#FCD34D] hover:bg-[#FACC15]/30"
+            : "border-white/10 bg-[#090E1C] text-white/40 hover:border-white/20 hover:bg-white/5 hover:text-white/70",
+          isToggling && "opacity-50 cursor-not-allowed"
+        )}
+        title={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+        aria-label={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+      >
+        <Star
+          className={cn(
+            "h-3.5 w-3.5 transition-all",
+            inWatchlist && "fill-current"
+          )}
+        />
+      </button>
+
       {/* Header: Title, Status, Time */}
-      <div className="flex items-start justify-between gap-3 mb-4">
+      <div className="flex items-start justify-between gap-3 mb-4 pr-8">
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-2.5">
             {market.imageUrl && (
