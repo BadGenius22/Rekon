@@ -324,6 +324,9 @@ export async function getPortfolioBySession(
     // Calculate lifetime positions from open + closed positions
     // Lifetime = all unique positions (open + closed) in the requested scope
     let lifetimePositions = 0;
+    let closedPositionsForStats: Awaited<
+      ReturnType<typeof fetchPolymarketClosedPositions>
+    > = [];
 
     try {
       // Fetch closed positions from Data API
@@ -361,6 +364,9 @@ export async function getPortfolioBySession(
         scope === "esports"
           ? allClosedPositions.filter(isEsportsPosition)
           : allClosedPositions;
+
+      // Store for later use in stats calculation
+      closedPositionsForStats = scopedClosedPositions;
 
       // Combine open and closed positions, count unique market+outcome combinations
       const allLifetimePositionKeys = new Set<string>();
@@ -526,12 +532,37 @@ export async function getPortfolioBySession(
         // For now, set to 0 until Builder Signing Server is implemented
         const rekonVolume = 0;
 
+        // Calculate Win Rate from closed positions
+        // Win = position where realizedPnl > 0
+        // Loss = position where realizedPnl <= 0
+        let winRate: number | undefined;
+        let bestTradeProfit: number | undefined;
+
+        if (closedPositionsForStats.length > 0) {
+          const wins = closedPositionsForStats.filter(
+            (pos) => (pos.realizedPnl || 0) > 0
+          ).length;
+          const total = closedPositionsForStats.length;
+          winRate = total > 0 ? (wins / total) * 100 : undefined;
+
+          // Find best trade (highest realized profit)
+          bestTradeProfit = Math.max(
+            ...closedPositionsForStats.map((pos) => pos.realizedPnl || 0)
+          );
+          // Only include if positive
+          if (bestTradeProfit <= 0) {
+            bestTradeProfit = undefined;
+          }
+        }
+
         stats = {
           totalVolume,
           rekonVolume,
           esportsShare,
           avgPositionSize,
           exposureByGame,
+          winRate,
+          bestTradeProfit,
         };
       } catch (error) {
         console.error("[Portfolio] Error calculating stats:", error);

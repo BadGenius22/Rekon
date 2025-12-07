@@ -7,6 +7,7 @@ import { DashboardPositionsStat } from "@/components/dashboard-positions-stat";
 import { DashboardPnLStat } from "@/components/dashboard-pnl-stat";
 import { TradeHistoryTable } from "@/components/trade-history-table";
 import { WatchlistPreview } from "@/components/watchlist-preview";
+import { WatchlistProviderWrapper } from "@/components/watchlist-provider-wrapper";
 import { BentoGrid, BentoGridItem } from "@/components/bento-grid";
 
 async function getPortfolio(
@@ -75,12 +76,14 @@ export async function DashboardPage() {
   const esportsExposure = esportsPortfolio?.totalValue ?? 0;
   const totalExposure = totalPortfolio?.totalValue ?? 0;
 
-  // Stats from backend
+  // Stats from backend - all calculations done server-side!
   const stats = esportsPortfolio?.stats;
   const esportsShare = stats?.esportsShare?.toFixed(1) ?? "0";
   const rekonVolume = stats?.rekonVolume ?? 0; // Volume traded through Rekon app
   const avgPositionSize = stats?.avgPositionSize ?? 0;
   const exposureByGame = stats?.exposureByGame ?? [];
+  const winRate = stats?.winRate; // Percentage (0-100) or undefined
+  const bestTradeProfit = stats?.bestTradeProfit; // Dollar amount or undefined
 
   return (
     <main className="min-h-screen bg-[#030711] text-white">
@@ -248,9 +251,17 @@ export async function DashboardPage() {
                 <div className="space-y-3">
                   <InsightRow
                     label="Win Rate"
-                    value="--"
+                    value={
+                      winRate !== undefined
+                        ? `${winRate.toFixed(1)}%`
+                        : "--"
+                    }
                     color="emerald"
-                    description="Coming soon"
+                    description={
+                      winRate !== undefined
+                        ? "Based on closed positions"
+                        : "No closed positions yet"
+                    }
                   />
                   <InsightRow
                     label="Avg. Position Size"
@@ -264,9 +275,17 @@ export async function DashboardPage() {
                   />
                   <InsightRow
                     label="Best Trade"
-                    value="--"
+                    value={
+                      bestTradeProfit !== undefined
+                        ? `+$${formatNumber(bestTradeProfit)}`
+                        : "--"
+                    }
                     color="amber"
-                    description="Coming soon"
+                    description={
+                      bestTradeProfit !== undefined
+                        ? "Highest profit trade"
+                        : "No winning trades yet"
+                    }
                   />
                 </div>
               </div>
@@ -298,7 +317,9 @@ export async function DashboardPage() {
             </BentoGridItem>
 
             <BentoGridItem className="col-span-12 md:col-span-4" delay={0.45}>
-              <WatchlistPreview />
+              <WatchlistProviderWrapper>
+                <WatchlistPreview />
+              </WatchlistProviderWrapper>
             </BentoGridItem>
           </BentoGrid>
         </div>
