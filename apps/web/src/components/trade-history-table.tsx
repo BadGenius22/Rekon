@@ -49,9 +49,9 @@ export function TradeHistoryTable({ trades }: TradeHistoryTableProps) {
           </tr>
         </thead>
         <tbody>
-          {trades.slice(0, 20).map((trade) => (
+          {trades.slice(0, 20).map((trade, index) => (
             <tr
-              key={trade.id}
+              key={`${trade.id}-${index}`}
               className="border-b border-white/5 hover:bg-white/5 transition-colors"
             >
               <td className="py-1.5 px-2 text-white/70 font-mono text-[10px]">

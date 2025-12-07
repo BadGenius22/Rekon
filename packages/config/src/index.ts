@@ -38,6 +38,12 @@ export const POLYMARKET_CONFIG = {
   // builderName: Your builder name/display name
   builderId: process.env.POLYMARKET_BUILDER_ID || undefined,
   builderName: process.env.POLYMARKET_BUILDER_NAME || undefined,
+  // Builder Signing Server URL (for remote signing - recommended)
+  // See: https://docs.polymarket.com/developers/builders/builder-signing-server
+  builderSigningUrl: process.env.POLYMARKET_BUILDER_SIGNING_URL || undefined,
+  // Optional auth token for signing server requests
+  builderSigningToken:
+    process.env.POLYMARKET_BUILDER_SIGNING_TOKEN || undefined,
   // Optional esports game tag IDs for Gamma /events filtering.
   // Polymarket models esports as separate sports (CS2, LoL, Dota 2, Valorant),
   // so we keep per-game tags instead of a single "esports" tag.

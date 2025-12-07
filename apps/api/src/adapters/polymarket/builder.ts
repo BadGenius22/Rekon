@@ -1,162 +1,325 @@
-import { POLYMARKET_CONFIG } from "@rekon/config";
-import { getDataApiHeaders } from "./headers";
-import { trackPolymarketApiFailure } from "../../utils/sentry";
-
 /**
- * Builder Program API Client
+ * Polymarket Builder Integration
  *
- * Provides access to Polymarket Builder Program features:
- * - Leaderboard API: Get aggregated builder rankings
- * - Volume API: Get daily time-series volume data
+ * This module handles Order Attribution for tracking trades made through Rekon.
+ * Uses Polymarket's Builder Program to attribute orders to Rekon.
  *
- * These endpoints help track your builder's performance and compete for grants.
+ * Architecture:
+ * - apps/api (this) → Public API for frontend
+ * - apps/builder-signing-server → Private signing server (secrets here)
+ *
+ * Documentation:
+ * - Order Attribution: https://docs.polymarket.com/developers/builders/order-attribution
+ * - Builder Signing Server: https://docs.polymarket.com/developers/builders/builder-signing-server
+ *
+ * Setup Steps:
+ * 1. Register as a Builder at Polymarket (https://polymarket.com/settings/api)
+ * 2. Set env vars in apps/builder-signing-server/.env:
+ *    - POLYMARKET_BUILDER_API_KEY
+ *    - POLYMARKET_BUILDER_SECRET
+ *    - POLYMARKET_BUILDER_PASSPHRASE
+ * 3. Set env var in apps/api/.env:
+ *    - POLYMARKET_BUILDER_SIGNING_URL=http://localhost:3000/sign
+ * 4. Run both servers: `pnpm dev` (turbo runs both)
  */
 
-const DATA_API_URL = POLYMARKET_CONFIG.dataApiUrl;
+import { POLYMARKET_CONFIG } from "@rekon/config";
 
 /**
- * Builder Leaderboard Entry
+ * Rekon Builder volume tracking
+ * Tracks volume of trades attributed to Rekon via Builder Program
+ */
+export interface RekonVolumeStats {
+  totalVolume: number; // Total USDC volume traded through Rekon
+  tradeCount: number; // Number of trades
+  lastUpdated: string; // ISO timestamp
+}
+
+/**
+ * Get Builder signing URL for remote signing
+ */
+export function getBuilderSigningUrl(): string | null {
+  return POLYMARKET_CONFIG.builderSigningUrl || null;
+}
+
+/**
+ * Check if Builder credentials are configured (for this module)
+ */
+function isBuilderConfigured(): boolean {
+  const creds = POLYMARKET_CONFIG.builderApiKeyCreds;
+  return !!(creds.key && creds.secret && creds.passphrase);
+}
+
+/**
+ * Request signing headers from the Builder Signing Server
+ *
+ * This calls your separate builder-signing-server to get HMAC-signed headers
+ * for order attribution. The signing server holds the secrets, not this API.
+ *
+ * @param method - HTTP method (GET, POST, DELETE)
+ * @param path - API path (e.g., "/order")
+ * @param body - Request body (for POST requests)
+ * @returns Builder headers or null if signing server unavailable
+ */
+export async function getSigningHeaders(
+  method: string,
+  path: string,
+  body?: Record<string, unknown>
+): Promise<BuilderAuthHeaders | null> {
+  const signingUrl = getBuilderSigningUrl();
+
+  if (!signingUrl) {
+    console.log(
+      "[Builder] No signing URL configured - skipping order attribution"
+    );
+    return null;
+  }
+
+  try {
+    const response = await fetch(signingUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // Add auth token if configured
+        ...(POLYMARKET_CONFIG.builderSigningToken && {
+          Authorization: `Bearer ${POLYMARKET_CONFIG.builderSigningToken}`,
+        }),
+      },
+      body: JSON.stringify({ method, path, body }),
+    });
+
+    if (!response.ok) {
+      console.error(
+        `[Builder] Signing server error: ${response.status} ${response.statusText}`
+      );
+      return null;
+    }
+
+    const data = (await response.json()) as { headers: BuilderAuthHeaders };
+    return data.headers;
+  } catch (error) {
+    console.error("[Builder] Failed to get signing headers:", error);
+    return null;
+  }
+}
+
+/**
+ * Fetch Rekon-attributed volume from Polymarket Data API
+ *
+ * This queries the Polymarket Data API's /builders endpoint
+ * to get volume statistics for trades attributed to Rekon.
+ *
+ * @returns RekonVolumeStats or null if not available
+ */
+export async function fetchRekonVolume(): Promise<RekonVolumeStats | null> {
+  const builderId = POLYMARKET_CONFIG.builderId;
+
+  if (!builderId) {
+    console.log(
+      "[Builder] No builder ID configured - volume tracking disabled"
+    );
+    return null;
+  }
+
+  try {
+    // Query Polymarket Data API for builder volume
+    // See: https://docs.polymarket.com/developers/data-api/builders
+    const url = `${POLYMARKET_CONFIG.dataApiUrl}/builders/${builderId}/volume`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        // Builder not found or no volume yet
+        return {
+          totalVolume: 0,
+          tradeCount: 0,
+          lastUpdated: new Date().toISOString(),
+        };
+      }
+      console.error(`[Builder] Volume API error: ${response.status}`);
+      return null;
+    }
+
+    const data = (await response.json()) as {
+      volume?: number;
+      tradeCount?: number;
+    };
+
+    return {
+      totalVolume: data.volume || 0,
+      tradeCount: data.tradeCount || 0,
+      lastUpdated: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("[Builder] Failed to fetch Rekon volume:", error);
+    return null;
+  }
+}
+
+/**
+ * Authentication headers for Builder-attributed requests
+ * These headers are automatically added by the Builder Signing SDK
+ *
+ * Headers:
+ * - POLY_BUILDER_API_KEY: Your builder API key
+ * - POLY_BUILDER_TIMESTAMP: Unix timestamp of signature
+ * - POLY_BUILDER_PASSPHRASE: Your builder passphrase
+ * - POLY_BUILDER_SIGNATURE: HMAC signature of the request
+ */
+export interface BuilderAuthHeaders {
+  POLY_BUILDER_API_KEY: string;
+  POLY_BUILDER_TIMESTAMP: string;
+  POLY_BUILDER_PASSPHRASE: string;
+  POLY_BUILDER_SIGNATURE: string;
+}
+
+// ============================================================================
+// Builder Leaderboard & Volume API (Data API)
+// ============================================================================
+
+/**
+ * Builder leaderboard entry from Data API
  */
 export interface BuilderLeaderboardEntry {
-  builderId: string;
-  builderName: string;
-  volume: number; // Total volume in USD
   rank: number;
-  period: string; // e.g., "2024-01", "all-time"
+  address: string;
+  name?: string;
+  volume: number;
+  tradeCount: number;
 }
 
 /**
- * Builder Volume Data Point
+ * Builder volume data from Data API
  */
 export interface BuilderVolumeData {
-  date: string; // ISO date string
-  volume: number; // Daily volume in USD
-  trades: number; // Number of trades
+  address: string;
+  name?: string;
+  volume: number;
+  tradeCount: number;
+  period?: string;
 }
 
 /**
- * Fetches builder leaderboard rankings.
- * @param period - Time period (e.g., "2024-01", "all-time", "7d", "30d")
- * @param limit - Maximum number of entries to return (default: 100)
+ * Fetch builder leaderboard from Polymarket Data API
+ * Returns top builders by volume
  */
 export async function fetchBuilderLeaderboard(
-  period: string = "all-time",
-  limit: number = 100
+  limit = 100
 ): Promise<BuilderLeaderboardEntry[]> {
-  const url = `${DATA_API_URL}/v1/builders/leaderboard?period=${period}&limit=${limit}`;
+  try {
+    const url = `${POLYMARKET_CONFIG.dataApiUrl}/builders/leaderboard?limit=${limit}`;
 
-  const response = await fetch(url, {
-    headers: getDataApiHeaders(),
-  });
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
 
-  if (!response.ok) {
-    const error = new Error(
-      `Polymarket Builder API error: ${response.status} ${response.statusText}`
-    );
-    
-    // Track Polymarket API failure
-    trackPolymarketApiFailure(url, response.status, error);
-    
-    throw error;
+    if (!response.ok) {
+      console.error(`[Builder] Leaderboard API error: ${response.status}`);
+      return [];
+    }
+
+    const data = (await response.json()) as BuilderLeaderboardEntry[];
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.error("[Builder] Failed to fetch leaderboard:", error);
+    return [];
   }
-
-  const data = await response.json();
-  return Array.isArray(data) ? data : [];
 }
 
 /**
- * Fetches daily volume time-series data for a builder.
- * @param builderId - Builder ID (optional, defaults to your builder ID)
- * @param startDate - Start date (ISO string)
- * @param endDate - End date (ISO string)
+ * Fetch volume data for a specific builder
  */
 export async function fetchBuilderVolume(
-  builderId?: string,
-  startDate?: string,
-  endDate?: string
-): Promise<BuilderVolumeData[]> {
-  const targetBuilderId = builderId || POLYMARKET_CONFIG.builderId;
-  if (!targetBuilderId) {
-    throw new Error("Builder ID is required");
+  builderId: string
+): Promise<BuilderVolumeData | null> {
+  try {
+    const url = `${POLYMARKET_CONFIG.dataApiUrl}/builders/${builderId}/volume`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
+      console.error(`[Builder] Volume API error: ${response.status}`);
+      return null;
+    }
+
+    return (await response.json()) as BuilderVolumeData;
+  } catch (error) {
+    console.error("[Builder] Failed to fetch builder volume:", error);
+    return null;
   }
-
-  const searchParams = new URLSearchParams({
-    builder_id: targetBuilderId,
-  });
-
-  if (startDate) {
-    searchParams.append("start_date", startDate);
-  }
-  if (endDate) {
-    searchParams.append("end_date", endDate);
-  }
-
-  const url = `${DATA_API_URL}/v1/builders/volume?${searchParams.toString()}`;
-
-  const response = await fetch(url, {
-    headers: getDataApiHeaders(),
-  });
-
-  if (!response.ok) {
-    const error = new Error(
-      `Polymarket Builder API error: ${response.status} ${response.statusText}`
-    );
-    
-    // Track Polymarket API failure
-    trackPolymarketApiFailure(url, response.status, error);
-    
-    throw error;
-  }
-
-  const data = await response.json();
-  return Array.isArray(data) ? data : [];
 }
 
 /**
- * Fetches your builder's current stats (volume, rank, etc.).
- * Requires builderId to be configured.
+ * Fetch stats for Rekon's builder account
  */
-export async function fetchMyBuilderStats(): Promise<{
-  builderId: string;
-  builderName: string;
-  totalVolume: number;
-  currentRank: number;
-  dailyVolume: number;
-  weeklyVolume: number;
-  monthlyVolume: number;
-}> {
-  if (!POLYMARKET_CONFIG.builderId) {
-    throw new Error(
-      "Builder ID is required. Set POLYMARKET_BUILDER_ID in .env"
-    );
+export async function fetchMyBuilderStats(): Promise<BuilderVolumeData | null> {
+  const builderId = POLYMARKET_CONFIG.builderId;
+
+  if (!builderId) {
+    return null;
   }
 
-  const [leaderboard, volume] = await Promise.all([
-    fetchBuilderLeaderboard("all-time", 1000),
-    fetchBuilderVolume(POLYMARKET_CONFIG.builderId),
-  ]);
+  return fetchBuilderVolume(builderId);
+}
 
-  const myEntry = leaderboard.find(
-    (entry) => entry.builderId === POLYMARKET_CONFIG.builderId
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+/**
+ * Log Builder status for debugging
+ */
+export function logBuilderStatus(): void {
+  const signingUrl = getBuilderSigningUrl();
+  const builderId = POLYMARKET_CONFIG.builderId;
+  const builderName = POLYMARKET_CONFIG.builderName;
+
+  console.log("");
+  console.log("╔═══════════════════════════════════════════════════════════╗");
+  console.log("║          REKON ORDER ATTRIBUTION STATUS                    ║");
+  console.log("╠═══════════════════════════════════════════════════════════╣");
+  console.log(
+    `║  Builder ID:     ${(builderId || "Not configured").padEnd(40)}║`
   );
-
-  const recentVolume = volume.slice(-30); // Last 30 days
-  const dailyVolume = recentVolume[recentVolume.length - 1]?.volume || 0;
-  const weeklyVolume = recentVolume
-    .slice(-7)
-    .reduce((sum, entry) => sum + entry.volume, 0);
-  const monthlyVolume = recentVolume.reduce(
-    (sum, entry) => sum + entry.volume,
-    0
+  console.log(
+    `║  Builder Name:   ${(builderName || "Not configured").padEnd(40)}║`
   );
+  console.log(
+    `║  Signing Server: ${(signingUrl || "Not configured").padEnd(40)}║`
+  );
+  console.log("╚═══════════════════════════════════════════════════════════╝");
 
-  return {
-    builderId: POLYMARKET_CONFIG.builderId,
-    builderName: POLYMARKET_CONFIG.builderName || "Unknown",
-    totalVolume: myEntry?.volume || 0,
-    currentRank: myEntry?.rank || 0,
-    dailyVolume,
-    weeklyVolume,
-    monthlyVolume,
-  };
+  if (!signingUrl) {
+    console.log("");
+    console.log("[Builder] To enable Rekon order attribution:");
+    console.log("");
+    console.log("  1. Register as a Polymarket Builder:");
+    console.log("     https://polymarket.com/settings/api");
+    console.log("");
+    console.log("  2. Configure apps/builder-signing-server/.env:");
+    console.log("     POLYMARKET_BUILDER_API_KEY=your_key");
+    console.log("     POLYMARKET_BUILDER_SECRET=your_secret");
+    console.log("     POLYMARKET_BUILDER_PASSPHRASE=your_passphrase");
+    console.log("");
+    console.log("  3. Configure apps/api/.env:");
+    console.log(
+      "     POLYMARKET_BUILDER_SIGNING_URL=http://localhost:3000/sign"
+    );
+    console.log("     POLYMARKET_BUILDER_ID=0xYourBuilderAddress");
+    console.log("     POLYMARKET_BUILDER_NAME=Rekon");
+    console.log("");
+    console.log("  4. Run both servers: pnpm dev");
+    console.log("");
+  }
 }

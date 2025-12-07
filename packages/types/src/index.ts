@@ -157,6 +157,25 @@ export interface Portfolio {
   positions: Position[];
   openPositions: number; // Count of open positions
   lifetimePositions: number; // Total count of all positions ever opened
+  // Dashboard stats (calculated by backend)
+  stats?: PortfolioStats;
+}
+
+export interface PortfolioStats {
+  totalVolume: number; // Lifetime traded volume (all Polymarket)
+  rekonVolume: number; // Volume traded through Rekon app (via Builder Attribution)
+  esportsShare: number; // Percentage of esports in total portfolio (0-100)
+  avgPositionSize: number; // Average position size
+  exposureByGame: GameExposure[]; // Breakdown by game
+  winRate?: number; // Win rate percentage (0-100), optional until implemented
+  bestTradeProfit?: number; // Best single trade profit
+}
+
+export interface GameExposure {
+  game: string; // e.g., "CS2", "Dota 2", "LoL", "Valorant"
+  exposure: number; // Dollar amount
+  percentage: number; // Percentage of total esports exposure (0-100)
+  positionCount: number; // Number of positions in this game
 }
 
 // Activity types

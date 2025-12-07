@@ -132,6 +132,43 @@ export function isEsportsPosition(
 type PortfolioScope = "all" | "esports";
 
 /**
+ * Detects which esports game a position belongs to.
+ * Returns the game name or "Other" if not a recognized esports game.
+ */
+function detectGameFromPosition(
+  position: PolymarketPosition | PolymarketClosedPosition
+): string {
+  const slug = (position.slug || "").toLowerCase();
+  const title = (position.title || "").toLowerCase();
+  const eventSlug = (position.eventSlug || "").toLowerCase();
+  const combined = `${slug} ${title} ${eventSlug}`;
+
+  // Counter-Strike
+  if (
+    /cs2|csgo|cs-go|counter-strike|counter strike/.test(combined)
+  ) {
+    return "CS2";
+  }
+
+  // Dota 2
+  if (/dota|dota2|dota-2/.test(combined)) {
+    return "Dota 2";
+  }
+
+  // League of Legends
+  if (/league of legends|lol-/.test(combined)) {
+    return "LoL";
+  }
+
+  // Valorant
+  if (/valorant|vct/.test(combined)) {
+    return "Valorant";
+  }
+
+  return "Other";
+}
+
+/**
  * Portfolio Service
  *
  * Calculates user portfolio from positions and fills.
@@ -411,6 +448,96 @@ export async function getPortfolioBySession(
       realizedPnL30d = 0;
     }
 
+    // Calculate portfolio stats (only for esports scope)
+    let stats: Portfolio["stats"] = undefined;
+    if (scope === "esports") {
+      try {
+        // Calculate exposure by game
+        const gameExposureMap = new Map<
+          string,
+          { exposure: number; count: number }
+        >();
+
+        for (const pos of positionsForScope) {
+          const game = detectGameFromPosition(pos);
+          if (game !== "Other") {
+            const existing = gameExposureMap.get(game) || {
+              exposure: 0,
+              count: 0,
+            };
+            existing.exposure += pos.currentValue;
+            existing.count += 1;
+            gameExposureMap.set(game, existing);
+          }
+        }
+
+        const exposureByGame: Portfolio["stats"]["exposureByGame"] = [];
+        for (const [game, data] of gameExposureMap) {
+          exposureByGame.push({
+            game,
+            exposure: data.exposure,
+            percentage: totalValue > 0 ? (data.exposure / totalValue) * 100 : 0,
+            positionCount: data.count,
+          });
+        }
+        // Sort by exposure descending
+        exposureByGame.sort((a, b) => b.exposure - a.exposure);
+
+        // Calculate total volume from activity API
+        let totalVolume = 0;
+        try {
+          const activity = await fetchPolymarketActivity(walletAddress, {
+            sortBy: "TIMESTAMP",
+            sortDirection: "DESC",
+            limit: 5000, // Fetch up to 5000 trades for volume calculation
+          });
+          const esportsActivity = activity.filter(isEsportsActivity);
+          totalVolume = esportsActivity.reduce(
+            (sum, trade) => sum + Math.abs(trade.usdcSize || 0),
+            0
+          );
+        } catch (error) {
+          console.error("[Portfolio] Error fetching activity for volume:", error);
+        }
+
+        // Calculate esports share (need all portfolio value)
+        let esportsShare = 0;
+        if (scope === "esports") {
+          try {
+            // Use the active positions (not filtered by scope) to get total value
+            const allActivePositions = pmPositions.filter((pos) => pos.size > 0);
+            const allTotalValue = allActivePositions.reduce(
+              (sum, pos) => sum + pos.currentValue,
+              0
+            );
+            esportsShare =
+              allTotalValue > 0 ? (totalValue / allTotalValue) * 100 : 0;
+          } catch (error) {
+            console.error("[Portfolio] Error calculating esports share:", error);
+          }
+        }
+
+        // Calculate average position size
+        const avgPositionSize = openPositions > 0 ? totalValue / openPositions : 0;
+
+        // TODO: Implement Rekon volume tracking via Polymarket Builder Program
+        // This will track volume traded through Rekon app using Order Attribution
+        // See: https://docs.polymarket.com/developers/builders/order-attribution
+        // For now, set to 0 until Builder Signing Server is implemented
+        const rekonVolume = 0;
+
+        stats = {
+          totalVolume,
+          rekonVolume,
+          esportsShare,
+          avgPositionSize,
+          exposureByGame,
+        };
+      } catch (error) {
+        console.error("[Portfolio] Error calculating stats:", error);
+      }
+    }
+
     return {
       totalValue,
       totalPnL: totalUnrealizedPnL + totalRealizedPnL,
@@ -420,6 +547,7 @@ export async function getPortfolioBySession(
       positions: [], // We're using pmPositions data but not mapping to Position[] yet
       openPositions,
       lifetimePositions,
+      stats,
     };
   }
 

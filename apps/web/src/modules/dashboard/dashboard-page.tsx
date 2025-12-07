@@ -1,22 +1,19 @@
-import type { Activity, Portfolio } from "@rekon/types";
+import type { Portfolio, Activity } from "@rekon/types";
 import { API_CONFIG } from "@rekon/config";
 import { cn } from "@rekon/ui";
 import { AppHeader } from "@/components/app-header";
-import { OpenPositions } from "@/components/open-positions";
+import { OpenPositionsCard } from "@/components/open-positions-card";
+import { DashboardPositionsStat } from "@/components/dashboard-positions-stat";
+import { DashboardPnLStat } from "@/components/dashboard-pnl-stat";
 import { TradeHistoryTable } from "@/components/trade-history-table";
-import {
-  DashboardCard,
-  DashboardCardHeader,
-  DashboardCardTitle,
-  DashboardCardContent,
-} from "@/components/dashboard-card";
+import { WatchlistPreview } from "@/components/watchlist-preview";
+import { BentoGrid, BentoGridItem } from "@/components/bento-grid";
 
 async function getPortfolio(
   scope: "esports" | "all"
 ): Promise<Portfolio | null> {
   try {
-    // For now, use hardcoded address. Later, this will be replaced with connected wallet.
-    const userAddress = "0x5d58e38cd0a7e6f5fa67b7f9c2f70dd70df09a15";
+    const userAddress = "0x3b5c629f114098b0dee345fb78b7a3a013c7126e";
     const url = new URL(`${API_CONFIG.baseUrl}/portfolio`);
     url.searchParams.set("user", userAddress);
     url.searchParams.set("scope", scope);
@@ -40,13 +37,13 @@ async function getPortfolio(
 
 async function getTradeHistory(): Promise<Activity[]> {
   try {
-    const userAddress = "0x5d58e38cd0a7e6f5fa67b7f9c2f70dd70df09a15";
+    const userAddress = "0x3b5c629f114098b0dee345fb78b7a3a013c7126e";
     const url = new URL(`${API_CONFIG.baseUrl}/activity`);
     url.searchParams.set("user", userAddress);
     url.searchParams.set("sortBy", "TIMESTAMP");
     url.searchParams.set("sortDirection", "DESC");
     url.searchParams.set("esportsOnly", "true");
-    url.searchParams.set("limit", "50"); // Limit for display, but we'll fetch more for volume calc
+    url.searchParams.set("limit", "50");
 
     const response = await fetch(url.toString(), {
       next: { revalidate: 10 },
@@ -65,202 +62,338 @@ async function getTradeHistory(): Promise<Activity[]> {
   }
 }
 
-async function getTotalVolume(): Promise<number> {
-  try {
-    const userAddress = "0x5d58e38cd0a7e6f5fa67b7f9c2f70dd70df09a15";
-    // Fetch a larger set of trades to calculate total volume
-    // Note: This is an approximation since we're limited by API pagination
-    // For exact total volume, we'd need a dedicated endpoint
-    const url = new URL(`${API_CONFIG.baseUrl}/activity`);
-    url.searchParams.set("user", userAddress);
-    url.searchParams.set("sortBy", "TIMESTAMP");
-    url.searchParams.set("sortDirection", "DESC");
-    url.searchParams.set("esportsOnly", "true");
-    url.searchParams.set("limit", "1000"); // Fetch more for better volume estimate
-
-    const response = await fetch(url.toString(), {
-      next: { revalidate: 60 }, // Cache longer since this is expensive
-    });
-
-    if (!response.ok) {
-      console.warn("Failed to fetch volume data:", response.status);
-      return 0;
-    }
-
-    const data = (await response.json()) as { data: Activity[]; count: number };
-    const allTrades = data.data || [];
-
-    // Sum all trade amounts (usdcSize)
-    return allTrades.reduce((sum, trade) => sum + (trade.amount || 0), 0);
-  } catch (error) {
-    console.warn("Failed to fetch total volume:", error);
-    return 0;
-  }
-}
+// Volume is now calculated in the backend via portfolio.stats.totalVolume
 
 export async function DashboardPage() {
-  const [esportsPortfolio, totalPortfolio, tradeHistory, totalVolume] =
-    await Promise.all([
-      getPortfolio("esports"),
-      getPortfolio("all"),
-      getTradeHistory(),
-      getTotalVolume(),
-    ]);
+  const [esportsPortfolio, totalPortfolio, tradeHistory] = await Promise.all([
+    getPortfolio("esports"),
+    getPortfolio("all"),
+    getTradeHistory(),
+  ]);
 
+  // All values now come from backend - no frontend calculations!
   const esportsExposure = esportsPortfolio?.totalValue ?? 0;
   const totalExposure = totalPortfolio?.totalValue ?? 0;
-  const totalPnL = esportsPortfolio?.totalPnL ?? 0;
 
-  // Calculate esports share based on balance (dollar exposure)
-  const esportsShare =
-    totalExposure > 0 && esportsExposure >= 0
-      ? esportsExposure / totalExposure
-      : undefined;
+  // Stats from backend
+  const stats = esportsPortfolio?.stats;
+  const esportsShare = stats?.esportsShare?.toFixed(1) ?? "0";
+  const rekonVolume = stats?.rekonVolume ?? 0; // Volume traded through Rekon app
+  const avgPositionSize = stats?.avgPositionSize ?? 0;
+  const exposureByGame = stats?.exposureByGame ?? [];
 
   return (
-    <main className="h-screen overflow-hidden bg-[#030711] text-white">
-      <div className="h-full flex flex-col bg-gradient-to-b from-[#050816] via-[#030711] to-black">
+    <main className="min-h-screen bg-[#030711] text-white">
+      {/* Gradient background */}
+      <div className="fixed inset-0 bg-gradient-to-br from-[#0a1628] via-[#030711] to-[#0d0d1a] -z-10" />
+      <div className="fixed inset-0 bg-[url('/grid.svg')] bg-center opacity-[0.02] -z-10" />
+
+      <div className="min-h-screen flex flex-col">
         <AppHeader />
 
-        <div className="flex-1 mx-auto w-full max-w-screen-2xl flex flex-col gap-4 px-4 pt-4 pb-4 md:px-6 xl:px-10 overflow-y-auto">
+        <div className="flex-1 mx-auto w-full max-w-screen-2xl px-4 py-6 md:px-6 xl:px-10">
           {/* Header */}
-          <div className="shrink-0">
-            <h1 className="text-2xl font-semibold text-white/95">Dashboard</h1>
-            <p className="mt-1 text-sm text-white/70">
-              Overview of your esports trading activity on Polymarket.
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+            <p className="mt-2 text-sm text-white/60">
+              Your esports trading performance on Polymarket
             </p>
           </div>
 
-          {/* Cards Grid - Esports-Focused Dashboard */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
-            {/* Portfolio Value (Esports) - Primary Metric */}
-            <DashboardCard className="lg:col-span-1 md:col-span-2">
-              <DashboardCardHeader>
-                <DashboardCardTitle>Portfolio Value</DashboardCardTitle>
-                <p className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">
-                  Esports
-                </p>
-              </DashboardCardHeader>
-              <DashboardCardContent>
-                <div className="text-3xl font-mono font-bold text-white">
-                  $
-                  {esportsExposure.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+          {/* Section 1: Top Stats Row */}
+          <BentoGrid className="mb-4">
+            {/* Hero Card: Portfolio Value */}
+            <BentoGridItem
+              className="col-span-12 md:col-span-6 lg:col-span-4"
+              delay={0}
+              highlight
+            >
+              <div className="h-full p-6 flex flex-col min-h-[200px]">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <span className="text-xs font-medium text-emerald-400/80 uppercase tracking-wider">
+                      Portfolio Value
+                    </span>
+                    <p className="text-[10px] text-white/40 mt-0.5">
+                      Esports Markets
+                    </p>
+                  </div>
+                  <div className="h-10 w-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                    <span className="text-xl">💎</span>
+                  </div>
                 </div>
-                <div className="mt-2 text-xs text-white/50">
-                  Current esports exposure
-                </div>
-              </DashboardCardContent>
-            </DashboardCard>
 
-            {/* Total PnL (Esports) - Performance */}
-            <DashboardCard>
-              <DashboardCardHeader>
-                <DashboardCardTitle>Total PnL</DashboardCardTitle>
-                <p className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">
-                  Esports
-                </p>
-              </DashboardCardHeader>
-              <DashboardCardContent>
-                <div
-                  className={cn(
-                    "text-2xl font-mono font-semibold",
-                    totalPnL >= 0 ? "text-emerald-400" : "text-rose-400"
-                  )}
-                >
-                  {totalPnL >= 0 ? "+" : ""}$
-                  {totalPnL.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+                <div className="flex-1 flex flex-col justify-center">
+                  <div className="text-4xl lg:text-5xl font-mono font-bold text-white tracking-tight">
+                    ${formatNumber(esportsExposure)}
+                  </div>
+                  <div className="mt-3 flex items-center gap-3">
+                    <span className="text-sm text-white/50">
+                      {esportsShare}% of total portfolio
+                    </span>
+                  </div>
                 </div>
-                <div className="mt-2 text-xs text-white/50">
-                  Realized + Unrealized
-                </div>
-              </DashboardCardContent>
-            </DashboardCard>
 
-            {/* Total Exposure (All Markets) - Diversification Context */}
-            <DashboardCard>
-              <DashboardCardHeader>
-                <DashboardCardTitle>Total Exposure</DashboardCardTitle>
-                <p className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">
-                  All Markets
-                </p>
-              </DashboardCardHeader>
-              <DashboardCardContent>
-                <div className="text-2xl font-mono font-semibold text-white">
-                  $
-                  {totalExposure.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+                {/* Mini chart placeholder */}
+                <div className="mt-4 h-12 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                  <div className="flex items-end gap-1 h-6">
+                    {[40, 65, 45, 80, 55, 90, 70].map((h, i) => (
+                      <div
+                        key={i}
+                        className="w-2 bg-emerald-500/60 rounded-sm transition-all"
+                        style={{ height: `${h}%` }}
+                      />
+                    ))}
+                  </div>
                 </div>
-                <div className="mt-2 text-xs text-white/50">
-                  Across all Polymarket
-                </div>
-              </DashboardCardContent>
-            </DashboardCard>
+              </div>
+            </BentoGridItem>
 
-            {/* Total Volume - Activity Metric */}
-            <DashboardCard>
-              <DashboardCardHeader>
-                <DashboardCardTitle>Total Volume</DashboardCardTitle>
-                <p className="text-[10px] text-white/40 mt-1 uppercase tracking-wider">
-                  Through Rekon
-                </p>
-              </DashboardCardHeader>
-              <DashboardCardContent>
-                <div className="text-2xl font-mono font-semibold text-white">
-                  $
-                  {totalVolume.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </div>
-                <div className="mt-2 text-xs text-white/50">
-                  Lifetime trading volume
-                </div>
-              </DashboardCardContent>
-            </DashboardCard>
-          </div>
+            {/* Stats Grid - 2x2 on the right */}
+            <BentoGridItem
+              className="col-span-6 md:col-span-3 lg:col-span-2"
+              delay={0.05}
+            >
+              <DashboardPnLStat />
+            </BentoGridItem>
 
-          {/* Main Content Area with Side Panel */}
-          <div className="flex gap-4 flex-1 min-h-0">
-            {/* Main Table - Open Positions */}
-            <div className="flex-1 min-w-0">
-              <DashboardCard className="flex flex-col h-full min-h-0">
-                <DashboardCardHeader>
-                  <DashboardCardTitle>Open Positions</DashboardCardTitle>
-                  <p className="text-xs text-white/50 mt-1">
-                    Detailed Your Esports Positions
-                  </p>
-                </DashboardCardHeader>
-                <DashboardCardContent className="flex-1 min-h-0 overflow-auto">
-                  <OpenPositions />
-                </DashboardCardContent>
-              </DashboardCard>
-            </div>
+            <BentoGridItem
+              className="col-span-6 md:col-span-3 lg:col-span-2"
+              delay={0.1}
+            >
+              <DashboardPositionsStat />
+            </BentoGridItem>
 
-            {/* Side Panel - Trade History */}
-            <div className="w-96 shrink-0">
-              <DashboardCard className="flex flex-col h-full min-h-0 sticky top-4">
-                <DashboardCardHeader>
-                  <DashboardCardTitle>Trade History</DashboardCardTitle>
-                  <p className="text-xs text-white/50 mt-1">
-                    Recent {tradeHistory.length} trades
-                  </p>
-                </DashboardCardHeader>
-                <DashboardCardContent className="flex-1 min-h-0 overflow-auto">
+            <BentoGridItem
+              className="col-span-6 md:col-span-3 lg:col-span-2"
+              delay={0.15}
+            >
+              <div className="h-full p-5 flex flex-col">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">🌐</span>
+                  <span className="text-xs font-medium text-white/50 uppercase tracking-wider">
+                    Total Exposure
+                  </span>
+                </div>
+                <div className="text-2xl lg:text-3xl font-mono font-bold text-sky-400">
+                  ${formatNumber(totalExposure)}
+                </div>
+                <div className="mt-2 text-xs text-white/40">All Polymarket</div>
+              </div>
+            </BentoGridItem>
+
+            <BentoGridItem
+              className="col-span-6 md:col-span-3 lg:col-span-2"
+              delay={0.2}
+            >
+              <div className="h-full p-5 flex flex-col">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">💰</span>
+                    <span className="text-xs font-medium text-white/50 uppercase tracking-wider">
+                      Volume
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-amber-400/60 font-medium">
+                    REKON
+                  </span>
+                </div>
+                <div className="text-2xl lg:text-3xl font-mono font-bold text-amber-400">
+                  ${formatNumber(rekonVolume)}
+                </div>
+                <div className="mt-2 text-xs text-white/40">
+                  Traded via Rekon
+                </div>
+              </div>
+            </BentoGridItem>
+          </BentoGrid>
+
+          {/* Section 2: Open Positions + Trade History (side by side) */}
+          <div className="grid grid-cols-12 gap-4 mb-4">
+            <BentoGridItem className="col-span-12 lg:col-span-8" delay={0.25}>
+              <OpenPositionsCard />
+            </BentoGridItem>
+
+            <BentoGridItem className="col-span-12 lg:col-span-4" delay={0.3}>
+              <div className="flex flex-col h-[400px]">
+                <div className="p-5 border-b border-white/[0.06]">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-lg font-semibold text-white">
+                        Trade History
+                      </h2>
+                      <p className="text-xs text-white/50 mt-1">
+                        Recent {tradeHistory.length} trades
+                      </p>
+                    </div>
+                    <div className="h-8 w-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                      <span className="text-sm">📋</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex-1 overflow-auto">
                   <TradeHistoryTable trades={tradeHistory} />
-                </DashboardCardContent>
-              </DashboardCard>
-            </div>
+                </div>
+              </div>
+            </BentoGridItem>
           </div>
+
+          {/* Section 3: Bottom Row - Insights */}
+          <BentoGrid>
+            <BentoGridItem className="col-span-12 md:col-span-4" delay={0.35}>
+              <div className="h-full p-5">
+                <h3 className="text-sm font-semibold text-white mb-4">
+                  Performance Insights
+                </h3>
+                <div className="space-y-3">
+                  <InsightRow
+                    label="Win Rate"
+                    value="--"
+                    color="emerald"
+                    description="Coming soon"
+                  />
+                  <InsightRow
+                    label="Avg. Position Size"
+                    value={
+                      avgPositionSize > 0
+                        ? `$${formatNumber(avgPositionSize)}`
+                        : "--"
+                    }
+                    color="sky"
+                    description="Per position"
+                  />
+                  <InsightRow
+                    label="Best Trade"
+                    value="--"
+                    color="amber"
+                    description="Coming soon"
+                  />
+                </div>
+              </div>
+            </BentoGridItem>
+
+            <BentoGridItem className="col-span-12 md:col-span-4" delay={0.4}>
+              <div className="h-full p-5">
+                <h3 className="text-sm font-semibold text-white mb-4">
+                  Exposure by Game
+                </h3>
+                <div className="space-y-3">
+                  {exposureByGame.length > 0 ? (
+                    exposureByGame.map((game) => (
+                      <GameBar
+                        key={game.game}
+                        game={game.game}
+                        percentage={Math.round(game.percentage)}
+                        color={getGameColor(game.game)}
+                        exposure={game.exposure}
+                      />
+                    ))
+                  ) : (
+                    <p className="text-xs text-white/40 text-center py-4">
+                      No esports positions
+                    </p>
+                  )}
+                </div>
+              </div>
+            </BentoGridItem>
+
+            <BentoGridItem className="col-span-12 md:col-span-4" delay={0.45}>
+              <WatchlistPreview />
+            </BentoGridItem>
+          </BentoGrid>
         </div>
       </div>
     </main>
   );
+}
+
+// Helper Components
+
+function InsightRow({
+  label,
+  value,
+  color,
+  description,
+}: {
+  label: string;
+  value: string;
+  color: "emerald" | "sky" | "amber";
+  description: string;
+}) {
+  const colors = {
+    emerald: "text-emerald-400",
+    sky: "text-sky-400",
+    amber: "text-amber-400",
+  };
+
+  return (
+    <div className="flex items-center justify-between py-2 border-b border-white/[0.04] last:border-0">
+      <div>
+        <span className="text-xs text-white/60">{label}</span>
+        <p className="text-[10px] text-white/30">{description}</p>
+      </div>
+      <span className={cn("text-sm font-mono font-semibold", colors[color])}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function GameBar({
+  game,
+  percentage,
+  color,
+  exposure,
+}: {
+  game: string;
+  percentage: number;
+  color: string;
+  exposure?: number;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-white/70">{game}</span>
+        <div className="flex items-center gap-2">
+          {exposure !== undefined && (
+            <span className="font-mono text-white/40 text-[10px]">
+              ${formatNumber(exposure)}
+            </span>
+          )}
+          <span className="font-mono text-white/50">{percentage}%</span>
+        </div>
+      </div>
+      <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+        <div
+          className={cn("h-full rounded-full bg-gradient-to-r", color)}
+          style={{ width: `${Math.min(percentage, 100)}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function getGameColor(game: string): string {
+  const colors: Record<string, string> = {
+    CS2: "from-orange-500 to-orange-600",
+    "Dota 2": "from-red-500 to-red-600",
+    LoL: "from-blue-500 to-blue-600",
+    Valorant: "from-pink-500 to-pink-600",
+  };
+  return colors[game] || "from-gray-500 to-gray-600";
+}
+
+// Utility functions
+
+function formatNumber(value: number): string {
+  if (value >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(2)}M`;
+  }
+  if (value >= 1_000) {
+    return `${(value / 1_000).toFixed(2)}K`;
+  }
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }

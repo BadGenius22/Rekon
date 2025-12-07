@@ -37,18 +37,22 @@ interface PolymarketPosition {
 
 interface OpenPositionsProps {
   userAddress?: string;
+  onPositionsLoaded?: (count: number) => void;
 }
+
+// Default user address - should match the one in dashboard-page.tsx
+const DEFAULT_USER_ADDRESS = "0x3b5c629f114098b0dee345fb78b7a3a013c7126e";
 
 /**
  * Open Positions component that displays raw Polymarket position data.
  * Fetches positions with specific query parameters matching the Polymarket API.
  */
-export function OpenPositions({ userAddress }: OpenPositionsProps) {
+export function OpenPositions({ userAddress, onPositionsLoaded }: OpenPositionsProps) {
   const [positions, setPositions] = useState<PolymarketPosition[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const address = userAddress || "0x5d58e38cd0a7e6f5fa67b7f9c2f70dd70df09a15";
+  const address = userAddress || DEFAULT_USER_ADDRESS;
 
   useEffect(() => {
     async function fetchPositions() {
@@ -73,7 +77,9 @@ export function OpenPositions({ userAddress }: OpenPositionsProps) {
         }
 
         const data = (await response.json()) as PolymarketPosition[];
-        setPositions(Array.isArray(data) ? data : []);
+        const positionList = Array.isArray(data) ? data : [];
+        setPositions(positionList);
+        onPositionsLoaded?.(positionList.length);
       } catch (err) {
         console.error("Failed to fetch open positions:", err);
         setError(
