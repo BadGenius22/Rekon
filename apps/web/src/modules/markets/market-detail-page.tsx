@@ -9,6 +9,7 @@ import { TradeBox } from "@/modules/markets/trade-box";
 import { MarketInfo } from "@/modules/markets/market-info";
 import { RecentTrades } from "@/modules/markets/recent-trades";
 import { MarketSubevents } from "@/modules/markets/market-subevents";
+import { BentoGrid, BentoGridItem } from "@/components/bento-grid";
 
 async function getMarketFull(
   identifier: string
@@ -152,8 +153,6 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
     marketFull;
 
   // Fetch related markets (subevents) if eventSlug is available
-  // Show subevents whenever eventSlug exists - this is what groups markets together
-  // The eventSlug is the key field that links Moneyline, Game 1, Game 2, O/U, etc.
   let relatedMarkets: Market[] = [];
   const shouldShowSubevents = !!market.eventSlug;
 
@@ -161,7 +160,7 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
     try {
       const relatedMarketsResponse = await fetch(
         `${API_CONFIG.baseUrl}/markets/event/${market.eventSlug}`,
-        { next: { revalidate: 60 } } // Cache for 1 minute
+        { next: { revalidate: 60 } }
       );
       if (relatedMarketsResponse.ok) {
         relatedMarkets = await relatedMarketsResponse.json();
@@ -174,31 +173,17 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
     } catch (error) {
       console.warn("Failed to fetch related markets:", error, market.eventSlug);
     }
-  } else {
-    // Debug: Log when eventSlug is missing to help diagnose the issue
-    console.warn("Market missing eventSlug, subevents will not be shown:", {
-      marketId: market.id,
-      question: market.question,
-      sportsMarketType: market.sportsMarketType,
-      groupItemTitle: market.groupItemTitle,
-      game: market.game,
-    });
   }
 
-  // Get team names and prices from outcomes (for esports markets)
-  // For esports markets, outcomes are team names, not YES/NO
+  // Get team names and prices from outcomes
   const team1Name = market.outcomes[0]?.name || "Team 1";
   const team2Name = market.outcomes[1]?.name || "Team 2";
   const team1Price = market.outcomes[0]?.price ?? 0.5;
   const team2Price = market.outcomes[1]?.price ?? 0.5;
+  const team1PriceChange24h = metrics.priceChange24h;
+  const team2PriceChange24h = -metrics.priceChange24h;
 
-  // Calculate 24h price changes for each team (if available)
-  // For now, use overall price change, but this could be enhanced with team-specific data
-  const team1PriceChange24h = metrics.priceChange24h; // TODO: Get team-specific price change
-  const team2PriceChange24h = -metrics.priceChange24h; // Inverse for now
-
-  // Determine league from market category/game
-  // Map cs2 -> csgo for API compatibility
+  // Determine league
   const league =
     market.game === "cs2"
       ? "csgo"
@@ -221,8 +206,6 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
   const startDate = market.createdAt ? new Date(market.createdAt) : null;
   const isResolved = market.isResolved || market.closed;
   const isLive = market.active && !isResolved && !market.closed;
-  const isUpcoming =
-    !isResolved && endDate > now && (!startDate || startDate > now);
 
   let status: "LIVE" | "UPCOMING" | "RESOLVED" = "UPCOMING";
   if (isResolved) {
@@ -231,22 +214,29 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
     status = "LIVE";
   }
 
+  // Prepare subevents
+  const allMarkets = prepareSubevents(market, relatedMarkets);
+
   return (
     <div className="min-h-screen bg-[#030711] text-white">
+      {/* Gradient background */}
+      <div className="fixed inset-0 bg-gradient-to-br from-[#0a1628] via-[#030711] to-[#0d0d1a] -z-10" />
+      <div className="fixed inset-0 bg-[url('/grid.svg')] bg-center opacity-[0.02] -z-10" />
+
       <AppHeader />
+      
       <WatchlistProviderWrapper>
         <div className="mx-auto w-full max-w-screen-2xl px-4 py-4 sm:px-6 sm:py-6 md:px-6 xl:px-10">
           {/* Back Button */}
           <Link
             href="/markets"
-            className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-white/60 transition-colors hover:text-white/90 sm:mb-4"
+            className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-white/50 transition-colors hover:text-white group"
           >
             <svg
-              className="h-4 w-4"
+              className="h-4 w-4 transition-transform group-hover:-translate-x-1"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
             >
               <path
                 strokeLinecap="round"
@@ -258,224 +248,195 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
             Back to Markets
           </Link>
 
-          {/* Market Header */}
-          <MarketHeader
-          market={market}
-          status={status}
-          team1Name={team1Name}
-          team2Name={team2Name}
-          team1Price={team1Price}
-          team2Price={team2Price}
-          league={league}
-        />
-
-        {/* Subevents (Moneyline, Game 1, Game 2, O/U) - For esports markets with eventSlug */}
-        {/* Always show if shouldShowSubevents is true, even if relatedMarkets is empty */}
-        {shouldShowSubevents &&
-          (() => {
-            // Deduplicate markets by ID to avoid duplicate keys
-            const marketMap = new Map<string, Market>();
-            // Always add current market FIRST to ensure it's always shown
-            // This is critical - even if fetch fails or returns empty, current market should appear
-            marketMap.set(market.id, market);
-            // Add all related markets (they will overwrite if duplicate, but that's fine)
-            relatedMarkets.forEach((m) => marketMap.set(m.id, m));
-            let allMarkets = Array.from(marketMap.values());
-
-            // Safety check: Ensure current market is always in the list
-            // This should never be needed since we add it first, but defensive programming
-            const hasCurrentMarket = allMarkets.some((m) => m.id === market.id);
-            if (!hasCurrentMarket) {
-              console.warn(
-                "Current market missing from subevents list, adding it:",
-                market.id,
-                market.groupItemTitle || market.sportsMarketType || "Unknown"
-              );
-              // Force add it at the beginning
-              allMarkets = [market, ...allMarkets];
-            }
-
-            // Sort markets consistently: Standardized order across all games
-            // Moneyline → O/U → Game 1/Map 1 → Game 2/Map 2 → Game 3/Map 3
-            // This groups match-level markets first, then individual game/map markets
-            // This ensures buttons maintain their position regardless of which is active
-            // Use stable sort with market ID as secondary key to prevent position swapping
-            allMarkets.sort((a, b) => {
-              // First, use marketGroup if available (Polymarket's grouping)
-              if (a.marketGroup !== undefined && b.marketGroup !== undefined) {
-                if (a.marketGroup !== b.marketGroup) {
-                  return a.marketGroup - b.marketGroup;
-                }
-              } else if (a.marketGroup !== undefined) {
-                return -1; // Markets with group come first
-              } else if (b.marketGroup !== undefined) {
-                return 1;
-              }
-
-              const getSortOrder = (
-                title?: string,
-                sportsType?: string,
-                question?: string
-              ): number => {
-                // Check sportsMarketType first (most reliable)
-                if (sportsType) {
-                  const lowerType = sportsType.toLowerCase();
-                  if (lowerType === "moneyline") return 0;
-                  if (lowerType === "totals") return 1; // O/U comes after Moneyline
-
-                  if (lowerType === "child_moneyline") {
-                    // For child_moneyline, check title and question for game/map number
-                    const searchText = (title || question || "").toLowerCase();
-
-                    // Check for both "Map" (CS2/Valorant) and "Game" (Dota 2)
-                    // Standardized: both come after O/U
-                    if (
-                      searchText.includes("map 1") ||
-                      searchText.includes("map1") ||
-                      searchText.includes("game 1") ||
-                      searchText.includes("game1")
-                    )
-                      return 2; // After O/U (which is 1)
-                    if (
-                      searchText.includes("map 2") ||
-                      searchText.includes("map2") ||
-                      searchText.includes("game 2") ||
-                      searchText.includes("game2")
-                    )
-                      return 3;
-                    if (
-                      searchText.includes("map 3") ||
-                      searchText.includes("map3") ||
-                      searchText.includes("game 3") ||
-                      searchText.includes("game3")
-                    )
-                      return 4;
-                    return 10; // Child moneyline without game/map number
-                  }
-                }
-
-                // Fallback to title-based sorting
-                const searchText = (title || question || "").toLowerCase();
-                if (
-                  searchText.includes("moneyline") ||
-                  searchText.includes("match winner")
-                )
-                  return 0;
-
-                // O/U variations: "o/u", "over/under", "total", "totals", "ou"
-                const isTotals =
-                  searchText.includes("o/u") ||
-                  searchText.includes("over/under") ||
-                  searchText.includes("over under") ||
-                  searchText.startsWith("ou ") ||
-                  (searchText.includes("total") &&
-                    !searchText.includes("match"));
-
-                if (isTotals) {
-                  return 1; // O/U comes after Moneyline, before games/maps
-                }
-
-                // Check for games/maps (both "game" and "map" use same order)
-                if (
-                  searchText.includes("map 1") ||
-                  searchText.includes("map1") ||
-                  searchText.includes("game 1") ||
-                  searchText.includes("game1")
-                )
-                  return 2;
-                if (
-                  searchText.includes("map 2") ||
-                  searchText.includes("map2") ||
-                  searchText.includes("game 2") ||
-                  searchText.includes("game2")
-                )
-                  return 3;
-                if (
-                  searchText.includes("map 3") ||
-                  searchText.includes("map3") ||
-                  searchText.includes("game 3") ||
-                  searchText.includes("game3")
-                )
-                  return 4;
-
-                return 999;
-              };
-
-              const orderA = getSortOrder(
-                a.groupItemTitle,
-                a.sportsMarketType,
-                a.question
-              );
-              const orderB = getSortOrder(
-                b.groupItemTitle,
-                b.sportsMarketType,
-                b.question
-              );
-
-              // Primary sort: by type order
-              if (orderA !== orderB) {
-                return orderA - orderB;
-              }
-
-              // Secondary sort: by market ID for stable ordering
-              // This ensures markets with the same type maintain consistent positions
-              return a.id.localeCompare(b.id);
-            });
-
-            return (
-              <MarketSubevents
-                markets={allMarkets}
-                currentMarketId={market.id}
+          {/* Bento Grid Layout */}
+          <BentoGrid>
+            {/* Hero: Market Header - Full Width */}
+            <BentoGridItem className="col-span-12" delay={0}>
+              <MarketHeader
+                market={market}
+                status={status}
+                team1Name={team1Name}
+                team2Name={team2Name}
+                team1Price={team1Price}
+                team2Price={team2Price}
+                league={league}
               />
-            );
-          })()}
+            </BentoGridItem>
 
-        {/* Responsive Grid Layout */}
-        <div className="mt-4 grid gap-4 sm:mt-6 sm:gap-6 lg:grid-cols-12">
-          {/* Mobile/Tablet: Trade Box First (MOST IMPORTANT) */}
-          {/* Desktop: Left Column - Price Display */}
-          <div className="order-2 lg:order-1 lg:col-span-4 xl:col-span-4">
-            <PriceDisplay
-              team1Name={team1Name}
-              team2Name={team2Name}
-              team1Price={team1Price}
-              team2Price={team2Price}
-              team1PriceChange24h={team1PriceChange24h}
-              team2PriceChange24h={team2PriceChange24h}
-              volume24h={metrics.volume24h}
-              liquidity={metrics.liquidity}
-              spread={spread}
-            />
-          </div>
+            {/* Subevents - Full Width (if available) */}
+            {shouldShowSubevents && (
+              <BentoGridItem className="col-span-12" delay={0.05}>
+                <MarketSubevents
+                  markets={allMarkets}
+                  currentMarketId={market.id}
+                />
+              </BentoGridItem>
+            )}
 
-          {/* Mobile/Tablet: Trade Box Second */}
-          {/* Desktop: Center Column - Trade Box (MOST IMPORTANT) */}
-          <div className="order-1 lg:order-2 lg:col-span-8 xl:col-span-8">
-            <TradeBox
-              marketId={market.id}
-              team1Name={team1Name}
-              team2Name={team2Name}
-              team1Price={team1Price}
-              team2Price={team2Price}
-            />
-          </div>
-        </div>
+            {/* Trade Box - Main Focus (larger on desktop) */}
+            <BentoGridItem 
+              className="col-span-12 lg:col-span-8 row-span-2" 
+              delay={0.1}
+              highlight
+            >
+              <TradeBox
+                marketId={market.id}
+                team1Name={team1Name}
+                team2Name={team2Name}
+                team1Price={team1Price}
+                team2Price={team2Price}
+              />
+            </BentoGridItem>
 
-        {/* Market Info - Below Trade Box */}
-        <div className="mt-4 sm:mt-6">
-          <MarketInfo market={market} />
-        </div>
+            {/* Price Display - Side Panel */}
+            <BentoGridItem className="col-span-12 lg:col-span-4" delay={0.15}>
+              <PriceDisplay
+                team1Name={team1Name}
+                team2Name={team2Name}
+                team1Price={team1Price}
+                team2Price={team2Price}
+                team1PriceChange24h={team1PriceChange24h}
+                team2PriceChange24h={team2PriceChange24h}
+                volume24h={metrics.volume24h}
+                liquidity={metrics.liquidity}
+                spread={spread}
+              />
+            </BentoGridItem>
 
-          {/* Recent Trades - Centered Full Width */}
-          <div className="mt-6 sm:mt-8">
-            <RecentTrades
-              conditionId={market.conditionId}
-              team1Name={team1Name}
-              team2Name={team2Name}
-            />
-          </div>
+            {/* Quick Stats - Small Cards */}
+            <BentoGridItem className="col-span-6 lg:col-span-2" delay={0.2}>
+              <QuickStatCard
+                label="24h Volume"
+                value={formatCompact(metrics.volume24h)}
+                icon="💰"
+                color="emerald"
+              />
+            </BentoGridItem>
+
+            <BentoGridItem className="col-span-6 lg:col-span-2" delay={0.25}>
+              <QuickStatCard
+                label="Liquidity"
+                value={formatCompact(metrics.liquidity)}
+                icon="💧"
+                color="sky"
+              />
+            </BentoGridItem>
+
+            {/* Market Info - Medium Card */}
+            <BentoGridItem className="col-span-12 lg:col-span-6" delay={0.3}>
+              <MarketInfo market={market} />
+            </BentoGridItem>
+
+            {/* Recent Trades - Medium Card */}
+            <BentoGridItem className="col-span-12 lg:col-span-6" delay={0.35}>
+              <RecentTrades
+                conditionId={market.conditionId}
+                team1Name={team1Name}
+                team2Name={team2Name}
+              />
+            </BentoGridItem>
+          </BentoGrid>
         </div>
       </WatchlistProviderWrapper>
     </div>
   );
+}
+
+// Helper function to prepare subevents
+function prepareSubevents(market: Market, relatedMarkets: Market[]): Market[] {
+  const marketMap = new Map<string, Market>();
+  marketMap.set(market.id, market);
+  relatedMarkets.forEach((m) => marketMap.set(m.id, m));
+  let allMarkets = Array.from(marketMap.values());
+
+  // Sort markets consistently
+  allMarkets.sort((a, b) => {
+    if (a.marketGroup !== undefined && b.marketGroup !== undefined) {
+      if (a.marketGroup !== b.marketGroup) {
+        return a.marketGroup - b.marketGroup;
+      }
+    } else if (a.marketGroup !== undefined) {
+      return -1;
+    } else if (b.marketGroup !== undefined) {
+      return 1;
+    }
+
+    const getSortOrder = (
+      title?: string,
+      sportsType?: string,
+      question?: string
+    ): number => {
+      if (sportsType) {
+        const lowerType = sportsType.toLowerCase();
+        if (lowerType === "moneyline") return 0;
+        if (lowerType === "totals") return 1;
+        if (lowerType === "child_moneyline") {
+          const searchText = (title || question || "").toLowerCase();
+          if (searchText.includes("map 1") || searchText.includes("game 1")) return 2;
+          if (searchText.includes("map 2") || searchText.includes("game 2")) return 3;
+          if (searchText.includes("map 3") || searchText.includes("game 3")) return 4;
+          return 10;
+        }
+      }
+
+      const searchText = (title || question || "").toLowerCase();
+      if (searchText.includes("moneyline") || searchText.includes("match winner")) return 0;
+      if (searchText.includes("o/u") || searchText.includes("over/under") || searchText.includes("total")) return 1;
+      if (searchText.includes("map 1") || searchText.includes("game 1")) return 2;
+      if (searchText.includes("map 2") || searchText.includes("game 2")) return 3;
+      if (searchText.includes("map 3") || searchText.includes("game 3")) return 4;
+      return 999;
+    };
+
+    const orderA = getSortOrder(a.groupItemTitle, a.sportsMarketType, a.question);
+    const orderB = getSortOrder(b.groupItemTitle, b.sportsMarketType, b.question);
+
+    if (orderA !== orderB) return orderA - orderB;
+    return a.id.localeCompare(b.id);
+  });
+
+  return allMarkets;
+}
+
+// Quick stat card component
+function QuickStatCard({
+  label,
+  value,
+  icon,
+  color,
+}: {
+  label: string;
+  value: string;
+  icon: string;
+  color: "emerald" | "sky" | "purple" | "amber";
+}) {
+  const colorClasses = {
+    emerald: "from-emerald-500/20 to-emerald-500/5 border-emerald-500/30 text-emerald-400",
+    sky: "from-sky-500/20 to-sky-500/5 border-sky-500/30 text-sky-400",
+    purple: "from-purple-500/20 to-purple-500/5 border-purple-500/30 text-purple-400",
+    amber: "from-amber-500/20 to-amber-500/5 border-amber-500/30 text-amber-400",
+  };
+
+  return (
+    <div className={`h-full rounded-xl border bg-gradient-to-br p-4 ${colorClasses[color]}`}>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-lg">{icon}</span>
+        <span className="text-xs font-medium text-white/50 uppercase tracking-wider">
+          {label}
+        </span>
+      </div>
+      <div className="text-2xl font-bold font-mono">{value}</div>
+    </div>
+  );
+}
+
+// Format number compactly
+function formatCompact(value: number): string {
+  if (value >= 1_000_000) {
+    return `$${(value / 1_000_000).toFixed(1)}M`;
+  }
+  if (value >= 1_000) {
+    return `$${(value / 1_000).toFixed(1)}K`;
+  }
+  return `$${value.toFixed(0)}`;
 }
