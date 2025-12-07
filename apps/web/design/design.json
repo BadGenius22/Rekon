@@ -1,29 +1,42 @@
 {
   "meta": {
     "name": "Rekon Esports Markets Design System",
-    "version": "1.0.0",
-    "description": "High-level design and style guidelines inspired by a pro prediction-market terminal. This file is intended to guide AI tools to recreate the visual style: dark, dense, and data-heavy with neon gradients and card-based layout."
+    "version": "2.1.0",
+    "description": "High-level design and style guidelines inspired by a pro prediction-market terminal. This file is intended to guide AI tools to recreate the visual style: dark, dense, and data-heavy with neon gradients and card-based layout. Updated to include dashboard components with improved readability. Portfolio value card now displays only real API data (no simulated 24h change or sparklines).",
+    "last_updated": "2024-12-07"
   },
   "principles": {
     "visual_identity": [
       "Always feel like a pro trading terminal: dark background, high contrast, dense information, minimal decoration.",
       "Use neon gradients (blue, purple, cyan, red) as the primary way to create hierarchy and excitement on hero elements.",
-      "Most surfaces are dark and matte; gradients are reserved for key callouts, not every card."
+      "Most surfaces are dark and matte; gradients are reserved for key callouts, not every card.",
+      "Icon containers with colored backgrounds provide visual anchors for stat cards."
     ],
     "layout": [
       "Everything is structured in a grid of cards and panels; avoid free-floating elements.",
       "Keep vertical rhythm tight: small gaps between related elements, consistent section padding.",
-      "Use clear left-to-right scanning order: navigation at top, filters under nav, primary content in the main column, secondary content in right-side panels."
+      "Use clear left-to-right scanning order: navigation at top, filters under nav, primary content in the main column, secondary content in right-side panels.",
+      "Dashboard uses 12-column bento grid with responsive breakpoints."
     ],
     "information_design": [
       "Prioritize legibility of numbers and probabilities; use large type, clear labels, and consistent color coding.",
       "Use color as a semantic tool: green for positive/YES/upside, red for negative/NO/downside, yellow/orange for warnings or neutral highlights.",
-      "When in doubt, simplify: fewer borders, more reliance on spacing and subtle shadows to separate elements."
+      "When in doubt, simplify: fewer borders, more reliance on spacing and subtle shadows to separate elements.",
+      "Stat values should be prominently displayed with large mono fonts (text-3xl to text-5xl).",
+      "Only display real data from APIs; avoid simulated or fake data indicators. Decorative elements should be clearly non-data (visual only)."
+    ],
+    "readability": [
+      "Use minimum text-sm (14px) for primary labels, text-xs (12px) for secondary labels.",
+      "Stat values use text-3xl (30px) minimum, hero values use text-4xl to text-5xl (36-48px).",
+      "Icon containers should be 40-48px with colored backgrounds for visual hierarchy.",
+      "Table rows should have 64px height with text-sm for readability.",
+      "Badges should use text-sm font-bold with px-3 py-1.5 padding."
     ],
     "interaction": [
       "States should be clearly visible but not flashy: hover lifts cards slightly and brightens borders or glows, active states use solid fills or stronger outlines.",
       "Use pill-shaped controls (filters, toggles, tabs) for mode switching and segmentation.",
-      "Animations are subtle and fast: 150–200ms ease-out, primarily for hover, focus, and in/out transitions of panels."
+      "Animations are subtle and fast: 150–200ms ease-out, primarily for hover, focus, and in/out transitions of panels.",
+      "Bento grid items use staggered entrance animations with 50ms delay between items."
     ],
     "tone": [
       "Professional, confident, and focused; no playful or cartoon styling.",
@@ -48,7 +61,8 @@
       "lg": 16,
       "xl": 24,
       "2xl": 32,
-      "3xl": 40
+      "3xl": 40,
+      "4xl": 48
     },
     "radii": {
       "sm": 6,
@@ -78,13 +92,16 @@
       "font_family_primary": "system-ui, -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Text', sans-serif",
       "font_family_mono": "'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, Monaco, monospace",
       "sizes": {
-        "xs": 11,
-        "sm": 12,
-        "md": 14,
-        "lg": 16,
+        "2xs": 10,
+        "xs": 12,
+        "sm": 14,
+        "md": 16,
+        "lg": 18,
         "xl": 20,
         "2xl": 24,
-        "3xl": 32
+        "3xl": 30,
+        "4xl": 36,
+        "5xl": 48
       },
       "weights": {
         "regular": 400,
@@ -97,6 +114,12 @@
         "snug": 1.25,
         "normal": 1.4,
         "relaxed": 1.6
+      },
+      "tracking": {
+        "tight": "-0.025em",
+        "normal": "0",
+        "wide": "0.025em",
+        "wider": "0.05em"
       }
     },
     "colors": {
@@ -106,7 +129,10 @@
         "surface_low": "#090E1C",
         "surface": "#0C1224",
         "surface_high": "#121A30",
-        "surface_glass": "rgba(9, 14, 28, 0.85)"
+        "surface_glass": "rgba(9, 14, 28, 0.85)",
+        "gradient_from": "#0a1628",
+        "gradient_via": "#030711",
+        "gradient_to": "#0d0d1a"
       },
       "borders": {
         "subtle": "rgba(255, 255, 255, 0.06)",
@@ -116,6 +142,7 @@
       "text": {
         "primary": "rgba(255, 255, 255, 0.96)",
         "secondary": "rgba(255, 255, 255, 0.72)",
+        "tertiary": "rgba(255, 255, 255, 0.60)",
         "muted": "rgba(255, 255, 255, 0.50)",
         "disabled": "rgba(255, 255, 255, 0.32)",
         "on_accent": "#0B1020"
@@ -123,16 +150,66 @@
       "accent": {
         "blue": "#3B82F6",
         "purple": "#8B5CF6",
+        "violet": "#8B5CF6",
         "cyan": "#22D3EE",
         "magenta": "#EC4899",
-        "yellow": "#FACC15"
+        "yellow": "#FACC15",
+        "amber": "#F59E0B",
+        "indigo": "#6366F1",
+        "sky": "#38BDF8"
       },
       "semantic": {
         "success": "#22C55E",
+        "success_bg": "rgba(34, 197, 94, 0.10)",
+        "success_border": "rgba(34, 197, 94, 0.30)",
         "danger": "#EF4444",
+        "danger_bg": "rgba(239, 68, 68, 0.10)",
+        "danger_border": "rgba(239, 68, 68, 0.30)",
         "warning": "#F97316",
         "info": "#38BDF8",
         "neutral": "#64748B"
+      },
+      "stat_cards": {
+        "emerald": {
+          "text": "#34D399",
+          "bg": "rgba(16, 185, 129, 0.20)",
+          "border": "rgba(16, 185, 129, 0.30)"
+        },
+        "rose": {
+          "text": "#FB7185",
+          "bg": "rgba(244, 63, 94, 0.20)",
+          "border": "rgba(244, 63, 94, 0.30)"
+        },
+        "violet": {
+          "text": "#A78BFA",
+          "bg": "rgba(139, 92, 246, 0.20)",
+          "border": "rgba(139, 92, 246, 0.30)"
+        },
+        "sky": {
+          "text": "#38BDF8",
+          "bg": "rgba(56, 189, 248, 0.20)",
+          "border": "rgba(56, 189, 248, 0.30)"
+        },
+        "amber": {
+          "text": "#FBBF24",
+          "bg": "rgba(245, 158, 11, 0.20)",
+          "border": "rgba(245, 158, 11, 0.30)"
+        },
+        "purple": {
+          "text": "#A855F7",
+          "bg": "rgba(168, 85, 247, 0.20)",
+          "border": "rgba(168, 85, 247, 0.30)"
+        },
+        "indigo": {
+          "text": "#818CF8",
+          "bg": "rgba(99, 102, 241, 0.20)",
+          "border": "rgba(99, 102, 241, 0.30)"
+        },
+        "orange": {
+          "text": "#FB923C",
+          "bg": "rgba(251, 146, 60, 0.20)",
+          "border": "rgba(251, 146, 60, 0.30)"
+        }
       },
       "data": {
         "yes": "#22C55E",
@@ -141,27 +218,657 @@
         "series_two": "#EF4444",
         "series_three": "#22D3EE"
       },
+      "games": {
+        "cs2": {
+          "from": "#F97316",
+          "to": "#EA580C"
+        },
+        "dota2": {
+          "from": "#EF4444",
+          "to": "#DC2626"
+        },
+        "lol": {
+          "from": "#3B82F6",
+          "to": "#2563EB"
+        },
+        "valorant": {
+          "from": "#EC4899",
+          "to": "#DB2777"
+        }
+      },
       "special": {
         "badge_new": "#22C55E",
         "badge_trending": "#F97316"
+      },
+      "gamification": {
+        "bronze": {
+          "text": "#D97706",
+          "bg": "rgba(217, 119, 6, 0.20)",
+          "border": "rgba(217, 119, 6, 0.40)"
+        },
+        "silver": {
+          "text": "#94A3B8",
+          "bg": "rgba(148, 163, 184, 0.20)",
+          "border": "rgba(148, 163, 184, 0.40)"
+        },
+        "gold": {
+          "text": "#FACC15",
+          "bg": "rgba(250, 204, 21, 0.20)",
+          "border": "rgba(250, 204, 21, 0.40)"
+        },
+        "diamond": {
+          "text": "#22D3EE",
+          "bg": "rgba(34, 211, 238, 0.20)",
+          "border": "rgba(34, 211, 238, 0.40)"
+        },
+        "champion": {
+          "text": "#A855F7",
+          "bg": "rgba(168, 85, 247, 0.20)",
+          "border": "rgba(168, 85, 247, 0.40)"
+        }
       }
     },
     "gradients": {
       "hero_blue": "linear-gradient(135deg, #1D4ED8 0%, #22D3EE 100%)",
       "hero_purple": "linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)",
       "hero_red": "linear-gradient(135deg, #DC2626 0%, #F97316 100%)",
+      "page_background": "linear-gradient(to bottom right, #0a1628, #030711, #0d0d1a)",
       "card_overlay_blue": "linear-gradient(145deg, rgba(37, 99, 235, 0.8), rgba(56, 189, 248, 0.2))",
       "card_overlay_purple": "linear-gradient(145deg, rgba(147, 51, 234, 0.8), rgba(236, 72, 153, 0.2))",
-      "card_overlay_red": "linear-gradient(145deg, rgba(220, 38, 38, 0.8), rgba(248, 113, 113, 0.2))"
+      "card_overlay_red": "linear-gradient(145deg, rgba(220, 38, 38, 0.8), rgba(248, 113, 113, 0.2))",
+      "tier_bronze": "linear-gradient(135deg, rgba(217, 119, 6, 0.30), rgba(180, 83, 9, 0.10))",
+      "tier_silver": "linear-gradient(135deg, rgba(148, 163, 184, 0.30), rgba(100, 116, 139, 0.10))",
+      "tier_gold": "linear-gradient(135deg, rgba(250, 204, 21, 0.30), rgba(245, 158, 11, 0.10))",
+      "tier_diamond": "linear-gradient(135deg, rgba(34, 211, 238, 0.30), rgba(59, 130, 246, 0.10))",
+      "tier_champion": "linear-gradient(135deg, rgba(168, 85, 247, 0.30), rgba(236, 72, 153, 0.10))"
     }
   },
   "components": {
-    "app_shell": {
-      "description": "Global shell containing top navigation, main content, and right-side utility column. Everything sits on a very dark gradient background with slightly lighter surfaces for panels. Uses full viewport height with no scrolling.",
+    "dashboard_page": {
+      "description": "Main dashboard page layout with bento grid sections for portfolio stats, positions, trade history, and insights.",
       "layout": {
-        "height": "100vh",
-        "overflow": "hidden",
-        "max_width": 1440,
+        "max_width": 1536,
+        "padding_x": {
+          "mobile": 16,
+          "tablet": 24,
+          "desktop": 40
+        },
+        "padding_y": 24,
+        "section_gap": 16,
+        "header_margin_bottom": 32
+      },
+      "style": {
+        "background": "gradients.page_background",
+        "grid_overlay": {
+          "url": "/grid.svg",
+          "opacity": 0.02
+        }
+      },
+      "header": {
+        "title": {
+          "font_size": "typography.sizes.4xl",
+          "font_weight": "typography.weights.bold",
+          "letter_spacing": "typography.tracking.tight",
+          "color": "colors.text.primary"
+        },
+        "subtitle": {
+          "font_size": "typography.sizes.md",
+          "color": "colors.text.tertiary",
+          "margin_top": 8
+        }
+      }
+    },
+    "bento_grid": {
+      "description": "Animated grid layout for dashboard sections using 12-column system with staggered entrance animations.",
+      "layout": {
+        "columns": 12,
+        "gap": 16,
+        "auto_rows": "minmax(100px, auto)"
+      },
+      "animation": {
+        "initial": {
+          "opacity": 0,
+          "y": 20
+        },
+        "animate": {
+          "opacity": 1,
+          "y": 0
+        },
+        "stagger_delay": 50,
+        "duration": 300
+      },
+      "item": {
+        "border_radius": "radii.xl",
+        "border": "colors.borders.subtle",
+        "background": "linear-gradient(to bottom right, #090E1C, #030711)",
+        "hover": {
+          "scale": 1.005,
+          "shadow": "elevation.high"
+        },
+        "highlight_variant": {
+          "border_color": "rgba(16, 185, 129, 0.20)",
+          "background_accent": "rgba(16, 185, 129, 0.10)"
+        }
+      }
+    },
+    "stat_card": {
+      "description": "Dashboard stat card showing key metrics like PnL, positions, exposure, volume with icon container and large value.",
+      "layout": {
+        "padding": 24,
+        "min_height": 160,
+        "gap": 16
+      },
+      "style": {
+        "icon_container": {
+          "size": 48,
+          "border_radius": "radii.xl",
+          "background": "stat_cards.[color].bg",
+          "border": "stat_cards.[color].border",
+          "icon_size": 24
+        },
+        "label": {
+          "font_size": "typography.sizes.sm",
+          "font_weight": "typography.weights.semibold",
+          "color": "colors.text.secondary"
+        },
+        "sub_label": {
+          "font_size": "typography.sizes.xs",
+          "color": "colors.text.muted"
+        },
+        "value": {
+          "font_size": {
+            "desktop": "typography.sizes.4xl",
+            "mobile": "typography.sizes.3xl"
+          },
+          "font_family": "typography.font_family_mono",
+          "font_weight": "typography.weights.bold",
+          "letter_spacing": "typography.tracking.tight"
+        },
+        "badge": {
+          "padding_x": 10,
+          "padding_y": 6,
+          "font_size": "typography.sizes.xs",
+          "font_weight": "typography.weights.bold",
+          "border_radius": "radii.lg"
+        }
+      },
+      "variants": {
+        "pnl": {
+          "icon": "TrendingUp/TrendingDown",
+          "color_positive": "emerald",
+          "color_negative": "rose"
+        },
+        "positions": {
+          "icon": "Target",
+          "color": "violet"
+        },
+        "exposure": {
+          "icon": "🌐",
+          "color": "sky"
+        },
+        "volume": {
+          "icon": "💰",
+          "color": "amber"
+        },
+        "portfolio": {
+          "icon": "💎",
+          "color": "emerald"
+        }
+      }
+    },
+    "stat_card_with_breakdown": {
+      "description": "Stat card variant with primary value and secondary breakdown rows (e.g., PnL with unrealized/realized breakdown).",
+      "layout": {
+        "extends": "stat_card",
+        "breakdown_margin_top": 16,
+        "breakdown_gap": 8
+      },
+      "style": {
+        "breakdown_row": {
+          "display": "flex",
+          "justify_content": "space-between",
+          "align_items": "center"
+        },
+        "breakdown_label": {
+          "font_size": "typography.sizes.sm",
+          "color": "colors.text.tertiary"
+        },
+        "breakdown_value": {
+          "font_size": "typography.sizes.sm",
+          "font_family": "typography.font_family_mono",
+          "font_weight": "typography.weights.semibold"
+        }
+      }
+    },
+    "hero_stat_card": {
+      "description": "Large hero card for primary dashboard metrics like Portfolio Value with animated value count-up and decorative bars.",
+      "layout": {
+        "min_height": 220,
+        "padding": 24,
+        "row_span": 2
+      },
+      "style": {
+        "header": {
+          "icon_container": {
+            "size": 48,
+            "border_radius": "radii.xl",
+            "background": "colors.stat_cards.emerald.bg",
+            "border": "colors.stat_cards.emerald.border"
+          },
+          "label": {
+            "font_size": "typography.sizes.sm",
+            "font_weight": "typography.weights.semibold",
+            "color": "colors.stat_cards.emerald.text"
+          },
+          "sub_label": {
+            "font_size": "typography.sizes.xs",
+            "color": "colors.text.muted"
+          }
+        },
+        "value": {
+          "font_size": {
+            "desktop": "typography.sizes.5xl",
+            "mobile": "typography.sizes.4xl"
+          },
+          "font_family": "typography.font_family_mono",
+          "font_weight": "typography.weights.bold",
+          "letter_spacing": "typography.tracking.tight",
+          "color": "colors.text.primary"
+        },
+        "value_animation": {
+          "type": "count_up",
+          "duration_ms": 1000,
+          "steps": 30
+        },
+        "stats_badge": {
+          "padding_x": 12,
+          "padding_y": 6,
+          "font_size": "typography.sizes.xs",
+          "font_weight": "typography.weights.medium",
+          "border_radius": "radii.lg",
+          "background": "colors.stat_cards.emerald.bg",
+          "border": "colors.stat_cards.emerald.border",
+          "color": "colors.stat_cards.emerald.text"
+        },
+        "decorative_bars": {
+          "height": 56,
+          "border_radius": "radii.xl",
+          "background": "rgba(16, 185, 129, 0.10)",
+          "border": "rgba(16, 185, 129, 0.20)",
+          "bar_count": 10,
+          "bar_width": 8,
+          "bar_gap": 6,
+          "bar_color": "rgba(16, 185, 129, 0.40)",
+          "bar_border_radius": "radii.sm"
+        },
+        "refresh_button": {
+          "size": 32,
+          "border_radius": "radii.lg",
+          "background": "rgba(255, 255, 255, 0.05)",
+          "border": "colors.borders.subtle",
+          "icon_size": 16,
+          "icon_color": "colors.text.tertiary"
+        }
+      },
+      "states": {
+        "loading": {
+          "spinner_size": 32,
+          "spinner_color": "rgba(16, 185, 129, 0.50)",
+          "text": "Loading portfolio..."
+        },
+        "error": {
+          "icon_size": 40,
+          "icon_color": "colors.text.disabled",
+          "message_color": "colors.text.muted",
+          "retry_link_color": "colors.stat_cards.emerald.text"
+        },
+        "refreshing": {
+          "button_opacity": 0.5,
+          "spinner_animation": "spin 1s linear infinite"
+        }
+      }
+    },
+    "positions_table": {
+      "description": "Table component for displaying open trading positions with market info, size, prices, and PnL.",
+      "layout": {
+        "container_height": 420,
+        "header_height": 48,
+        "row_height": 64,
+        "padding_x": 24
+      },
+      "style": {
+        "header": {
+          "background": "transparent",
+          "border_bottom": "colors.borders.subtle",
+          "text": {
+            "font_size": "typography.sizes.xs",
+            "font_weight": "typography.weights.semibold",
+            "text_transform": "uppercase",
+            "letter_spacing": "typography.tracking.wider",
+            "color": "colors.text.muted"
+          }
+        },
+        "row": {
+          "border_bottom": "colors.borders.subtle",
+          "hover_background": "rgba(255, 255, 255, 0.05)"
+        },
+        "market_cell": {
+          "image_size": 40,
+          "image_border_radius": "radii.lg",
+          "title": {
+            "font_size": "typography.sizes.sm",
+            "font_weight": "typography.weights.semibold",
+            "color": "colors.text.primary"
+          },
+          "outcome_badge": {
+            "padding_x": 10,
+            "padding_y": 2,
+            "font_size": "typography.sizes.xs",
+            "font_weight": "typography.weights.bold",
+            "border_radius": "radii.pill"
+          }
+        },
+        "value_cell": {
+          "font_size": "typography.sizes.sm",
+          "font_family": "typography.font_family_mono",
+          "color": "colors.text.secondary"
+        },
+        "pnl_cell": {
+          "font_size": "typography.sizes.sm",
+          "font_family": "typography.font_family_mono",
+          "font_weight": "typography.weights.bold",
+          "positive_color": "colors.semantic.success",
+          "negative_color": "colors.semantic.danger"
+        }
+      },
+      "columns": [
+        { "name": "market", "flex": "2fr" },
+        { "name": "size", "width": 100 },
+        { "name": "entry", "width": 100 },
+        { "name": "current", "width": 100 },
+        { "name": "value", "width": 100 },
+        { "name": "pnl_percent", "width": 100 },
+        { "name": "pnl_dollar", "width": 120 }
+      ]
+    },
+    "trade_history_table": {
+      "description": "Compact table showing recent trade activity with time, market, type, amount, and price.",
+      "layout": {
+        "container_height": 420,
+        "header_height": 44,
+        "row_height": 52,
+        "padding_x": 12
+      },
+      "style": {
+        "header": {
+          "background": "#0a0a14",
+          "border_bottom": "colors.borders.strong",
+          "text": {
+            "font_size": "typography.sizes.xs",
+            "font_weight": "typography.weights.semibold",
+            "text_transform": "uppercase",
+            "letter_spacing": "typography.tracking.wider",
+            "color": "colors.text.tertiary"
+          }
+        },
+        "row": {
+          "border_bottom": "rgba(255, 255, 255, 0.05)",
+          "hover_background": "rgba(255, 255, 255, 0.05)"
+        },
+        "time_cell": {
+          "font_size": "typography.sizes.xs",
+          "font_family": "typography.font_family_mono",
+          "color": "colors.text.secondary"
+        },
+        "market_cell": {
+          "font_size": "typography.sizes.sm",
+          "font_weight": "typography.weights.medium",
+          "color": "colors.text.primary"
+        },
+        "type_badge": {
+          "padding_x": 10,
+          "padding_y": 4,
+          "font_size": "typography.sizes.xs",
+          "font_weight": "typography.weights.bold",
+          "border_radius": "radii.lg",
+          "buy_background": "colors.semantic.success_bg",
+          "buy_color": "colors.semantic.success",
+          "sell_background": "colors.semantic.danger_bg",
+          "sell_color": "colors.semantic.danger"
+        },
+        "amount_cell": {
+          "font_size": "typography.sizes.sm",
+          "font_family": "typography.font_family_mono",
+          "font_weight": "typography.weights.semibold",
+          "color": "colors.text.primary"
+        }
+      },
+      "columns": [
+        { "name": "time", "width": "22%" },
+        { "name": "market", "width": "33%" },
+        { "name": "type", "width": "15%" },
+        { "name": "amount", "width": "15%" },
+        { "name": "price", "width": "15%" }
+      ]
+    },
+    "game_exposure_bar": {
+      "description": "Horizontal progress bar showing exposure distribution by game with game label, value, and percentage.",
+      "layout": {
+        "gap": 8,
+        "bar_height": 12,
+        "bar_border_radius": "radii.pill"
+      },
+      "style": {
+        "label_row": {
+          "display": "flex",
+          "justify_content": "space-between",
+          "align_items": "center"
+        },
+        "game_label": {
+          "font_size": "typography.sizes.sm",
+          "font_weight": "typography.weights.semibold",
+          "color": "colors.text.secondary"
+        },
+        "value_label": {
+          "font_size": "typography.sizes.sm",
+          "font_family": "typography.font_family_mono",
+          "color": "colors.text.muted"
+        },
+        "percentage_label": {
+          "font_size": "typography.sizes.sm",
+          "font_family": "typography.font_family_mono",
+          "font_weight": "typography.weights.bold",
+          "color": "colors.text.secondary"
+        },
+        "bar_background": "rgba(255, 255, 255, 0.06)",
+        "bar_fill": "linear-gradient(to right, [game.from], [game.to])"
+      }
+    },
+    "watchlist_preview": {
+      "description": "Dashboard panel showing a preview of watched markets with price and 24h change.",
+      "layout": {
+        "padding": 24,
+        "gap": 12,
+        "item_padding_y": 12,
+        "item_padding_x": 12,
+        "item_border_radius": "radii.xl"
+      },
+      "style": {
+        "header": {
+          "icon_container": {
+            "size": 40,
+            "border_radius": "radii.xl",
+            "background": "colors.stat_cards.amber.bg",
+            "border": "colors.stat_cards.amber.border"
+          },
+          "title": {
+            "font_size": "typography.sizes.lg",
+            "font_weight": "typography.weights.bold",
+            "color": "colors.text.primary"
+          },
+          "count_badge": {
+            "padding_x": 12,
+            "padding_y": 6,
+            "font_size": "typography.sizes.sm",
+            "font_weight": "typography.weights.bold",
+            "background": "colors.stat_cards.amber.bg",
+            "color": "colors.stat_cards.amber.text",
+            "border_radius": "radii.xl"
+          }
+        },
+        "item": {
+          "image_size": 48,
+          "image_border_radius": "radii.xl",
+          "title": {
+            "font_size": "typography.sizes.sm",
+            "font_weight": "typography.weights.semibold",
+            "color": "colors.text.primary"
+          },
+          "subtitle": {
+            "font_size": "typography.sizes.xs",
+            "font_weight": "typography.weights.medium",
+            "color": "colors.text.muted"
+          },
+          "price": {
+            "font_size": "typography.sizes.md",
+            "font_family": "typography.font_family_mono",
+            "font_weight": "typography.weights.bold",
+            "color": "colors.text.primary"
+          },
+          "change": {
+            "font_size": "typography.sizes.xs",
+            "font_family": "typography.font_family_mono",
+            "font_weight": "typography.weights.semibold"
+          },
+          "hover_background": "rgba(255, 255, 255, 0.04)"
+        },
+        "empty_state": {
+          "icon_container_size": 64,
+          "message_font_size": "typography.sizes.sm",
+          "link_font_size": "typography.sizes.sm",
+          "link_font_weight": "typography.weights.semibold"
+        }
+      }
+    },
+    "trader_profile_card": {
+      "description": "Gamification card showing trader tier, progress to next tier, stats, and earned badges.",
+      "layout": {
+        "padding": 24,
+        "gap": 20,
+        "min_height": 220
+      },
+      "style": {
+        "tier_icon": {
+          "size": 56,
+          "border_radius": "radii.xl",
+          "border_width": 2,
+          "font_size": 30
+        },
+        "tier_name": {
+          "font_size": "typography.sizes.xl",
+          "font_weight": "typography.weights.bold",
+          "letter_spacing": "typography.tracking.tight"
+        },
+        "tier_title": {
+          "font_size": "typography.sizes.sm",
+          "color": "colors.text.tertiary"
+        },
+        "volume_value": {
+          "font_size": "typography.sizes.lg",
+          "font_family": "typography.font_family_mono",
+          "font_weight": "typography.weights.bold",
+          "color": "colors.text.primary"
+        },
+        "progress_bar": {
+          "height": 12,
+          "border_radius": "radii.pill",
+          "background": "rgba(255, 255, 255, 0.10)"
+        },
+        "progress_labels": {
+          "font_size": "typography.sizes.xs",
+          "color": "colors.text.muted"
+        },
+        "stats_grid": {
+          "columns": 3,
+          "gap": 12
+        },
+        "stat_box": {
+          "padding": 12,
+          "border_radius": "radii.xl",
+          "background": "rgba(255, 255, 255, 0.05)",
+          "border": "rgba(255, 255, 255, 0.10)",
+          "value": {
+            "font_size": "typography.sizes.lg",
+            "font_weight": "typography.weights.bold"
+          },
+          "label": {
+            "font_size": "typography.sizes.2xs",
+            "color": "colors.text.muted"
+          }
+        },
+        "badges_section": {
+          "title": {
+            "font_size": "typography.sizes.sm",
+            "font_weight": "typography.weights.medium",
+            "color": "colors.text.muted"
+          },
+          "badge_icon": {
+            "size": 40,
+            "border_radius": "radii.lg",
+            "font_size": 20
+          },
+          "badge_tooltip": {
+            "padding": 12,
+            "border_radius": "radii.lg",
+            "background": "#1a1a2e",
+            "border": "rgba(255, 255, 255, 0.20)"
+          }
+        }
+      },
+      "tier_colors": {
+        "bronze": "gradients.tier_bronze",
+        "silver": "gradients.tier_silver",
+        "gold": "gradients.tier_gold",
+        "diamond": "gradients.tier_diamond",
+        "champion": "gradients.tier_champion"
+      }
+    },
+    "section_card_header": {
+      "description": "Standard header for dashboard section cards with icon, title, subtitle, and optional badge.",
+      "layout": {
+        "padding": 24,
+        "gap": 12,
+        "border_bottom": "colors.borders.subtle"
+      },
+      "style": {
+        "icon_container": {
+          "size": 40,
+          "border_radius": "radii.xl"
+        },
+        "title": {
+          "font_size": "typography.sizes.lg",
+          "font_weight": "typography.weights.bold",
+          "color": "colors.text.primary"
+        },
+        "subtitle": {
+          "font_size": "typography.sizes.xs",
+          "color": "colors.text.muted",
+          "margin_top": 2
+        },
+        "badge": {
+          "padding_x": 16,
+          "padding_y": 8,
+          "font_size": "typography.sizes.md",
+          "font_weight": "typography.weights.bold",
+          "border_radius": "radii.xl"
+        }
+      }
+    },
+    "app_shell": {
+      "description": "Global shell containing top navigation, main content, and right-side utility column. Everything sits on a very dark gradient background with slightly lighter surfaces for panels.",
+      "layout": {
+        "min_height": "100vh",
+        "max_width": 1536,
         "padding_x": "spacing.lg",
         "padding_y": "spacing.sm",
         "gutter": "spacing.md",
@@ -170,9 +877,9 @@
           "right": 288
         },
         "structure": {
-          "main_container": "h-full flex flex-col",
-          "content_area": "flex-1 flex flex-row gap-5 overflow-hidden",
-          "left_section": "flex-1 flex flex-col gap-4 min-w-0 overflow-hidden",
+          "main_container": "min-h-screen flex flex-col",
+          "content_area": "flex-1 flex flex-row gap-5",
+          "left_section": "flex-1 flex flex-col gap-4 min-w-0",
           "right_section": "flex flex-col gap-4 shrink-0"
         }
       },
@@ -319,189 +1026,6 @@
         }
       }
     },
-    "toggle_switch": {
-      "description": "Compact toggle for enabling options like animations.",
-      "layout": {
-        "width": 36,
-        "height": 20,
-        "track_radius": "radii.pill",
-        "thumb_size": 16
-      },
-      "style": {
-        "track_off": "colors.background.surface",
-        "track_on": "colors.accent.blue",
-        "thumb": "colors.background.page"
-      }
-    },
-    "tab_list": {
-      "description": "Horizontal tab list for switching time ranges or content modes in charts and panels.",
-      "layout": {
-        "height": 28,
-        "gap": "spacing.sm",
-        "border_radius": "radii.pill"
-      },
-      "style": {
-        "background": "colors.background.surface_low",
-        "indicator": {
-          "background": "colors.background.surface_high",
-          "border_radius": "radii.pill"
-        }
-      }
-    },
-    "section_header": {
-      "description": "Compact header for sections like Trending Topics, Portfolio, Watchlist.",
-      "layout": {
-        "padding_y": "spacing.sm",
-        "padding_x": "spacing.md",
-        "gap": "spacing.sm"
-      },
-      "style": {
-        "title": {
-          "font_size": "typography.sizes.sm",
-          "font_weight": "typography.weights.semibold",
-          "color": "colors.text.secondary"
-        },
-        "action_link": {
-          "font_size": "typography.sizes.xs",
-          "color": "colors.accent.blue"
-        }
-      }
-    },
-    "panel": {
-      "description": "Generic right-side or dashboard panel for portfolio, watchlist, trending topics, or recent activity.",
-      "layout": {
-        "padding": "spacing.xl",
-        "border_radius": "radii.lg",
-        "gap": "spacing.md",
-        "width": 288
-      },
-      "style": {
-        "background": "colors.background.surface",
-        "border": "borders.strong",
-        "shadow": "tokens.elevation.low"
-      }
-    },
-    "hero_banner": {
-      "description": "Large hero tiles at the top of the home page showcasing featured events or promotions with stats panel. Uses shrink-0 to maintain fixed size in flex layout.",
-      "layout": {
-        "border_radius": "radii.lg",
-        "padding": "spacing.xl",
-        "padding_mobile": "spacing.lg",
-        "gap": "spacing.xl",
-        "flex_shrink": 0,
-        "overflow": "hidden",
-        "content_structure": [
-          "Left: main title, subtitle, and CTA button",
-          "Right: stats panel with 24h volume, live markets count, and volume by game breakdown"
-        ]
-      },
-      "style": {
-        "primary_background": "gradients.hero_blue",
-        "secondary_background": "gradients.hero_purple",
-        "tertiary_background": "gradients.hero_red",
-        "overlay_blur": "tokens.blur.subtle_glass",
-        "title": {
-          "font_size": "typography.sizes.3xl",
-          "font_size_mobile": "typography.sizes.2xl",
-          "font_weight": "typography.weights.bold",
-          "color": "colors.text.on_accent"
-        },
-        "subtitle": {
-          "font_size": "typography.sizes.sm",
-          "color": "rgba(255, 255, 255, 0.85)"
-        },
-        "stats_panel": {
-          "width": 320,
-          "padding": "spacing.xl",
-          "background": "rgba(0, 0, 0, 0.2)",
-          "backdrop_blur": true
-        }
-      }
-    },
-    "market_grid": {
-      "description": "Grid of market cards for home page. Uses flex-1 to fill remaining space and content-end to align cards at bottom, matching sidebar panels.",
-      "layout": {
-        "columns_desktop": 2,
-        "columns_mobile": 1,
-        "gap": 12,
-        "flex": "flex-1",
-        "alignment": "content-end",
-        "min_height": 0,
-        "overflow": "hidden"
-      },
-      "style": {
-        "grid_template": "grid",
-        "responsive": "sm:grid-cols-2"
-      }
-    },
-    "market_card_horizontal": {
-      "description": "Vertical market card for home page grid showing title, YES/NO outcomes, and volume/liquidity stats.",
-      "layout": {
-        "min_height": 192,
-        "padding": "spacing.xl",
-        "border_radius": "radii.lg",
-        "sections": [
-          "Top: market question/title with badge (Trending/New)",
-          "Middle: YES/NO outcome chips with percentages",
-          "Bottom: volume and liquidity stats with colored indicators"
-        ],
-        "spacing": {
-          "title_subtitle": "spacing.sm",
-          "outcome_margin": "spacing.xl",
-          "stats_margin": "spacing.xl"
-        }
-      },
-      "style": {
-        "background": "colors.background.surface_high",
-        "border": "borders.strong",
-        "shadow": "tokens.elevation.low",
-        "title": {
-          "font_size": "typography.sizes.sm",
-          "line_height": "typography.line_heights.snug",
-          "font_weight": "typography.weights.semibold",
-          "color": "colors.text.primary"
-        },
-        "subtitle": {
-          "font_size": "typography.sizes.xs",
-          "color": "rgba(255, 255, 255, 0.55)"
-        },
-        "badge": {
-          "height": 20,
-          "padding_x": 10,
-          "font_size": 10,
-          "font_weight": "typography.weights.semibold"
-        }
-      },
-      "states": {
-        "hover": {
-          "border": "rgba(255, 255, 255, 0.2)",
-          "shadow": "tokens.elevation.medium",
-          "translate_y": -4
-        },
-        "selected": {
-          "border_color": "colors.accent.blue",
-          "outline_glow": "0 0 0 1px rgba(59, 130, 246, 0.6)"
-        }
-      }
-    },
-    "market_card_vertical": {
-      "description": "Tall, visually rich market card with prominent imagery of two opposing outcomes and a chart underneath.",
-      "layout": {
-        "border_radius": "radii.xl",
-        "padding": "spacing.lg",
-        "gap": "spacing.lg",
-        "sections": [
-          "Top: opposing outcome cards side by side, each with label and total market cap/value.",
-          "Middle: outcome price chips (YES/NO) for each side.",
-          "Bottom: mini chart comparing probabilities over time with toggleable time ranges."
-        ]
-      },
-      "style": {
-        "background": "colors.background.surface_low",
-        "border": "borders.subtle",
-        "shadow": "tokens.elevation.medium"
-      }
-    },
     "outcome_chip": {
       "description": "Rectangular chip showing the price/probability of a YES or NO outcome.",
       "layout": {
@@ -513,100 +1037,44 @@
       },
       "style": {
         "yes": {
-          "background": "rgba(34, 197, 94, 0.12)",
+          "background": "rgba(34, 197, 94, 0.15)",
           "border": "rgba(34, 197, 94, 0.5)",
-          "text_color": "rgba(34, 197, 94, 1)",
-          "label_font_weight": "typography.weights.semibold",
+          "text_color": "#22C55E",
+          "label_font_weight": "typography.weights.bold",
           "value_font": "typography.font_family_mono",
           "value_font_size": "typography.sizes.xs"
         },
         "no": {
-          "background": "rgba(239, 68, 68, 0.12)",
+          "background": "rgba(239, 68, 68, 0.15)",
           "border": "rgba(239, 68, 68, 0.5)",
-          "text_color": "rgba(239, 68, 68, 1)",
-          "label_font_weight": "typography.weights.semibold",
+          "text_color": "#EF4444",
+          "label_font_weight": "typography.weights.bold",
           "value_font": "typography.font_family_mono",
           "value_font_size": "typography.sizes.xs"
         }
       }
     },
-    "stat_pill": {
-      "description": "Small pill showing short stats like volume, MC, or comments count.",
-      "layout": {
-        "height": 24,
-        "border_radius": "radii.pill",
-        "padding_x": "spacing.sm",
-        "gap": "spacing.xs"
-      },
-      "style": {
-        "background": "colors.background.surface_low",
-        "text_color": "colors.text.muted",
-        "icon_color": "colors.text.muted"
-      }
-    },
-    "tag": {
-      "description": "Keyword-like tag for Trending Topics or categories.",
-      "layout": {
-        "height": 26,
-        "padding_x": "spacing.sm",
-        "border_radius": "radii.pill"
-      },
-      "style": {
-        "background": "colors.background.surface_low",
-        "text_color": "colors.text.secondary"
-      },
-      "variants": {
-        "solid": {
-          "background": "colors.background.surface_high",
-          "text_color": "colors.text.primary"
-        },
-        "outline": {
-          "border": "borders.subtle"
-        }
-      }
-    },
-    "chart_card": {
-      "description": "Container for line charts comparing outcome probabilities or prices over time.",
-      "layout": {
-        "height": 220,
-        "border_radius": "radii.lg",
-        "padding": "spacing.lg",
-        "gap": "spacing.md",
-        "sections": [
-          "Top: legend with outcome labels and color dots.",
-          "Top-right: time range tab list.",
-          "Bottom: line chart with grid lines and x-axis labels."
-        ]
-      },
-      "style": {
-        "background": "colors.background.surface",
-        "border": "borders.subtle",
-        "grid_lines": "rgba(148, 163, 184, 0.24)",
-        "axis_labels": "colors.text.muted",
-        "series_colors": {
-          "series_one": "colors.data.series_one",
-          "series_two": "colors.data.series_two",
-          "series_three": "colors.data.series_three"
-        }
-      }
-    },
-    "legend_item": {
-      "description": "Line chart legend item showing color dot, label, and percentage.",
-      "layout": {
-        "gap": "spacing.xs"
-      },
-      "style": {
-        "label_color": "colors.text.secondary",
-        "value_color": "colors.text.primary",
-        "dot_size": 8
-      }
-    },
     "badge": {
-      "description": "Small label-style badge used for NEW, Trending, or status indicators.",
+      "description": "Small label-style badge used for NEW, Trending, status indicators, or count badges.",
       "layout": {
-        "height": 18,
-        "padding_x": "spacing.xs",
-        "border_radius": "radii.pill"
+        "small": {
+          "height": 18,
+          "padding_x": 6,
+          "font_size": 10
+        },
+        "medium": {
+          "height": 26,
+          "padding_x": 12,
+          "padding_y": 6,
+          "font_size": 12
+        },
+        "large": {
+          "height": 32,
+          "padding_x": 16,
+          "padding_y": 8,
+          "font_size": 14
+        },
+        "border_radius": "radii.xl"
       },
       "variants": {
         "new": {
@@ -620,133 +1088,62 @@
         "neutral": {
           "background": "colors.background.surface_high",
           "text_color": "colors.text.secondary"
-        }
-      }
-    },
-    "recent_activity_item": {
-      "description": "Row item summarizing a recent trade or action in the Recent Activity panel.",
-      "layout": {
-        "padding_x": 14,
-        "padding_y": 10,
-        "gap": "spacing.sm",
-        "spacing_between": "spacing.sm",
-        "border_radius": "radii.md"
-      },
-      "style": {
-        "background": "colors.background.shell",
-        "border": "borders.strong",
-        "primary_text": {
-          "font_size": "typography.sizes.xs",
-          "color": "rgba(255, 255, 255, 0.8)",
-          "line_clamp": 1
         },
-        "meta_text": {
-          "font_size": 11,
-          "color": "rgba(255, 255, 255, 0.5)",
-          "padding_left": 14
+        "success": {
+          "background": "colors.semantic.success_bg",
+          "text_color": "colors.semantic.success",
+          "border": "colors.semantic.success_border"
         },
-        "indicator": {
-          "size": 6,
-          "border_radius": "radii.pill"
+        "danger": {
+          "background": "colors.semantic.danger_bg",
+          "text_color": "colors.semantic.danger",
+          "border": "colors.semantic.danger_border"
+        }
+      }
+    },
+    "loading_state": {
+      "description": "Loading spinner and placeholder styles for async content.",
+      "style": {
+        "spinner": {
+          "size": 24,
+          "color": "colors.text.muted",
+          "animation": "spin 1s linear infinite"
         },
-        "highlight_value": {
-          "color_yes": "colors.semantic.success",
-          "color_no": "colors.semantic.danger"
-        }
-      },
-      "states": {
-        "hover": {
-          "border": "rgba(255, 255, 255, 0.15)",
-          "background": "rgba(255, 255, 255, 0.05)"
-        }
-      }
-    },
-    "portfolio_summary": {
-      "description": "Panel summary of user portfolio or balance with a few key metrics and actions.",
-      "layout": {
-        "padding": "spacing.lg",
-        "border_radius": "radii.lg",
-        "gap": "spacing.md"
-      },
-      "style": {
-        "background": "colors.background.surface_high",
-        "border": "borders.subtle",
-        "title_color": "colors.text.secondary",
-        "value_color": "colors.text.primary"
-      }
-    },
-    "watchlist_panel": {
-      "description": "Panel listing markets the user is tracking, each as a compact row with price chips.",
-      "layout": {
-        "padding": "spacing.xl",
-        "border_radius": "radii.lg",
-        "gap": 10,
-        "item_spacing": "spacing.sm"
-      },
-      "style": {
-        "background": "colors.background.surface",
-        "border": "borders.strong",
-        "item": {
-          "padding_x": 14,
-          "padding_y": 10,
-          "border_radius": "radii.md",
-          "background": "colors.background.surface_low",
-          "border": "borders.strong"
-        }
-      },
-      "states": {
-        "item_hover": {
-          "border": "rgba(255, 255, 255, 0.15)",
-          "background": "rgba(255, 255, 255, 0.05)"
-        }
-      }
-    },
-    "shortcut_bar": {
-      "description": "Small auxiliary row under nav showing quick filters like LIVE, category chips, and settings toggles. Uses shrink-0 to maintain fixed size in flex layout.",
-      "layout": {
-        "gap": "spacing.sm",
-        "padding_y": 0,
-        "flex_shrink": 0
-      },
-      "style": {
-        "background": "transparent",
-        "font_size": "typography.sizes.xs",
-        "color": "rgba(255, 255, 255, 0.6)"
-      },
-      "pill": {
-        "padding_x": 12,
-        "padding_y": 6,
-        "border_radius": "radii.md",
-        "font_size": "typography.sizes.xs",
-        "font_weight": "typography.weights.medium",
-        "border": "borders.strong",
-        "background_default": "colors.background.surface_low",
-        "background_active": "rgba(255, 255, 255, 0.1)",
-        "text_default": "rgba(255, 255, 255, 0.65)",
-        "text_active": "colors.text.primary"
-      }
-    },
-    "game_volume_item": {
-      "description": "Small card showing volume breakdown by game in the hero stats panel.",
-      "layout": {
-        "padding_x": 12,
-        "padding_y": 8,
-        "border_radius": "radii.md",
-        "gap": "spacing.sm"
-      },
-      "style": {
-        "background": "rgba(255, 255, 255, 0.05)",
-        "border": "borders.strong",
-        "label": {
-          "font_size": "typography.sizes.xs",
-          "font_weight": "typography.weights.medium",
-          "color": "rgba(255, 255, 255, 0.75)"
+        "text": {
+          "font_size": "typography.sizes.sm",
+          "color": "colors.text.muted"
         },
-        "value": {
-          "font_family": "typography.font_family_mono",
-          "font_size": "typography.sizes.xs",
+        "container": {
+          "display": "flex",
+          "align_items": "center",
+          "justify_content": "center",
+          "gap": 12,
+          "min_height": 160
+        }
+      }
+    },
+    "empty_state": {
+      "description": "Empty state placeholder for sections with no data.",
+      "layout": {
+        "padding": 32,
+        "gap": 12
+      },
+      "style": {
+        "icon_container": {
+          "size": 64,
+          "border_radius": "radii.2xl",
+          "background": "rgba(255, 255, 255, 0.05)",
+          "border": "colors.borders.subtle",
+          "icon_color": "colors.text.disabled"
+        },
+        "message": {
+          "font_size": "typography.sizes.sm",
+          "color": "colors.text.muted"
+        },
+        "action_link": {
+          "font_size": "typography.sizes.sm",
           "font_weight": "typography.weights.semibold",
-          "color": "colors.semantic.success"
+          "color": "colors.accent.amber"
         }
       }
     }

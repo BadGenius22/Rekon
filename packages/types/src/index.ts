@@ -202,3 +202,84 @@ export type { Fill } from "./fill";
 
 // Market full types
 export type { MarketFullResponse, MarketSpread } from "./market-full";
+
+// ============================================================================
+// Gamification Types
+// ============================================================================
+
+/**
+ * Trader tier levels based on trading volume through Rekon
+ */
+export type TraderTier =
+  | "bronze"
+  | "silver"
+  | "gold"
+  | "diamond"
+  | "champion";
+
+export interface TierInfo {
+  tier: TraderTier;
+  name: string; // Display name
+  title: string; // e.g., "Rookie Trader"
+  icon: string; // Emoji icon
+  minVolume: number; // Minimum volume to reach this tier
+  maxVolume: number | null; // Max volume (null for top tier)
+  color: string; // Tailwind color class
+}
+
+/**
+ * Achievement badges earned through trading activity
+ */
+export type BadgeId =
+  | "first_blood" // First trade
+  | "win_streak_3" // 3 consecutive wins
+  | "win_streak_5" // 5 consecutive wins
+  | "win_streak_10" // 10 consecutive wins
+  | "big_winner" // Single trade profit > $1K
+  | "whale" // Single trade profit > $10K
+  | "diversifier" // Traded all 4 games
+  | "sharp_shooter" // Win rate > 60%
+  | "sniper" // Win rate > 75%
+  | "diamond_hands" // Held position > 7 days
+  | "speed_demon" // 10 trades in 24h
+  | "veteran" // 100+ lifetime trades
+  | "legend"; // 1000+ lifetime trades
+
+export interface Badge {
+  id: BadgeId;
+  name: string;
+  description: string;
+  icon: string; // Emoji
+  rarity: "common" | "rare" | "epic" | "legendary";
+  earnedAt?: string; // ISO timestamp when earned
+  progress?: number; // 0-100 progress toward badge
+}
+
+/**
+ * User's gamification profile
+ */
+export interface GamificationProfile {
+  // Tier info
+  tier: TierInfo;
+  currentVolume: number; // Current Rekon volume
+  nextTierVolume: number | null; // Volume needed for next tier
+  tierProgress: number; // 0-100 progress to next tier
+
+  // Badges
+  badges: Badge[];
+  totalBadges: number;
+  recentBadge?: Badge; // Most recently earned badge
+
+  // Stats for badge calculations
+  stats: {
+    totalTrades: number;
+    winningTrades: number;
+    losingTrades: number;
+    currentWinStreak: number;
+    bestWinStreak: number;
+    bestTradeProfit: number;
+    gamesTraded: string[]; // ["CS2", "Dota 2", etc.]
+    longestHoldDays: number;
+    tradesLast24h: number;
+  };
+}

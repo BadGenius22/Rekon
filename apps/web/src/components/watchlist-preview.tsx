@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Star, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
+import { Star, TrendingUp, TrendingDown, Loader2, Eye } from "lucide-react";
 import { cn } from "@rekon/ui";
 import { API_CONFIG } from "@rekon/config";
 import { useWatchlist } from "@/hooks/use-watchlist";
@@ -66,45 +66,58 @@ export function WatchlistPreview() {
 
   if (isLoading) {
     return (
-      <div className="h-full p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-white">Watchlist</h3>
-          <Star className="h-4 w-4 text-amber-400" />
+      <div className="h-full p-6">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
+              <Star className="h-5 w-5 text-amber-400" fill="#FBBF24" />
+            </div>
+            <h3 className="text-lg font-bold text-white">Watchlist</h3>
+          </div>
         </div>
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-5 w-5 animate-spin text-white/40" />
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-white/40" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-white">Watchlist</h3>
-          {totalWatched > 0 && (
-            <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-500/20 text-amber-400 rounded">
-              {totalWatched}
-            </span>
-          )}
+    <div className="h-full p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
+            <Star className="h-5 w-5 text-amber-400" fill="#FBBF24" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-white">Watchlist</h3>
+            <p className="text-xs text-white/50">Markets you're tracking</p>
+          </div>
         </div>
-        <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
+        {totalWatched > 0 && (
+          <span className="px-3 py-1.5 text-sm font-bold bg-amber-500/15 text-amber-400 rounded-xl border border-amber-500/20">
+            {totalWatched} markets
+          </span>
+        )}
       </div>
 
       {markets.length === 0 ? (
-        <div className="text-center py-4">
-          <Star className="h-8 w-8 text-white/20 mx-auto mb-2" />
-          <p className="text-xs text-white/40">No markets in watchlist</p>
+        <div className="text-center py-8">
+          <div className="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4">
+            <Eye className="h-8 w-8 text-white/20" />
+          </div>
+          <p className="text-sm text-white/50 mb-3">No markets in watchlist</p>
           <Link
             href="/markets"
-            className="text-xs text-amber-400 hover:text-amber-300 mt-2 inline-block"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-amber-400 hover:text-amber-300 transition-colors"
           >
-            Browse markets →
+            <span>Browse markets</span>
+            <span>→</span>
           </Link>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {markets.map((market) => (
             <WatchlistItem key={market.id} market={market} />
           ))}
@@ -112,7 +125,7 @@ export function WatchlistPreview() {
           {totalWatched > 4 && (
             <Link
               href="/markets?watchlist=true"
-              className="block text-center text-xs text-white/50 hover:text-white/70 pt-2 border-t border-white/[0.04]"
+              className="block text-center text-sm font-medium text-white/60 hover:text-white/80 pt-4 border-t border-white/[0.06] transition-colors"
             >
               View all {totalWatched} watched →
             </Link>
@@ -131,40 +144,40 @@ function WatchlistItem({ market }: { market: Market }) {
 
   // Extract short title from question
   const shortTitle =
-    market.question.length > 40
-      ? market.question.substring(0, 40) + "..."
+    market.question.length > 35
+      ? market.question.substring(0, 35) + "..."
       : market.question;
 
   return (
     <Link
       href={`/markets/${market.slug || market.id}`}
-      className="flex items-center gap-3 py-2 px-2 -mx-2 rounded-lg hover:bg-white/[0.04] transition-colors group"
+      className="flex items-center gap-4 py-3 px-3 -mx-3 rounded-xl hover:bg-white/[0.04] transition-colors group"
     >
       {/* Market Image or Placeholder */}
       {market.imageUrl ? (
         <img
           src={market.imageUrl}
           alt=""
-          className="h-8 w-8 rounded-md object-cover border border-white/10"
+          className="h-12 w-12 rounded-xl object-cover border border-white/10"
         />
       ) : (
-        <div className="h-8 w-8 rounded-md bg-white/10 flex items-center justify-center">
-          <Star className="h-3.5 w-3.5 text-amber-400/50" />
+        <div className="h-12 w-12 rounded-xl bg-white/10 flex items-center justify-center">
+          <Star className="h-5 w-5 text-amber-400/50" />
         </div>
       )}
 
       {/* Market Info */}
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-white/80 truncate group-hover:text-white">
+        <p className="text-sm font-semibold text-white/90 truncate group-hover:text-white">
           {shortTitle}
         </p>
-        <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-[10px] text-white/40">
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-xs font-medium text-white/50">
             {market.game?.toUpperCase() || "ESPORTS"}
           </span>
           {market.active && !market.closed && (
-            <span className="flex items-center gap-0.5 text-[10px] text-emerald-400">
-              <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="flex items-center gap-1 text-xs font-medium text-emerald-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
               Live
             </span>
           )}
@@ -173,19 +186,19 @@ function WatchlistItem({ market }: { market: Market }) {
 
       {/* Price & Change */}
       <div className="text-right">
-        <p className="text-xs font-mono font-semibold text-white">
+        <p className="text-base font-mono font-bold text-white">
           {(price * 100).toFixed(0)}¢
         </p>
         <div
           className={cn(
-            "flex items-center gap-0.5 text-[10px] font-mono",
+            "flex items-center justify-end gap-1 text-xs font-mono font-semibold",
             isPositive ? "text-emerald-400" : "text-rose-400"
           )}
         >
           {isPositive ? (
-            <TrendingUp className="h-2.5 w-2.5" />
+            <TrendingUp className="h-3.5 w-3.5" />
           ) : (
-            <TrendingDown className="h-2.5 w-2.5" />
+            <TrendingDown className="h-3.5 w-3.5" />
           )}
           <span>
             {isPositive ? "+" : ""}

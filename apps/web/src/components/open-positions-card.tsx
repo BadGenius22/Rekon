@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { OpenPositions } from "./open-positions";
+import { BarChart3 } from "lucide-react";
 
 interface OpenPositionsCardProps {
   userAddress?: string;
@@ -14,29 +15,36 @@ export function OpenPositionsCard({ userAddress }: OpenPositionsCardProps) {
   const [positionCount, setPositionCount] = useState<number | null>(null);
 
   return (
-    <div className="flex flex-col h-[400px]">
-      <div className="p-5 border-b border-white/[0.06]">
+    <div className="flex flex-col h-[420px]">
+      {/* Header */}
+      <div className="p-6 border-b border-white/[0.06]">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-white">Open Positions</h2>
-            <p className="text-xs text-white/50 mt-1">
-              Your active esports market positions
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+              <BarChart3 className="h-6 w-6 text-emerald-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Open Positions</h2>
+              <p className="text-sm text-white/50 mt-0.5">
+                Your active esports market positions
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 text-xs font-medium text-emerald-400 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+          <div className="flex items-center gap-3">
+            <span className="px-4 py-2 text-base font-bold text-emerald-400 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
               {positionCount !== null ? positionCount : "..."} active
             </span>
           </div>
         </div>
       </div>
+
+      {/* Table Content */}
       <div className="flex-1 overflow-auto p-1">
-        <OpenPositions 
-          userAddress={userAddress} 
+        <OpenPositions
+          userAddress={userAddress}
           onPositionsLoaded={setPositionCount}
         />
       </div>
     </div>
   );
 }
-

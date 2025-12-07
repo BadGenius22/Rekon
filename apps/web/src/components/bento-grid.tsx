@@ -45,7 +45,7 @@ export function BentoGridItem({
         ease: [0.25, 0.4, 0.25, 1],
       }}
       className={cn(
-        "relative overflow-hidden rounded-xl",
+        "relative rounded-xl",
         "bg-[#0a1220]/80 backdrop-blur-sm",
         "border border-white/[0.08]",
         "transition-all duration-300",
@@ -60,15 +60,15 @@ export function BentoGridItem({
       )}
     >
       {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none rounded-xl z-0" />
       
       {/* Glow effect for highlighted items */}
       {highlight && (
-        <div className="absolute -inset-px bg-gradient-to-br from-emerald-500/10 via-transparent to-cyan-500/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+        <div className="absolute -inset-px bg-gradient-to-br from-emerald-500/10 via-transparent to-cyan-500/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-0" />
       )}
       
-      {/* Content */}
-      <div className="relative z-10 h-full">{children}</div>
+      {/* Content - no z-index to allow children tooltips to escape */}
+      <div className="relative h-full">{children}</div>
     </motion.div>
   );
 }

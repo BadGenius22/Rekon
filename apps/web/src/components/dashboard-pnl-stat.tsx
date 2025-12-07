@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { API_CONFIG } from "@rekon/config";
 import { cn } from "@rekon/ui";
+import { TrendingUp, TrendingDown, Loader2 } from "lucide-react";
 
 interface PortfolioData {
   totalPnL: number;
@@ -68,10 +69,10 @@ export function DashboardPnLStat({ userAddress }: DashboardPnLStatProps) {
   const formatPnL = (value: number): string => {
     const absValue = Math.abs(value);
     if (absValue >= 1_000_000) {
-      return `${(value / 1_000_000).toFixed(2)}M`;
+      return `${(value / 1_000_000).toFixed(1)}M`;
     }
     if (absValue >= 1_000) {
-      return `${(value / 1_000).toFixed(2)}K`;
+      return `${(value / 1_000).toFixed(1)}K`;
     }
     return value.toLocaleString("en-US", {
       minimumFractionDigits: 2,
@@ -79,42 +80,60 @@ export function DashboardPnLStat({ userAddress }: DashboardPnLStatProps) {
     });
   };
 
-  const isPositive = (pnlData?.totalPnL ?? 0) >= 0;
+  const totalPnL = pnlData?.totalPnL ?? 0;
+  const isPositive = totalPnL >= 0;
 
   return (
-    <div className="h-full p-5 flex flex-col">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">📈</span>
-          <span className="text-xs font-medium text-white/50 uppercase tracking-wider">
-            Lifetime PnL
-          </span>
+    <div className="h-full p-6 flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div
+            className={cn(
+              "h-12 w-12 rounded-xl flex items-center justify-center",
+              isPositive
+                ? "bg-emerald-500/20 border border-emerald-500/30"
+                : "bg-rose-500/20 border border-rose-500/30"
+            )}
+          >
+            {isPositive ? (
+              <TrendingUp className="h-6 w-6 text-emerald-400" />
+            ) : (
+              <TrendingDown className="h-6 w-6 text-rose-400" />
+            )}
+          </div>
+          <div>
+            <span className="text-sm font-semibold text-white/70">
+              Lifetime PnL
+            </span>
+            <p className="text-xs text-white/40">Esports markets</p>
+          </div>
         </div>
-        <span className="text-[10px] text-white/30 font-medium">ESPORTS</span>
       </div>
 
+      {/* Main Value */}
       {loading ? (
-        <div className="text-2xl lg:text-3xl font-mono font-bold text-white/50">
-          ...
+        <div className="flex-1 flex items-center">
+          <Loader2 className="h-6 w-6 animate-spin text-white/40" />
         </div>
       ) : (
         <>
           <div
             className={cn(
-              "text-2xl lg:text-3xl font-mono font-bold",
+              "text-3xl lg:text-4xl font-mono font-bold tracking-tight",
               isPositive ? "text-emerald-400" : "text-rose-400"
             )}
           >
-            {isPositive ? "+" : ""}${formatPnL(pnlData?.totalPnL ?? 0)}
+            {isPositive ? "+" : ""}${formatPnL(totalPnL)}
           </div>
 
           {/* Breakdown */}
-          <div className="mt-3 space-y-1.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-white/50">Open Positions</span>
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-white/60">Open Positions</span>
               <span
                 className={cn(
-                  "font-mono font-medium",
+                  "text-sm font-mono font-semibold",
                   (pnlData?.totalUnrealizedPnL ?? 0) >= 0
                     ? "text-emerald-400"
                     : "text-rose-400"
@@ -124,11 +143,11 @@ export function DashboardPnLStat({ userAddress }: DashboardPnLStatProps) {
                 {formatPnL(pnlData?.totalUnrealizedPnL ?? 0)}
               </span>
             </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-white/50">Closed Markets</span>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-white/60">Closed Markets</span>
               <span
                 className={cn(
-                  "font-mono font-medium",
+                  "text-sm font-mono font-semibold",
                   (pnlData?.totalRealizedPnL ?? 0) >= 0
                     ? "text-emerald-400"
                     : "text-rose-400"
