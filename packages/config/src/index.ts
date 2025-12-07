@@ -44,9 +44,11 @@ export const POLYMARKET_CONFIG = {
   // Optional auth token for signing server requests
   builderSigningToken:
     process.env.POLYMARKET_BUILDER_SIGNING_TOKEN || undefined,
-  // Optional esports game tag IDs for Gamma /events filtering.
+  // Esports tag ID for Gamma /events filtering (all esports combined)
+  esportsTagId: process.env.POLYMARKET_TAG_ESPORTS || "64",
+  // Optional per-game tag IDs for Gamma /events filtering.
   // Polymarket models esports as separate sports (CS2, LoL, Dota 2, Valorant),
-  // so we keep per-game tags instead of a single "esports" tag.
+  // so we keep per-game tags in addition to the combined esports tag.
   gameTagIds: {
     cs2: process.env.POLYMARKET_TAG_CS2 || undefined,
     lol: process.env.POLYMARKET_TAG_LOL || undefined,

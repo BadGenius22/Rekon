@@ -24,7 +24,7 @@ import { getChartData } from "../services/chart";
 const GetMarketsQuerySchema = z.object({
   category: z.string().optional(),
   game: z.enum(["cs2", "lol", "dota2", "valorant"]).optional(),
-  type: z.enum(["game", "outright"]).optional(),
+  type: z.enum(["game", "outright", "esports"]).optional(),
   active: z
     .string()
     .transform((val) => val === "true")

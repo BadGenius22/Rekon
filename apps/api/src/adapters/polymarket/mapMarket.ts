@@ -142,6 +142,10 @@ export function mapPolymarketMarket(pmMarket: PolymarketMarket): Market {
     pmMarket.categories?.[0]?.label || pmMarket.category || undefined;
   const subcategory = pmMarket.categories?.[0]?.parentCategory || undefined;
 
+  // Extract tag labels for game detection
+  // Tags like "cs2", "lol", "dota2", "valorant", "Esports" are reliable game indicators
+  const tags = pmMarket.tags?.map((tag) => tag.label.toLowerCase()) || [];
+
   // Determine trading paused state
   const tradingPaused = !pmMarket.acceptingOrders || !pmMarket.active;
 
@@ -198,6 +202,8 @@ export function mapPolymarketMarket(pmMarket: PolymarketMarket): Market {
     sportsMarketType: pmMarket.sportsMarketType || undefined,
     // Event slug from events array
     eventSlug: pmMarket.events?.[0]?.slug || undefined,
+    // Tags for reliable game detection
+    tags: tags.length > 0 ? tags : undefined,
   };
 }
 

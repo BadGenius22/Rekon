@@ -1,23 +1,24 @@
 import Link from "next/link";
-import { TrendingUp, ArrowRight } from "lucide-react";
+import { TrendingUp, ArrowRight, Zap, Users, BarChart3 } from "lucide-react";
 import type { Market } from "@rekon/types";
 import { API_CONFIG } from "@rekon/config";
 import { formatVolume } from "@rekon/utils";
+import { cn } from "@rekon/ui";
 import { AppHeader } from "@/components/app-header";
 import { HomePageClient } from "./home-page-client";
 import { GameCategories } from "./game-categories";
 import { HowItWorks } from "./how-it-works";
 import { AppFooter } from "./app-footer";
+import { BentoGrid, BentoGridItem } from "@/components/bento-grid";
 
 async function getHighlightedMarkets(): Promise<Market[]> {
   try {
     const url = new URL(`${API_CONFIG.baseUrl}/markets`);
-    // We only want live esports game markets in the highlight strip.
+    // Fetch all live esports markets (no type filter)
+    // This includes both individual matches AND tournament winners
     url.searchParams.set("includeResolved", "false");
-    url.searchParams.set("type", "game");
 
     const response = await fetch(url.toString(), {
-      // Cache for 10 seconds, then revalidate in the background.
       next: { revalidate: 10 },
     });
 
@@ -27,8 +28,6 @@ async function getHighlightedMarkets(): Promise<Market[]> {
     }
 
     const markets = (await response.json()) as Market[];
-    // The /markets controller already returns esports-only markets; we just
-    // keep the response as-is and let the backend own the esports filtering.
     return markets;
   } catch (error) {
     console.warn("Failed to fetch highlighted markets:", error);
@@ -36,41 +35,66 @@ async function getHighlightedMarkets(): Promise<Market[]> {
   }
 }
 
-export async function HomePage() {
-  const markets = await getHighlightedMarkets();
-  const liveMarketsCount = markets.length;
-  const totalVolume = markets.reduce(
-    (sum, market) => sum + (market.volume24h ?? market.volume ?? 0),
-    0
-  );
+/**
+ * Fetch game icons from backend API.
+ * Backend fetches from Polymarket's /sports endpoint.
+ */
+async function getGameIcons(): Promise<Record<string, string>> {
+  try {
+    const url = `${API_CONFIG.baseUrl}/games/icons`;
+    const response = await fetch(url, {
+      next: { revalidate: 60 }, // Cache for 1 minute (icons rarely change)
+    });
 
-  // Calculate volume per game
+    if (!response.ok) {
+      console.warn("Failed to fetch game icons:", response.status);
+      return {};
+    }
+
+    return (await response.json()) as Record<string, string>;
+  } catch (error) {
+    console.warn("Failed to fetch game icons:", error);
+    return {};
+  }
+}
+
+export async function HomePage() {
+  // Fetch markets and game icons in parallel
+  const [markets, gameIcons] = await Promise.all([
+    getHighlightedMarkets(),
+    getGameIcons(),
+  ]);
+
+  // Calculate volume per game (only markets with detected game)
+  // Helper function to calculate volume for a game
+  const getGameVolume = (game: string) =>
+    markets
+      .filter((m) => m.game === game)
+      .reduce(
+        (sum, market) => sum + (market.volume24h ?? market.volume ?? 0),
+        0
+      );
+
   const gameVolumes = {
-    cs2: markets
-      .filter((m) => m.game === "cs2")
-      .reduce(
-        (sum, market) => sum + (market.volume24h ?? market.volume ?? 0),
-        0
-      ),
-    lol: markets
-      .filter((m) => m.game === "lol")
-      .reduce(
-        (sum, market) => sum + (market.volume24h ?? market.volume ?? 0),
-        0
-      ),
-    dota2: markets
-      .filter((m) => m.game === "dota2")
-      .reduce(
-        (sum, market) => sum + (market.volume24h ?? market.volume ?? 0),
-        0
-      ),
-    valorant: markets
-      .filter((m) => m.game === "valorant")
-      .reduce(
-        (sum, market) => sum + (market.volume24h ?? market.volume ?? 0),
-        0
-      ),
+    cs2: getGameVolume("cs2"),
+    lol: getGameVolume("lol"),
+    dota2: getGameVolume("dota2"),
+    valorant: getGameVolume("valorant"),
+    cod: getGameVolume("cod"),
+    r6: getGameVolume("r6"),
+    hok: getGameVolume("hok"),
   };
+
+  // Total volume = sum of all game volumes (matches Volume by Game section)
+  const totalVolume = Object.values(gameVolumes).reduce((a, b) => a + b, 0);
+
+  // Supported games for filtering
+  const supportedGames = ["cs2", "lol", "dota2", "valorant", "cod", "r6", "hok"];
+
+  // Count only markets with detected games
+  const liveMarketsCount = markets.filter((m) =>
+    supportedGames.includes(m.game ?? "")
+  ).length;
 
   // Calculate market counts per game
   const gameCounts = {
@@ -78,104 +102,170 @@ export async function HomePage() {
     lol: markets.filter((m) => m.game === "lol").length,
     dota2: markets.filter((m) => m.game === "dota2").length,
     valorant: markets.filter((m) => m.game === "valorant").length,
+    cod: markets.filter((m) => m.game === "cod").length,
+    r6: markets.filter((m) => m.game === "r6").length,
+    hok: markets.filter((m) => m.game === "hok").length,
   };
 
-  // Extract game icons from market metadata (use first market's imageUrl for each game)
-  const gameIcons = {
-    cs2: markets.find((m) => m.game === "cs2" && m.imageUrl)?.imageUrl,
-    lol: markets.find((m) => m.game === "lol" && m.imageUrl)?.imageUrl,
-    dota2: markets.find((m) => m.game === "dota2" && m.imageUrl)?.imageUrl,
-    valorant: markets.find((m) => m.game === "valorant" && m.imageUrl)
-      ?.imageUrl,
-  };
+  // Game icons are now fetched from backend API (from Polymarket /sports endpoint)
 
   return (
     <main className="min-h-screen bg-[#030711] text-white">
-      {/* App shell background */}
-      <div className="flex flex-col bg-gradient-to-b from-[#050816] via-[#030711] to-black">
-        {/* Top navigation */}
+      {/* Background layers */}
+      <div className="fixed inset-0 bg-gradient-to-br from-[#0a1628] via-[#030711] to-[#0d0d1a] -z-10" />
+      <div className="fixed inset-0 bg-[url('/grid.svg')] bg-center opacity-[0.02] -z-10" />
+
+      <div className="min-h-screen flex flex-col">
         <AppHeader />
 
         {/* Hero Section */}
-        <section className="mx-auto w-full max-w-screen-2xl px-4 pt-8 pb-12 md:px-6 xl:px-10">
-          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1D4ED8] via-[#22D3EE] to-[#8B5CF6] shadow-[0_12px_40px_rgba(15,23,42,0.8)]">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(15,23,42,0.8),transparent_50%)]" />
-            <div className="relative flex flex-col gap-6 p-8 sm:p-10 md:flex-row md:items-center md:justify-between">
-              <div className="space-y-5 md:max-w-2xl">
-                <h1 className="text-balance text-3xl font-bold leading-tight text-white sm:text-4xl md:text-5xl">
-                  Predict esports match outcomes{" "}
-                  <span className="underline decoration-white/70 decoration-wavy underline-offset-4">
-                    in real time
-                  </span>
-                </h1>
-                <p className="text-base leading-relaxed text-white/90 sm:text-lg">
-                  Real-time odds with instant settlements. Powered by
-                  Polymarket.
-                  <br />
-                  <span className="text-sm text-white/75">
-                    Connect your wallet to start trading.
-                  </span>
-                </p>
-                <div className="flex flex-wrap items-center gap-3 pt-2">
-                  <Link
-                    href="/markets"
-                    className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-semibold text-[#030711] shadow-[0_4px_16px_rgba(255,255,255,0.3)] transition-all hover:bg-white/95 hover:shadow-[0_6px_20px_rgba(255,255,255,0.4)]"
-                  >
-                    <TrendingUp className="h-4 w-4" />
-                    <span>Browse Esports Markets</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
+        <section className="mx-auto w-full max-w-screen-2xl px-4 pt-8 pb-10 md:px-6 xl:px-10">
+          <div className="grid grid-cols-12 gap-4">
+            {/* Main Hero Card - Left Side */}
+            <BentoGridItem
+              className="col-span-12 lg:col-span-7 xl:col-span-8"
+              delay={0}
+              highlight
+            >
+              <div className="relative overflow-hidden rounded-xl h-full">
+                {/* Gradient Background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-[#1D4ED8] via-[#22D3EE]/80 to-[#8B5CF6]" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(15,23,42,0.7),transparent_60%)]" />
+                
+                {/* Content */}
+                <div className="relative p-8 sm:p-10 h-full flex flex-col justify-between min-h-[380px]">
+                  <div className="space-y-5 max-w-xl">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
+                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-xs font-semibold text-white/90 uppercase tracking-wider">
+                        Live Markets
+                      </span>
+                    </div>
+                    
+                    <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight text-white tracking-tight">
+                      Predict esports match outcomes{" "}
+                      <span className="underline decoration-white/50 decoration-wavy underline-offset-4">
+                        in real time
+                      </span>
+                    </h1>
+                    
+                    <p className="text-base lg:text-lg leading-relaxed text-white/85">
+                      Real-time odds with instant settlements. Powered by Polymarket.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 pt-4">
+                    <Link
+                      href="/markets"
+                      className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-[#030711] shadow-[0_4px_20px_rgba(255,255,255,0.25)] transition-all hover:bg-white/95 hover:shadow-[0_6px_24px_rgba(255,255,255,0.35)] hover:-translate-y-0.5"
+                    >
+                      <TrendingUp className="h-4 w-4" />
+                      <span>Browse Markets</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                    <Link
+                      href="/dashboard"
+                      className="inline-flex items-center gap-2 rounded-xl bg-white/10 backdrop-blur-sm px-6 py-3.5 text-sm font-semibold text-white border border-white/20 transition-all hover:bg-white/20 hover:-translate-y-0.5"
+                    >
+                      <BarChart3 className="h-4 w-4" />
+                      <span>View Dashboard</span>
+                    </Link>
+                  </div>
                 </div>
+              </div>
+            </BentoGridItem>
+
+            {/* Stats Column - Right Side */}
+            <div className="col-span-12 lg:col-span-5 xl:col-span-4 flex flex-col gap-4">
+              {/* Top Row: 24h Volume + Live Markets */}
+              <div className="grid grid-cols-2 gap-4">
+                <BentoGridItem delay={0.1}>
+                  <div className="h-full p-5 flex flex-col justify-between">
+                    <div className="flex items-center gap-2.5 mb-3">
+                      <div className="h-10 w-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+                        <TrendingUp className="h-5 w-5 text-emerald-400" />
+                      </div>
+                      <span className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+                        24h Volume
+                      </span>
+                    </div>
+                    <div>
+                      <div className="text-2xl lg:text-3xl font-mono font-bold text-emerald-400">
+                        {formatVolume(totalVolume)}
+                      </div>
+                      <p className="text-xs text-white/40 mt-1">Esports markets</p>
+                    </div>
+                  </div>
+                </BentoGridItem>
+
+                <BentoGridItem delay={0.15}>
+                  <div className="h-full p-5 flex flex-col justify-between">
+                    <div className="flex items-center gap-2.5 mb-3">
+                      <div className="h-10 w-10 rounded-xl bg-sky-500/20 border border-sky-500/30 flex items-center justify-center">
+                        <Zap className="h-5 w-5 text-sky-400" />
+                      </div>
+                      <span className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+                        Live
+                      </span>
+                    </div>
+                    <div>
+                      <div className="text-2xl lg:text-3xl font-mono font-bold text-sky-400">
+                        {liveMarketsCount}
+                      </div>
+                      <p className="text-xs text-white/40 mt-1">Active markets</p>
+                    </div>
+                  </div>
+                </BentoGridItem>
               </div>
 
-              {/* Stats Panel */}
-              <div className="mt-4 flex flex-col gap-4 rounded-xl bg-black/20 p-5 text-xs text-white/90 backdrop-blur-sm md:mt-0 md:w-80">
-                <div className="flex items-center justify-between text-xs text-white/75">
-                  <span>24h Volume</span>
-                  <span className="font-mono text-sm font-semibold text-emerald-300">
-                    {formatVolume(totalVolume)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-xs text-white/75">
-                  <span>Markets</span>
-                  <span className="font-mono text-sm font-semibold text-white">
-                    {liveMarketsCount}
-                  </span>
-                </div>
-                <div className="h-px bg-white/10" />
-                <div className="space-y-2.5">
-                  <div className="text-[10px] font-semibold text-white/60 uppercase tracking-wider">
-                    Volume by Game
+              {/* Bottom: Volume by Game */}
+              <BentoGridItem className="flex-1" delay={0.2}>
+                <div className="h-full p-5">
+                  <div className="flex items-center gap-2.5 mb-4">
+                    <div className="h-10 w-10 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center">
+                      <Users className="h-5 w-5 text-purple-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-white">Volume by Game</h3>
+                      <p className="text-xs text-white/40">24h trading activity</p>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <GameVolumeItem game="CS2" volume={gameVolumes.cs2} />
-                    <GameVolumeItem game="LoL" volume={gameVolumes.lol} />
-                    <GameVolumeItem game="Dota2" volume={gameVolumes.dota2} />
-                    <GameVolumeItem
-                      game="Valorant"
-                      volume={gameVolumes.valorant}
-                    />
+                  <div className="space-y-2.5 max-h-[200px] overflow-y-auto pr-1">
+                    <GameVolumeBar game="CS2" volume={gameVolumes.cs2} colorFrom="#f97316" colorTo="#ea580c" totalVolume={totalVolume} />
+                    <GameVolumeBar game="Call of Duty" volume={gameVolumes.cod} colorFrom="#22c55e" colorTo="#16a34a" totalVolume={totalVolume} />
+                    <GameVolumeBar game="LoL" volume={gameVolumes.lol} colorFrom="#3b82f6" colorTo="#2563eb" totalVolume={totalVolume} />
+                    <GameVolumeBar game="Dota 2" volume={gameVolumes.dota2} colorFrom="#ef4444" colorTo="#dc2626" totalVolume={totalVolume} />
+                    <GameVolumeBar game="R6 Siege" volume={gameVolumes.r6} colorFrom="#a855f7" colorTo="#9333ea" totalVolume={totalVolume} />
+                    <GameVolumeBar game="Valorant" volume={gameVolumes.valorant} colorFrom="#ec4899" colorTo="#db2777" totalVolume={totalVolume} />
+                    <GameVolumeBar game="Honor of Kings" volume={gameVolumes.hok} colorFrom="#eab308" colorTo="#ca8a04" totalVolume={totalVolume} />
                   </div>
                 </div>
-              </div>
+              </BentoGridItem>
             </div>
           </div>
         </section>
 
         {/* Game Categories */}
-        <section className="mx-auto w-full max-w-screen-2xl px-4 pb-12 md:px-6 xl:px-10">
+        <section className="mx-auto w-full max-w-screen-2xl px-4 pb-10 md:px-6 xl:px-10">
           <GameCategories gameCounts={gameCounts} gameIcons={gameIcons} />
         </section>
 
         {/* Featured Esports Matches */}
-        <section className="mx-auto w-full max-w-screen-2xl px-4 pb-12 md:px-6 xl:px-10">
+        <section className="mx-auto w-full max-w-screen-2xl px-4 pb-10 md:px-6 xl:px-10">
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-white">
-              Featured Esports Matches
-            </h2>
-            <p className="mt-2 text-sm text-white/60">
-              Active markets with real-time updates
-            </p>
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
+                <span className="text-xl">🎮</span>
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white tracking-tight">
+                  Featured Esports Matches
+                </h2>
+                <p className="text-sm text-white/50 mt-0.5">
+                  Active markets with real-time updates
+                </p>
+              </div>
+            </div>
           </div>
           <HomePageClient markets={markets} gameCounts={gameCounts} />
         </section>
@@ -186,7 +276,7 @@ export async function HomePage() {
         </section>
 
         {/* Footer */}
-        <div className="mt-12 sm:mt-16 md:mt-20 lg:mt-24">
+        <div className="mt-auto">
           <AppFooter />
         </div>
       </div>
@@ -194,13 +284,47 @@ export async function HomePage() {
   );
 }
 
-function GameVolumeItem({ game, volume }: { game: string; volume: number }) {
+// Game Volume Bar Component
+function GameVolumeBar({
+  game,
+  volume,
+  colorFrom,
+  colorTo,
+  totalVolume,
+}: {
+  game: string;
+  volume: number;
+  colorFrom: string;
+  colorTo: string;
+  totalVolume: number;
+}) {
+  const percentage = totalVolume > 0 ? (volume / totalVolume) * 100 : 0;
+  // Minimum width so bar is always visible
+  const barWidth = Math.max(percentage, 3);
+  
   return (
-    <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2">
-      <span className="text-xs font-medium text-white/75">{game}</span>
-      <span className="font-mono text-xs font-semibold text-emerald-300">
-        {formatVolume(volume)}
-      </span>
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-white/70">{game}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-mono font-semibold text-white/90">
+            {formatVolume(volume)}
+          </span>
+          <span className="text-xs font-mono text-white/40">
+            {percentage.toFixed(0)}%
+          </span>
+        </div>
+      </div>
+      <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${Math.min(barWidth, 100)}%`,
+            background: `linear-gradient(to right, ${colorFrom}, ${colorTo})`,
+            opacity: percentage === 0 ? 0.4 : 1,
+          }}
+        />
+      </div>
     </div>
   );
 }

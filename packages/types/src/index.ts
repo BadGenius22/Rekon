@@ -47,8 +47,12 @@ export interface Market {
   priceChange1w?: number;
   isTrending?: boolean;
   trendingScore?: number;
-  // Game categorization (cs2, lol, dota2, valorant)
-  game?: "cs2" | "lol" | "dota2" | "valorant";
+  // Game categorization
+  // Supported games: cs2, lol, dota2, valorant, cod, r6, hok
+  game?: "cs2" | "lol" | "dota2" | "valorant" | "cod" | "r6" | "hok";
+  // Tags from Polymarket (e.g., "cs2", "Esports", "counter strike 2")
+  // Used for reliable game detection
+  tags?: string[];
   // Market grouping (for DOTA 2 subevents: moneyline, game 1, game 2, etc.)
   marketGroup?: number;
   groupItemTitle?: string; // e.g., "Moneyline", "Game 1", "Game 2"
