@@ -27,9 +27,9 @@ const GAME_TO_POLYMARKET_SPORT: Record<string, string> = {
   lol: "lol",
   dota2: "dota2",
   valorant: "valorant",
-  cod: "call of duty", // Call of Duty
-  r6: "rainbow six siege", // Rainbow Six Siege
-  hok: "honor of kings", // Honor of Kings (mobile MOBA)
+  cod: "codmw", // Call of Duty (Modern Warfare / CDL)
+  r6: "r6siege", // Rainbow Six Siege
+  hok: "kog", // King of Glory / Honor of Kings (mobile MOBA)
 };
 
 /**
@@ -142,6 +142,7 @@ export async function getGameIcons(): Promise<Record<string, string>> {
 /**
  * Default fallback image URLs (cached from Polymarket CDN)
  * Used when API is unavailable or returns incomplete data
+ * URLs sourced from Polymarket's /sports API (2024-12)
  */
 function getDefaultImageUrl(gameId: string): string | undefined {
   const defaults: Record<string, string> = {
@@ -151,10 +152,10 @@ function getDefaultImageUrl(gameId: string): string | undefined {
       "https://polymarket-upload.s3.us-east-2.amazonaws.com/dota-2-iamge-e93dd0923f.png",
     valorant:
       "https://polymarket-upload.s3.us-east-2.amazonaws.com/valorant-logo-6fab741a16.png",
-    // New games - images will be fetched from API when available
-    cod: "https://polymarket-upload.s3.us-east-2.amazonaws.com/call-of-duty-cdl-01a92a6c2c.png",
-    r6: "https://polymarket-upload.s3.us-east-2.amazonaws.com/rainbow-six-siege-da8f2f7b69.png",
-    hok: "https://polymarket-upload.s3.us-east-2.amazonaws.com/honor-of-kings-d5c4f89e12.png",
+    // Verified URLs from Polymarket /sports API
+    cod: "https://polymarket-upload.s3.us-east-2.amazonaws.com/call-of-duty-208ecf2953.png",
+    r6: "https://polymarket-upload.s3.us-east-2.amazonaws.com/rainbow-6-siege-049a0d8344.jpg",
+    hok: "https://polymarket-upload.s3.us-east-2.amazonaws.com/honor-of-kings-fb99edf26f.jpg",
   };
   return defaults[gameId];
 }

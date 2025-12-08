@@ -198,7 +198,14 @@ app.route("/games", gamesRoutes);
 const port = Number(process.env.PORT) || 3001;
 
 // Start server
-if (import.meta.main) {
+// Use a check that works with both tsx (Node.js) and Bun
+const isMainModule =
+  typeof import.meta.main !== "undefined"
+    ? import.meta.main
+    : import.meta.url === `file://${process.argv[1]}` ||
+      process.argv[1]?.endsWith("src/index.ts");
+
+if (isMainModule) {
   const { serve } = await import("@hono/node-server");
   serve({
     fetch: app.fetch,

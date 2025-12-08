@@ -223,9 +223,12 @@ function MarketCard({
   const gameLabel = game
     ? {
         cs2: "CS2",
+        cod: "CoD",
         lol: "LoL",
         dota2: "Dota 2",
+        r6: "R6",
         valorant: "Valorant",
+        hok: "HoK",
       }[game] ?? game.toUpperCase()
     : undefined;
   // Format date/time for display with timezone

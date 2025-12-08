@@ -13,6 +13,9 @@ interface HomePageClientProps {
     lol: number;
     dota2: number;
     valorant: number;
+    cod: number;
+    r6: number;
+    hok: number;
   };
 }
 

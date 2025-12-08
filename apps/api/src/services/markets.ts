@@ -749,11 +749,11 @@ function isGameMarket(market: Market): boolean {
 
 /**
  * Detects the game for an esports market.
- * Returns the game slug (cs2, lol, dota2, valorant) or undefined.
+ * Returns the game slug or undefined.
  */
 function detectGame(
   market: Market
-): "cs2" | "lol" | "dota2" | "valorant" | undefined {
+): "cs2" | "lol" | "dota2" | "valorant" | "cod" | "r6" | "hok" | undefined {
   const category = (market.category ?? "").toLowerCase();
   const subcategory = (market.subcategory ?? "").toLowerCase();
   const question = (market.question ?? "").toLowerCase();

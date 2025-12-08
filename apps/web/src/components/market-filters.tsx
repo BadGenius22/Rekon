@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { cn } from "@rekon/ui";
 
-export type GameFilter = "cs2" | "lol" | "dota2" | "valorant" | null;
+export type GameFilter = "cs2" | "lol" | "dota2" | "valorant" | "cod" | "r6" | "hok" | null;
 export type SortOption =
   | "upcoming"
   | "volume"
@@ -21,6 +21,9 @@ interface MarketFiltersProps {
     lol: number;
     dota2: number;
     valorant: number;
+    cod: number;
+    r6: number;
+    hok: number;
   };
 }
 
@@ -33,9 +36,12 @@ export function MarketFilters({
 }: MarketFiltersProps) {
   const gameFilters: Array<{ value: GameFilter; label: string }> = [
     { value: "cs2", label: "CS2" },
+    { value: "cod", label: "CoD" },
     { value: "lol", label: "LoL" },
-    { value: "dota2", label: "Dota2" },
+    { value: "dota2", label: "Dota 2" },
+    { value: "r6", label: "R6" },
     { value: "valorant", label: "Valorant" },
+    { value: "hok", label: "HoK" },
   ];
 
   const sortOptions: Array<{ value: SortOption; label: string }> = [
@@ -62,7 +68,7 @@ export function MarketFilters({
           All
         </button>
         {gameFilters.map((filter) => {
-          const count = gameCounts[filter.value];
+          const count = filter.value ? gameCounts[filter.value] : 0;
           const isActive = gameFilter === filter.value;
           return (
             <button
