@@ -3,13 +3,7 @@ import { API_CONFIG } from "@rekon/config";
 import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { WatchlistProviderWrapper } from "@/components/watchlist-provider-wrapper";
-import { MarketHeader } from "@/modules/markets/market-header";
-import { PriceDisplay } from "@/modules/markets/price-display";
-import { TradeBox } from "@/modules/markets/trade-box";
-import { MarketInfo } from "@/modules/markets/market-info";
-import { RecentTrades } from "@/modules/markets/recent-trades";
-import { MarketSubevents } from "@/modules/markets/market-subevents";
-import { BentoGrid, BentoGridItem } from "@/components/bento-grid";
+import { MarketDetailClient } from "./market-detail-client";
 
 async function getMarketFull(
   identifier: string
@@ -91,10 +85,6 @@ async function getMarketFull(
       }
 
       // If all endpoints failed, return null (will show 404 page)
-      const errorText =
-        marketResponse && marketResponse.status
-          ? await marketResponse.text().catch(() => "Unknown error")
-          : "No response";
       console.warn(
         `Market not found: ${identifier}. Tried: /market/full/${identifier}, /markets/slug/${identifier}, /markets/${identifier}, /markets/condition/${identifier}`
       );
@@ -141,7 +131,7 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
               href="/markets"
               className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:border-white/40 transition-colors"
             >
-              ← Back to Markets
+              Back to Markets
             </a>
           </div>
         </div>
@@ -183,27 +173,20 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
   const team1PriceChange24h = metrics.priceChange24h;
   const team2PriceChange24h = -metrics.priceChange24h;
 
-  // Determine league
-  const league =
-    market.game === "cs2"
-      ? "csgo"
-      : market.game ||
-        (market.subcategory?.toLowerCase().includes("dota")
-          ? "dota2"
-          : market.subcategory?.toLowerCase().includes("cs") ||
-            market.subcategory?.toLowerCase().includes("counter")
-          ? "csgo"
-          : market.subcategory?.toLowerCase().includes("lol") ||
-            market.subcategory?.toLowerCase().includes("league")
-          ? "lol"
-          : market.subcategory?.toLowerCase().includes("valorant")
-          ? "valorant"
-          : undefined);
+  // Try to get team-specific images, fallback to market image
+  const team1Image = market.imageUrl; // Fallback, team logos fetched in hero component
+  const team2Image = market.imageUrl; // Fallback, team logos fetched in hero component
+
+  // Map game to league for team logo API
+  const gameToLeague: Record<string, string> = {
+    cs2: "csgo",
+    lol: "lol",
+    dota2: "dota2",
+    valorant: "valorant",
+  };
+  const league = market.game ? gameToLeague[market.game] : undefined;
 
   // Determine market status
-  const now = new Date();
-  const endDate = new Date(market.endDate);
-  const startDate = market.createdAt ? new Date(market.createdAt) : null;
   const isResolved = market.isResolved || market.closed;
   const isLive = market.active && !isResolved && !market.closed;
 
@@ -219,124 +202,34 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
 
   return (
     <div className="min-h-screen bg-[#030711] text-white">
-      {/* Gradient background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-[#0a1628] via-[#030711] to-[#0d0d1a] -z-10" />
-      <div className="fixed inset-0 bg-[url('/grid.svg')] bg-center opacity-[0.02] -z-10" />
+      {/* Animated background */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0a1628] via-[#030711] to-[#0d0d1a]" />
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-[0.02]" />
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[150px]" />
+        <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-[150px]" />
+      </div>
 
       <AppHeader />
-      
+
       <WatchlistProviderWrapper>
-        <div className="mx-auto w-full max-w-screen-2xl px-4 py-4 sm:px-6 sm:py-6 md:px-6 xl:px-10">
-          {/* Back Button */}
-          <Link
-            href="/markets"
-            className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-white/50 transition-colors hover:text-white group"
-          >
-            <svg
-              className="h-4 w-4 transition-transform group-hover:-translate-x-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-            Back to Markets
-          </Link>
-
-          {/* Bento Grid Layout */}
-          <BentoGrid>
-            {/* Hero: Market Header - Full Width */}
-            <BentoGridItem className="col-span-12" delay={0}>
-              <MarketHeader
-                market={market}
-                status={status}
-                team1Name={team1Name}
-                team2Name={team2Name}
-                team1Price={team1Price}
-                team2Price={team2Price}
-                league={league}
-              />
-            </BentoGridItem>
-
-            {/* Subevents - Full Width (if available) */}
-            {shouldShowSubevents && (
-              <BentoGridItem className="col-span-12" delay={0.05}>
-                <MarketSubevents
-                  markets={allMarkets}
-                  currentMarketId={market.id}
-                />
-              </BentoGridItem>
-            )}
-
-            {/* Trade Box - Main Focus (larger on desktop) */}
-            <BentoGridItem 
-              className="col-span-12 lg:col-span-8 row-span-2" 
-              delay={0.1}
-              highlight
-            >
-              <TradeBox
-                marketId={market.id}
-                team1Name={team1Name}
-                team2Name={team2Name}
-                team1Price={team1Price}
-                team2Price={team2Price}
-              />
-            </BentoGridItem>
-
-            {/* Price Display - Side Panel */}
-            <BentoGridItem className="col-span-12 lg:col-span-4" delay={0.15}>
-              <PriceDisplay
-                team1Name={team1Name}
-                team2Name={team2Name}
-                team1Price={team1Price}
-                team2Price={team2Price}
-                team1PriceChange24h={team1PriceChange24h}
-                team2PriceChange24h={team2PriceChange24h}
-                volume24h={metrics.volume24h}
-                liquidity={metrics.liquidity}
-                spread={spread}
-              />
-            </BentoGridItem>
-
-            {/* Quick Stats - Small Cards */}
-            <BentoGridItem className="col-span-6 lg:col-span-2" delay={0.2}>
-              <QuickStatCard
-                label="24h Volume"
-                value={formatCompact(metrics.volume24h)}
-                icon="💰"
-                color="emerald"
-              />
-            </BentoGridItem>
-
-            <BentoGridItem className="col-span-6 lg:col-span-2" delay={0.25}>
-              <QuickStatCard
-                label="Liquidity"
-                value={formatCompact(metrics.liquidity)}
-                icon="💧"
-                color="sky"
-              />
-            </BentoGridItem>
-
-            {/* Market Info - Medium Card */}
-            <BentoGridItem className="col-span-12 lg:col-span-6" delay={0.3}>
-              <MarketInfo market={market} />
-            </BentoGridItem>
-
-            {/* Recent Trades - Medium Card */}
-            <BentoGridItem className="col-span-12 lg:col-span-6" delay={0.35}>
-              <RecentTrades
-                conditionId={market.conditionId}
-                team1Name={team1Name}
-                team2Name={team2Name}
-              />
-            </BentoGridItem>
-          </BentoGrid>
-        </div>
+        <MarketDetailClient
+          market={market}
+          metrics={metrics}
+          spread={spread}
+          status={status}
+          team1Name={team1Name}
+          team2Name={team2Name}
+          team1Price={team1Price}
+          team2Price={team2Price}
+          team1PriceChange24h={team1PriceChange24h}
+          team2PriceChange24h={team2PriceChange24h}
+          team1Image={team1Image}
+          team2Image={team2Image}
+          league={league}
+          allMarkets={allMarkets}
+          shouldShowSubevents={shouldShowSubevents}
+        />
       </WatchlistProviderWrapper>
     </div>
   );
@@ -396,47 +289,4 @@ function prepareSubevents(market: Market, relatedMarkets: Market[]): Market[] {
   });
 
   return allMarkets;
-}
-
-// Quick stat card component
-function QuickStatCard({
-  label,
-  value,
-  icon,
-  color,
-}: {
-  label: string;
-  value: string;
-  icon: string;
-  color: "emerald" | "sky" | "purple" | "amber";
-}) {
-  const colorClasses = {
-    emerald: "from-emerald-500/20 to-emerald-500/5 border-emerald-500/30 text-emerald-400",
-    sky: "from-sky-500/20 to-sky-500/5 border-sky-500/30 text-sky-400",
-    purple: "from-purple-500/20 to-purple-500/5 border-purple-500/30 text-purple-400",
-    amber: "from-amber-500/20 to-amber-500/5 border-amber-500/30 text-amber-400",
-  };
-
-  return (
-    <div className={`h-full rounded-xl border bg-gradient-to-br p-4 ${colorClasses[color]}`}>
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-lg">{icon}</span>
-        <span className="text-xs font-medium text-white/50 uppercase tracking-wider">
-          {label}
-        </span>
-      </div>
-      <div className="text-2xl font-bold font-mono">{value}</div>
-    </div>
-  );
-}
-
-// Format number compactly
-function formatCompact(value: number): string {
-  if (value >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(1)}M`;
-  }
-  if (value >= 1_000) {
-    return `$${(value / 1_000).toFixed(1)}K`;
-  }
-  return `$${value.toFixed(0)}`;
 }

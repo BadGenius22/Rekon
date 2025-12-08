@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import { cn } from "@rekon/ui";
 import type { Market } from "@rekon/types";
 
@@ -66,30 +67,36 @@ export function MarketSubevents({
   }
 
   return (
-    <div className="mt-4 sm:mt-6 mb-4 sm:mb-6">
-      <div className="mb-3 text-xs font-semibold text-white/60 uppercase tracking-wider">
+    <div className="rounded-xl border border-white/10 bg-[#0a1220]/80 backdrop-blur-sm p-4">
+      <div className="mb-3 text-xs font-semibold text-white/50 uppercase tracking-wider">
         Market Type
       </div>
       <div className="flex flex-wrap gap-2">
-        {markets.map((market) => {
+        {markets.map((market, index) => {
           const title = formatMarketTitle(market);
           const href = `/markets/${market.slug || market.id}`;
           const isActive = market.id === currentMarketId || pathname === href;
 
           return (
-            <Link
+            <motion.div
               key={market.id}
-              href={href}
-              className={cn(
-                "inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200",
-                "focus:outline-none focus:ring-2 focus:ring-[#FACC15]/50 focus:ring-offset-2 focus:ring-offset-[#030711]",
-                isActive
-                  ? "border-[#FACC15]/50 bg-[#FACC15]/20 text-[#FCD34D] shadow-sm"
-                  : "border-white/10 bg-[#121A30] text-white/70 hover:border-white/20 hover:bg-white/5 hover:text-white/90"
-              )}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.2, delay: index * 0.05 }}
             >
-              {title}
-            </Link>
+              <Link
+                href={href}
+                className={cn(
+                  "inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium transition-all duration-200",
+                  "focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-[#030711]",
+                  isActive
+                    ? "border-blue-500/50 bg-blue-500 text-white shadow-lg shadow-blue-500/25"
+                    : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/10 hover:text-white"
+                )}
+              >
+                {title}
+              </Link>
+            </motion.div>
           );
         })}
       </div>

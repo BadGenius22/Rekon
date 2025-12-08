@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { formatVolume } from "@rekon/utils";
 import { cn } from "@rekon/ui";
 import { API_CONFIG } from "@rekon/config";
@@ -145,12 +146,19 @@ export function RecentTrades({
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-white/10 bg-[#121A30] p-4 sm:p-5">
-        <h2 className="mb-3 sm:mb-4 text-sm sm:text-base font-semibold text-white/80">
-          Recent Trades
-        </h2>
-        <div className="space-y-2">
-          <p className="text-xs text-white/60">Loading trades...</p>
+      <div className="rounded-xl border border-white/10 bg-[#0a1220]/80 backdrop-blur-sm overflow-hidden">
+        <div className="border-b border-white/5 px-4 py-3">
+          <h2 className="text-sm font-semibold text-white/80 flex items-center gap-2">
+            <svg className="w-4 h-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+            Recent Trades
+          </h2>
+        </div>
+        <div className="p-4">
+          <div className="flex items-center justify-center py-8">
+            <div className="w-6 h-6 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+          </div>
         </div>
       </div>
     );
@@ -158,75 +166,113 @@ export function RecentTrades({
 
   if (trades.length === 0) {
     return (
-      <div className="rounded-xl border border-white/10 bg-[#121A30] p-4 sm:p-5">
-        <h2 className="mb-3 sm:mb-4 text-xs sm:text-sm font-semibold text-white/80">
-          Recent Trades
-        </h2>
-        <div className="space-y-2">
-          <p className="text-xs text-white/60">No recent trades</p>
-          <p className="text-[10px] text-white/40">
-            Trades will appear here as they occur
-          </p>
+      <div className="rounded-xl border border-white/10 bg-[#0a1220]/80 backdrop-blur-sm overflow-hidden">
+        <div className="border-b border-white/5 px-4 py-3">
+          <h2 className="text-sm font-semibold text-white/80 flex items-center gap-2">
+            <svg className="w-4 h-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+            Recent Trades
+          </h2>
+        </div>
+        <div className="p-4">
+          <div className="text-center py-8">
+            <p className="text-sm text-white/50">No recent trades</p>
+            <p className="text-xs text-white/30 mt-1">
+              Trades will appear here as they occur
+            </p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-[#121A30] p-4 sm:p-5">
-      <h2 className="mb-3 sm:mb-4 text-sm sm:text-base font-semibold text-white/80">
-        Recent Trades
-      </h2>
+    <div className="rounded-xl border border-white/10 bg-[#0a1220]/80 backdrop-blur-sm overflow-hidden">
+      {/* Header */}
+      <div className="border-b border-white/5 px-4 py-3 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-white/80 flex items-center gap-2">
+          <svg className="w-4 h-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
+          Recent Trades
+        </h2>
+        <span className="text-xs text-white/40">
+          {trades.length} trades
+        </span>
+      </div>
 
-      <div className="max-h-[320px] sm:max-h-[380px] overflow-y-auto space-y-1.5 sm:space-y-2 pr-2 scrollbar-thin">
-        {trades.map((trade) => {
-          const isTeam1 = trade.side === "yes";
-          // Format: "Team Liquid @ 0.64 — $18 — 2m ago"
-          const formattedAmount = `$${formatVolume(trade.amount)}`;
+      {/* Trades List */}
+      <div className="max-h-[400px] overflow-y-auto">
+        <AnimatePresence>
+          {trades.map((trade, index) => {
+            const isTeam1 = trade.side === "yes";
+            const formattedAmount = `$${formatVolume(trade.amount)}`;
 
-          return (
-            <div
-              key={trade.id}
-              className="flex items-center justify-between rounded-lg border border-white/5 bg-[#090E1C] px-2.5 py-1.5 sm:px-3 sm:py-2 text-[10px] sm:text-xs"
-            >
-              <div className="flex items-center gap-1 sm:gap-1.5 text-white/80 flex-wrap">
-                <span
-                  className={cn(
-                    "font-semibold whitespace-nowrap truncate max-w-[80px] sm:max-w-none",
-                    isTeam1 ? "text-[#FACC15]" : "text-[#3B82F6]"
-                  )}
-                >
-                  {trade.teamName}
-                </span>
-                <span
-                  className={cn(
-                    "text-[9px] sm:text-[10px] font-medium whitespace-nowrap",
-                    trade.action === "bought"
-                      ? "text-[#86EFAC]"
-                      : "text-[#FCA5A5]"
-                  )}
-                >
-                  {trade.action}
-                </span>
-                <span className="font-mono whitespace-nowrap">
-                  @ {trade.price.toFixed(2)}
-                </span>
-                <span className="text-white/40 hidden sm:inline">—</span>
-                <span className="font-mono whitespace-nowrap">
-                  {formattedAmount}
-                </span>
-                <span className="text-white/40 hidden sm:inline">—</span>
-                <span className="text-white/50 text-[9px] sm:text-[10px] whitespace-nowrap">
-                  {trade.traderName}
-                </span>
-                <span className="text-white/40 hidden sm:inline">—</span>
-                <span className="text-white/60 whitespace-nowrap">
-                  {formatTimeAgo(trade.timestamp, currentTime)}
-                </span>
-              </div>
-            </div>
-          );
-        })}
+            return (
+              <motion.div
+                key={trade.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                transition={{ duration: 0.2, delay: index * 0.02 }}
+                className={cn(
+                  "flex items-center justify-between px-4 py-2.5 border-b border-white/5 last:border-b-0",
+                  "hover:bg-white/[0.02] transition-colors"
+                )}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  {/* Team indicator dot */}
+                  <div
+                    className={cn(
+                      "w-2 h-2 rounded-full flex-shrink-0",
+                      isTeam1 ? "bg-amber-400" : "bg-red-400"
+                    )}
+                  />
+
+                  {/* Team name and action */}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "font-medium text-sm truncate",
+                          isTeam1 ? "text-amber-400" : "text-red-400"
+                        )}
+                      >
+                        {trade.teamName}
+                      </span>
+                      <span
+                        className={cn(
+                          "text-xs font-medium px-1.5 py-0.5 rounded",
+                          trade.action === "bought"
+                            ? "bg-emerald-500/20 text-emerald-400"
+                            : "bg-rose-500/20 text-rose-400"
+                        )}
+                      >
+                        {trade.action}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-white/50 mt-0.5">
+                      <span className="truncate max-w-[100px]">{trade.traderName}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Price and amount */}
+                <div className="text-right flex-shrink-0">
+                  <div className="font-mono text-sm text-white/90">
+                    @ {trade.price.toFixed(2)}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-white/50 justify-end mt-0.5">
+                    <span className="font-mono">{formattedAmount}</span>
+                    <span className="text-white/30">|</span>
+                    <span>{formatTimeAgo(trade.timestamp, currentTime)}</span>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
     </div>
   );
