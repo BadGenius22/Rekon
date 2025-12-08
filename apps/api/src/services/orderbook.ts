@@ -16,6 +16,7 @@ import { orderBookCacheService } from "./cache";
  * Gets order book for a market by market ID.
  * Fetches order book for the first outcome token (Yes outcome typically).
  * Uses cache to reduce API calls (2 second TTL).
+ * Returns null if market not found or if Polymarket API fails.
  */
 export async function getOrderBookByMarketId(
   marketId: string
@@ -38,21 +39,31 @@ export async function getOrderBookByMarketId(
     return cached;
   }
 
-  // Fetch from API
-  const rawOrderBook = await fetchPolymarketOrderBook(tokenId);
-  const orderBook = mapPolymarketOrderBook(
-    rawOrderBook as Parameters<typeof mapPolymarketOrderBook>[0]
-  );
+  try {
+    // Fetch from API
+    const rawOrderBook = await fetchPolymarketOrderBook(tokenId);
+    const orderBook = mapPolymarketOrderBook(
+      rawOrderBook as Parameters<typeof mapPolymarketOrderBook>[0]
+    );
 
-  // Cache the result
-  await orderBookCacheService.set(tokenId, orderBook);
+    // Cache the result
+    await orderBookCacheService.set(tokenId, orderBook);
 
-  return orderBook;
+    return orderBook;
+  } catch (error) {
+    // Log the error and return null if Polymarket API fails
+    console.warn(
+      `Failed to fetch orderbook for market ${marketId} (token ${tokenId}):`,
+      error
+    );
+    return null;
+  }
 }
 
 /**
  * Gets order book for a specific outcome token.
  * Uses cache to reduce API calls (2 second TTL).
+ * Returns null if Polymarket API fails.
  */
 export async function getOrderBookByTokenId(
   tokenId: string
@@ -63,14 +74,20 @@ export async function getOrderBookByTokenId(
     return cached;
   }
 
-  // Fetch from API
-  const rawOrderBook = await fetchPolymarketOrderBook(tokenId);
-  const orderBook = mapPolymarketOrderBook(
-    rawOrderBook as Parameters<typeof mapPolymarketOrderBook>[0]
-  );
+  try {
+    // Fetch from API
+    const rawOrderBook = await fetchPolymarketOrderBook(tokenId);
+    const orderBook = mapPolymarketOrderBook(
+      rawOrderBook as Parameters<typeof mapPolymarketOrderBook>[0]
+    );
 
-  // Cache the result
-  await orderBookCacheService.set(tokenId, orderBook);
+    // Cache the result
+    await orderBookCacheService.set(tokenId, orderBook);
 
-  return orderBook;
+    return orderBook;
+  } catch (error) {
+    // Log the error and return null if Polymarket API fails
+    console.warn(`Failed to fetch orderbook for token ${tokenId}:`, error);
+    return null;
+  }
 }

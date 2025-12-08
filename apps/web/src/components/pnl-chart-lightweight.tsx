@@ -122,7 +122,6 @@ export function PnLChartLightweight({
       handleScale: {
         axisPressedMouseMove: true,
         axisDoubleClickReset: true,
-        axisTouchDrag: true,
         mouseWheel: true,
         pinch: true,
       },
@@ -238,7 +237,9 @@ export function PnLChartLightweight({
         // Clean up old cache entries (keep only last 10)
         if (cacheRef.current.size > 10) {
           const firstKey = cacheRef.current.keys().next().value;
-          cacheRef.current.delete(firstKey);
+          if (firstKey) {
+            cacheRef.current.delete(firstKey);
+          }
         }
 
         if (!abortController.signal.aborted) {

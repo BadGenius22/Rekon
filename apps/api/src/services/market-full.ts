@@ -70,10 +70,19 @@ export async function getMarketFull(
   }
 
   // Fetch all data in parallel for better performance
-  const [orderbook, trades] = await Promise.all([
-    getOrderBookByMarketId(marketId),
-    getTradesByMarketId(marketId, { limit: tradesLimit }),
-  ]);
+  let orderbook: OrderBook | null = null;
+  let trades: Trade[] = [];
+
+  try {
+    [orderbook, trades] = await Promise.all([
+      getOrderBookByMarketId(marketId),
+      getTradesByMarketId(marketId, { limit: tradesLimit }),
+    ]);
+  } catch (error) {
+    // Log the error but continue with whatever data we have
+    console.error(`Failed to fetch orderbook/trades for market ${marketId}:`, error);
+    // Both are already null/empty, so we can continue
+  }
 
   // Calculate spread if orderbook is available
   const spread = orderbook ? calculateSpread(orderbook) : null;
@@ -87,7 +96,7 @@ export async function getMarketFull(
 
   return {
     market,
-    orderbook: orderbook || { bids: [], asks: [] },
+    orderbook: orderbook || { bids: [], asks: [], marketId },
     bestBid,
     bestAsk,
     spread,

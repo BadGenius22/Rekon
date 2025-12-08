@@ -6,6 +6,7 @@ import { cn } from "@rekon/ui";
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/modules/home/app-footer";
 import { ScrollToTop } from "@/components/scroll-to-top";
+import { BentoGrid, BentoGridItem } from "@/components/bento-grid";
 import { MarketsPageClient } from "./markets-page-client";
 
 async function getMarkets(
@@ -76,64 +77,131 @@ export async function MarketsPage(props: {
   // Markets are categorized in the client component
 
   return (
-    <div className="min-h-screen bg-[#030711] text-white">
-      <div className="min-h-screen bg-gradient-to-b from-[#050816] via-[#030711] to-black">
+    <div className="min-h-screen bg-gradient-to-b from-[#050816] via-[#030711] to-black text-white">
         <AppHeader />
         <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-5 px-4 pb-10 pt-4 md:px-6 xl:px-10">
           <div className="max-w-7xl mx-auto w-full">
-            {/* Markets summary bar with filters */}
-            <div className="mb-6 border-b border-white/5 bg-[#050816] pb-4 pt-2">
-              <div className="flex items-center gap-4 mb-3">
-                <h1 className="text-3xl font-bold text-white sm:text-4xl">
-                  Markets
-                </h1>
-                {markets.length > 0 && (
-                  <span className="inline-flex items-center gap-2 rounded-full bg-emerald-400/10 border border-emerald-400/30 px-3 py-1.5 text-xs font-semibold text-emerald-300">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    {liveMarketsCount} live
-                  </span>
-                )}
-              </div>
-              <p className="text-sm text-white/65 mb-4">
-                Trade esports prediction markets
-              </p>
-              <div className="flex flex-col gap-3">
-                {/* Game filter chips */}
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="text-xs font-medium uppercase tracking-[0.12em] text-white/45">
-                    Game
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    <FilterChip
-                      label="All"
-                      href={buildMarketsHref({ status })}
-                      active={!game}
-                    />
-                    <FilterChip
-                      label="CS2"
-                      href={buildMarketsHref({ status, game: "cs2" })}
-                      active={game === "cs2"}
-                    />
-                    <FilterChip
-                      label="LoL"
-                      href={buildMarketsHref({ status, game: "lol" })}
-                      active={game === "lol"}
-                    />
-                    <FilterChip
-                      label="Dota 2"
-                      href={buildMarketsHref({ status, game: "dota2" })}
-                      active={game === "dota2"}
-                    />
-                    <FilterChip
-                      label="Valorant"
-                      href={buildMarketsHref({ status, game: "valorant" })}
-                      active={game === "valorant"}
-                    />
+            {/* Markets summary bar with filters - BentoGrid Layout */}
+            <BentoGrid className="mb-6">
+              {/* Title + Live Count + Description */}
+              <BentoGridItem className="col-span-12 lg:col-span-6" delay={0}>
+                <div className="p-6">
+                  <div className="flex items-center gap-4 mb-3">
+                    <h1 className="text-3xl font-bold text-white sm:text-4xl">
+                      Markets
+                    </h1>
+                    {markets.length > 0 && (
+                      <span className="inline-flex items-center gap-2 rounded-full bg-emerald-400/10 border border-emerald-400/30 px-3 py-1.5 text-xs font-semibold text-emerald-300">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        {liveMarketsCount} live
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-white/65">
+                    Trade esports prediction markets
+                  </p>
+                </div>
+              </BentoGridItem>
+
+              {/* Stats Cards - 24h Volume & Market Count */}
+              {markets.length > 0 && (
+                <>
+                  <BentoGridItem className="col-span-6 lg:col-span-3" delay={0.05}>
+                    <div className="h-full p-5 flex flex-col justify-between">
+                      <div className="flex items-center gap-2.5 mb-3">
+                        <div className="h-10 w-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+                          <span className="text-xl">💰</span>
+                        </div>
+                        <span className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+                          24h Volume
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-2xl lg:text-3xl font-mono font-bold text-emerald-400">
+                          {formatVolume(total24hVolume)}
+                        </div>
+                        <p className="text-xs text-white/40 mt-1">Trading activity</p>
+                      </div>
+                    </div>
+                  </BentoGridItem>
+
+                  <BentoGridItem className="col-span-6 lg:col-span-3" delay={0.1}>
+                    <div className="h-full p-5 flex flex-col justify-between">
+                      <div className="flex items-center gap-2.5 mb-3">
+                        <div className="h-10 w-10 rounded-xl bg-sky-500/20 border border-sky-500/30 flex items-center justify-center">
+                          <span className="text-xl">📊</span>
+                        </div>
+                        <span className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+                          Markets
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-2xl lg:text-3xl font-mono font-bold text-sky-400">
+                          {liveMarketsCount}
+                        </div>
+                        <p className="text-xs text-white/40 mt-1">Active now</p>
+                      </div>
+                    </div>
+                  </BentoGridItem>
+                </>
+              )}
+
+              {/* Game Filter Chips */}
+              <BentoGridItem className="col-span-12" delay={0.15}>
+                <div className="p-5">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="text-xs font-medium uppercase tracking-[0.12em] text-white/45">
+                      Game
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      <FilterChip
+                        label="All"
+                        href={buildMarketsHref({ status })}
+                        active={!game}
+                      />
+                      <FilterChip
+                        label="CS2"
+                        href={buildMarketsHref({ status, game: "cs2" })}
+                        active={game === "cs2"}
+                      />
+                      <FilterChip
+                        label="LoL"
+                        href={buildMarketsHref({ status, game: "lol" })}
+                        active={game === "lol"}
+                      />
+                      <FilterChip
+                        label="Dota 2"
+                        href={buildMarketsHref({ status, game: "dota2" })}
+                        active={game === "dota2"}
+                      />
+                      <FilterChip
+                        label="Valorant"
+                        href={buildMarketsHref({ status, game: "valorant" })}
+                        active={game === "valorant"}
+                      />
+                      <FilterChip
+                        label="COD"
+                        href={buildMarketsHref({ status, game: "cod" })}
+                        active={game === "cod"}
+                      />
+                      <FilterChip
+                        label="Rainbow Six"
+                        href={buildMarketsHref({ status, game: "r6" })}
+                        active={game === "r6"}
+                      />
+                      <FilterChip
+                        label="HoK"
+                        href={buildMarketsHref({ status, game: "hok" })}
+                        active={game === "hok"}
+                      />
+                    </div>
                   </div>
                 </div>
+              </BentoGridItem>
 
-                {/* Status toggles + summary */}
-                <div className="flex flex-wrap items-center justify-between gap-3">
+              {/* Status Toggles */}
+              <BentoGridItem className="col-span-12" delay={0.2}>
+                <div className="p-5">
                   <div className="flex items-center gap-3">
                     <span className="text-xs font-medium uppercase tracking-[0.12em] text-white/45">
                       Status
@@ -151,30 +219,9 @@ export async function MarketsPage(props: {
                       />
                     </div>
                   </div>
-
-                  {markets.length > 0 && (
-                    <div className="flex items-center gap-3 text-xs text-white/60">
-                      <div className="inline-flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-3 py-1.5">
-                        <span className="text-[11px] uppercase tracking-[0.12em] text-white/45">
-                          24h Volume
-                        </span>
-                        <span className="font-mono text-sm font-semibold text-emerald-300">
-                          {formatVolume(total24hVolume)}
-                        </span>
-                      </div>
-                      <div className="inline-flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-3 py-1.5">
-                        <span className="text-[11px] uppercase tracking-[0.12em] text-white/45">
-                          Markets
-                        </span>
-                        <span className="font-mono text-sm font-semibold text-emerald-300">
-                          {liveMarketsCount}
-                        </span>
-                      </div>
-                    </div>
-                  )}
                 </div>
-              </div>
-            </div>
+              </BentoGridItem>
+            </BentoGrid>
 
             {/* Market listings with watchlist filter */}
             <MarketsPageClient markets={markets} game={game} status={status} />
@@ -185,7 +232,6 @@ export async function MarketsPage(props: {
         <div className="mt-12 sm:mt-16 md:mt-20 lg:mt-24">
           <AppFooter />
         </div>
-      </div>
 
       {/* Scroll to top button */}
       <ScrollToTop />
@@ -194,53 +240,6 @@ export async function MarketsPage(props: {
 }
 
 // Market categorization and rendering moved to MarketsPageClient component
-
-async function getTeams(): Promise<TeamMeta[]> {
-  try {
-    const url = new URL(`${API_CONFIG.baseUrl}/teams`);
-    const response = await fetch(url.toString(), {
-      next: { revalidate: 300 },
-    });
-    if (!response.ok) {
-      console.warn("Failed to fetch teams:", response.status);
-      return [];
-    }
-    const data = (await response.json()) as { teams?: TeamMeta[] };
-    return data.teams ?? [];
-  } catch (error) {
-    console.warn("Failed to fetch teams:", error);
-    return [];
-  }
-}
-
-function buildTeamLogoMap(teams: TeamMeta[]): Map<string, string> {
-  const map = new Map<string, string>();
-
-  for (const team of teams) {
-    if (!team.imageUrl) continue;
-
-    const nameKey = normalizeTeamName(team.name);
-    if (nameKey && !map.has(nameKey)) {
-      map.set(nameKey, team.imageUrl);
-    }
-
-    if (team.shortName) {
-      const shortKey = normalizeTeamName(team.shortName);
-      if (shortKey && !map.has(shortKey)) {
-        map.set(shortKey, team.imageUrl);
-      }
-    }
-  }
-
-  return map;
-}
-
-function normalizeTeamName(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "")
-    .trim();
-}
 
 function buildMarketsHref(params: {
   status?: MarketStatus;
