@@ -93,6 +93,7 @@ rekon/
 ```
 
 **Package imports use workspace aliases:**
+
 - `@rekon/types` - Type definitions
 - `@rekon/utils` - Utilities
 - `@rekon/config` - Configuration
@@ -117,6 +118,7 @@ Routes → Controllers → Services → Adapters → External APIs
 - **Utils** (`apps/api/src/utils/`): Pure helper functions
 
 **Critical rules:**
+
 - Controllers do NOT call adapters directly
 - Services contain ALL business logic
 - Adapters handle ALL external API calls
@@ -147,6 +149,7 @@ apps/web/src/
 ```
 
 **Next.js conventions:**
+
 - Use **Server Components by default**
 - Use **Client Components** ONLY when necessary:
   - Charts (Lightweight Charts)
@@ -167,6 +170,7 @@ apps/web/src/
 - Must support plugging in additional venues later
 
 **Polymarket data sources:**
+
 - **Gamma API** (recommended): Markets, events, tag-based filtering
 - **CLOB API**: Order book, trades, order placement
 - **Data API**: Builder analytics, volume, leaderboard
@@ -182,6 +186,7 @@ apps/web/src/
 ### Rate Limiting
 
 Polymarket API rate limits:
+
 - CLOB /prices: 80 requests / 10s (most restrictive)
 - CLOB General: 5,000 requests / 10s
 - Data API: 200 requests / 10s
@@ -211,12 +216,14 @@ Polymarket API rate limits:
 ### Domain Logic
 
 Domain modules must live in:
+
 - `/packages/types`
 - `/packages/utils`
 - `/packages/config`
 - `/apps/api/services`
 
 **Core Rekon modules:**
+
 - MarketModule
 - OrderModule
 - PriceFeedModule
@@ -228,6 +235,7 @@ Domain modules must live in:
 - GamificationModule
 
 **Rules:**
+
 - Domain logic must be deterministic and testable
 - NO UI logic inside domain modules
 - NO API calls inside domain modules
@@ -235,19 +243,23 @@ Domain modules must live in:
 ### Packages
 
 **`@rekon/types`**: All shared TypeScript interfaces, enums, models
+
 - Ensure strict typing for: `Market`, `Outcome`, `Order`, `Trade`, `Position`, `PnL`, `EsportsEvent`
 
 **`@rekon/utils`**: Pure utilities only (no side effects)
+
 - Formatting (dates, numbers)
 - PnL calculator, ROI functions
 - Chart data transformations
 
 **`@rekon/config`**: Runtime constants
+
 - Polymarket endpoints (Gamma, CLOB, Data, Builder, WebSocket)
 - Rate limits
 - Trading thresholds, precision, rounding
 
 **`@rekon/ui`**: Reusable UI components
+
 - shadcn/ui re-exports
 - Tailwind utilities
 
@@ -266,12 +278,15 @@ Domain modules must live in:
 - Mock external dependencies using `vi.mock()`
 
 **Example test pattern:**
+
 ```typescript
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock dependencies
 vi.mock("@rekon/config", () => ({
-  POLYMARKET_CONFIG: { /* ... */ }
+  POLYMARKET_CONFIG: {
+    /* ... */
+  },
 }));
 
 vi.mock("../../utils/sentry", () => ({
@@ -328,3 +343,7 @@ describe("Service Name", () => {
 - **Error Handling**: Use global error handler, not try-catch in controllers
 - **Imports**: All new code MUST live under `/apps` or `/packages`
 - **Absolute Imports**: Use `@rekon/...` aliases
+
+## Ref MCP
+
+When working with libraries, check the docs with Ref.

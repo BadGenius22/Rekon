@@ -16,7 +16,7 @@ interface DashboardPnLStatProps {
 }
 
 // Default user address - should match the one in open-positions.tsx
-const DEFAULT_USER_ADDRESS = "0x3b5c629f114098b0dee345fb78b7a3a013c7126e";
+const DEFAULT_USER_ADDRESS = "0x54b56146656e7eef9da02b3a030c18e06e924b31";
 
 /**
  * Lifetime PnL stat card using the Portfolio API.
@@ -44,7 +44,11 @@ export function DashboardPnLStat({ userAddress }: DashboardPnLStatProps) {
         });
 
         if (!response.ok) {
-          setPnlData({ totalPnL: 0, totalUnrealizedPnL: 0, totalRealizedPnL: 0 });
+          setPnlData({
+            totalPnL: 0,
+            totalUnrealizedPnL: 0,
+            totalRealizedPnL: 0,
+          });
           return;
         }
 

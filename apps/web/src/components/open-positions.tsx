@@ -42,7 +42,7 @@ interface OpenPositionsProps {
 }
 
 // Default user address - should match the one in dashboard-page.tsx
-const DEFAULT_USER_ADDRESS = "0x3b5c629f114098b0dee345fb78b7a3a013c7126e";
+const DEFAULT_USER_ADDRESS = "0x54b56146656e7eef9da02b3a030c18e06e924b31";
 
 /**
  * Open Positions component that displays raw Polymarket position data.

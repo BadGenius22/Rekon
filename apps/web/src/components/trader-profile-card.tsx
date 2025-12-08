@@ -13,12 +13,18 @@ interface TraderProfileCardProps {
 }
 
 // Default user address - should match the one in dashboard
-const DEFAULT_USER_ADDRESS = "0x3b5c629f114098b0dee345fb78b7a3a013c7126e";
+const DEFAULT_USER_ADDRESS = "0x54b56146656e7eef9da02b3a030c18e06e924b31";
 
 // Tier color mappings with gradient support
 const TIER_COLORS: Record<
   string,
-  { bg: string; text: string; border: string; gradient: string; progressBar: string }
+  {
+    bg: string;
+    text: string;
+    border: string;
+    gradient: string;
+    progressBar: string;
+  }
 > = {
   bronze: {
     bg: "bg-amber-900/20",
@@ -213,7 +219,10 @@ export function TraderProfileCard({
           label="Win Rate"
           value={
             profile.stats.totalTrades > 0
-              ? `${((profile.stats.winningTrades / profile.stats.totalTrades) * 100).toFixed(0)}%`
+              ? `${(
+                  (profile.stats.winningTrades / profile.stats.totalTrades) *
+                  100
+                ).toFixed(0)}%`
               : "--"
           }
           color="text-emerald-400"
@@ -276,7 +285,13 @@ function CompactProfileCard({
   tierColors,
 }: {
   profile: GamificationProfile;
-  tierColors: { bg: string; text: string; border: string; gradient: string; progressBar: string };
+  tierColors: {
+    bg: string;
+    text: string;
+    border: string;
+    gradient: string;
+    progressBar: string;
+  };
 }) {
   return (
     <div className="flex items-center gap-4 p-4">

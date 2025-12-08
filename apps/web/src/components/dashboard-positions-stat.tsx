@@ -9,7 +9,7 @@ interface DashboardPositionsStatProps {
 }
 
 // Default user address - should match the one in open-positions.tsx
-const DEFAULT_USER_ADDRESS = "0x3b5c629f114098b0dee345fb78b7a3a013c7126e";
+const DEFAULT_USER_ADDRESS = "0x54b56146656e7eef9da02b3a030c18e06e924b31";
 
 /**
  * Positions stat card that fetches actual position count from the API.

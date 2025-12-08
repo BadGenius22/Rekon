@@ -16,7 +16,7 @@ async function getPortfolio(
   scope: "esports" | "all"
 ): Promise<Portfolio | null> {
   try {
-    const userAddress = "0x3b5c629f114098b0dee345fb78b7a3a013c7126e";
+    const userAddress = "0x54b56146656e7eef9da02b3a030c18e06e924b31";
     const url = new URL(`${API_CONFIG.baseUrl}/portfolio`);
     url.searchParams.set("user", userAddress);
     url.searchParams.set("scope", scope);
@@ -40,7 +40,7 @@ async function getPortfolio(
 
 async function getTradeHistory(): Promise<Activity[]> {
   try {
-    const userAddress = "0x3b5c629f114098b0dee345fb78b7a3a013c7126e";
+    const userAddress = "0x54b56146656e7eef9da02b3a030c18e06e924b31";
     const url = new URL(`${API_CONFIG.baseUrl}/activity`);
     url.searchParams.set("user", userAddress);
     url.searchParams.set("sortBy", "TIMESTAMP");
