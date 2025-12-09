@@ -58,8 +58,9 @@ function categorizeByType(markets: Market[]): {
   tournaments: Market[];
 } {
   return {
-    matches: markets.filter((m) => m.marketType === "game"),
-    tournaments: markets.filter((m) => m.marketType === "outright"),
+    // Use marketCategory if available, fallback to marketType for backwards compatibility
+    matches: markets.filter((m) => (m.marketCategory === "match") || (!m.marketCategory && m.marketType === "game")),
+    tournaments: markets.filter((m) => (m.marketCategory === "tournament") || (!m.marketCategory && m.marketType === "outright")),
   };
 }
 

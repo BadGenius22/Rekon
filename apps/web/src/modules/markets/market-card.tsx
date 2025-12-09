@@ -309,12 +309,50 @@ export function MarketCard({
         </div>
       </div>
 
-      {/* Outcome chips - more compact */}
+      {/* Outcome chips - different display for multi-outcome markets */}
       <div className="mb-4">
-        <div className="flex items-center gap-2">
-          <OutcomeChip label={team1.name} value={team1.price} positive />
-          <OutcomeChip label={team2.name} value={team2.price} />
-        </div>
+        {market.outcomes.length <= 2 ? (
+          // Binary market (0-2 outcomes): show outcome chips side-by-side
+          <div className="flex items-center gap-2">
+            <OutcomeChip label={team1.name} value={team1.price} positive />
+            <OutcomeChip label={team2.name} value={team2.price} />
+          </div>
+        ) : (
+          // Multi-outcome market (3+ outcomes): show outcome count and top outcome preview
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-white/60">
+                {market.outcomes.length} outcomes
+              </span>
+              <span className="text-white/50">Click to see all →</span>
+            </div>
+            {/* Show top 2 outcomes as preview */}
+            <div className="space-y-1.5">
+              {market.outcomes.slice(0, 2).map((outcome, idx) => {
+                const price = outcome.price ?? outcome.impliedProbability ?? 0;
+                const pct = (price * 100).toFixed(1);
+                return (
+                  <div
+                    key={outcome.id || idx}
+                    className="flex items-center justify-between rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs"
+                  >
+                    <span className="font-medium text-white/90 truncate">
+                      {outcome.name}
+                    </span>
+                    <span className="font-mono font-bold text-emerald-300 shrink-0 ml-2">
+                      {pct}%
+                    </span>
+                  </div>
+                );
+              })}
+              {market.outcomes.length > 2 && (
+                <div className="text-center text-[10px] text-white/40 mt-1">
+                  +{market.outcomes.length - 2} more
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Footer: Stats in a single row */}

@@ -145,7 +145,53 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
   // Validate that this is an esports market
   // Rekon is an esports terminal - only show competitive esports markets
   const supportedGames = ["cs2", "lol", "dota2", "valorant", "cod", "r6", "hok"];
-  const isEsportsMarket = market.game && supportedGames.includes(market.game);
+  const hasDetectedGame = market.game && supportedGames.includes(market.game);
+
+  // Also check category/tags for esports markets that may not have game detected
+  // This handles tournament/outright markets that might not have a specific game
+  const esportsCategories = ["esports", "gaming", "counter-strike", "league of legends", "dota", "valorant", "call of duty", "rainbow six", "honor of kings"];
+  const categoryLower = (market.category ?? "").toLowerCase();
+  const subcategoryLower = (market.subcategory ?? "").toLowerCase();
+  const questionLower = (market.question ?? "").toLowerCase();
+
+  // Check if category/subcategory indicates esports
+  const hasEsportsCategory = esportsCategories.some(cat =>
+    categoryLower.includes(cat) || subcategoryLower.includes(cat)
+  );
+
+  // Check if question contains esports team/tournament/player keywords
+  const esportsKeywords = [
+    // CS2 teams & tournaments
+    "faze", "navi", "g2", "vitality", "spirit", "heroic", "mouz", "ence", "cloud9", "liquid", "fnatic", "astralis",
+    "pgl major", "blast premier", "esl pro league", "iem", "starladder", "mongolz", "mongol",
+    // CS2 players (for award/personality markets)
+    "s1mple", "m0nesy", "monesy", "zywoo", "device", "niko", "donk", "b1t",
+    // CS2 awards/media
+    "hltv", "player of the year", "team of the year",
+    // LoL teams & tournaments
+    "t1", "gen.g", "dk", "drx", "fnatic", "mad lions", "g2 esports",
+    "worlds", "lpl", "lec", "lcs", "msi", "faker",
+    // Dota 2 teams & tournaments
+    "og", "team spirit", "tundra", "gaimin gladiators", "team liquid",
+    "the international", "ti1", "ti2", "ti3",
+    // Valorant teams & tournaments
+    "sentinels", "loud", "fnatic", "drx", "paper rex",
+    "vct", "valorant champions",
+    // CoD teams & tournaments
+    "optic", "faze", "atlanta faze", "la thieves", "seattle surge",
+    "cdl", "call of duty league",
+    // R6 teams & tournaments
+    "six invitational", "six major",
+    // General esports terms
+    "esport", "retire", "roster",
+  ];
+
+  const hasEsportsKeywords = esportsKeywords.some(keyword =>
+    questionLower.includes(keyword.toLowerCase())
+  );
+
+  // Market is esports if it has a detected game OR esports category OR esports keywords
+  const isEsportsMarket = hasDetectedGame || hasEsportsCategory || hasEsportsKeywords;
 
   if (!isEsportsMarket) {
     return (

@@ -200,8 +200,11 @@ export function mapPolymarketMarket(pmMarket: PolymarketMarket): Market {
     marketGroup: pmMarket.marketGroup || undefined,
     groupItemTitle: pmMarket.groupItemTitle || undefined,
     sportsMarketType: pmMarket.sportsMarketType || undefined,
-    // Event slug from events array
-    eventSlug: pmMarket.events?.[0]?.slug || undefined,
+    // Event slug from events array or from attached _eventSlug (set during Gamma flattening)
+    eventSlug:
+      (pmMarket as { _eventSlug?: string })._eventSlug ||
+      pmMarket.events?.[0]?.slug ||
+      undefined,
     // Tags for reliable game detection
     tags: tags.length > 0 ? tags : undefined,
   };

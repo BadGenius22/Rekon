@@ -14,9 +14,13 @@ import { BentoGrid, BentoGridItem } from "@/components/bento-grid";
 async function getHighlightedMarkets(): Promise<Market[]> {
   try {
     const url = new URL(`${API_CONFIG.baseUrl}/markets`);
-    // Fetch all live esports markets (no type filter)
-    // This includes both individual matches AND tournament winners
+    // Fetch all live esports markets (matches AND tournaments)
+    // Omit type parameter to get both game markets (individual matches) and outright markets (tournament winners)
+    // This ensures market counts and volume stats match the markets page
     url.searchParams.set("includeResolved", "false");
+    // Group multi-outcome markets by eventSlug for consistent counting
+    // This ensures market counts match between home page and markets page
+    url.searchParams.set("grouped", "true");
 
     const response = await fetch(url.toString(), {
       next: { revalidate: 10 },
@@ -65,6 +69,13 @@ export async function HomePage() {
     getGameIcons(),
   ]);
 
+  // Calculate total 24h volume (same as markets page)
+  // This ensures home page and markets page show identical volume stats
+  const totalVolume = markets.reduce(
+    (sum, market) => sum + (market.volume24h ?? market.volume ?? 0),
+    0
+  );
+
   // Calculate volume per game (only markets with detected game)
   // Helper function to calculate volume for a game
   const getGameVolume = (game: string) =>
@@ -84,9 +95,6 @@ export async function HomePage() {
     r6: getGameVolume("r6"),
     hok: getGameVolume("hok"),
   };
-
-  // Total volume = sum of all game volumes (matches Volume by Game section)
-  const totalVolume = Object.values(gameVolumes).reduce((a, b) => a + b, 0);
 
   // Supported games for filtering
   const supportedGames = ["cs2", "lol", "dota2", "valorant", "cod", "r6", "hok"];
@@ -250,7 +258,7 @@ export async function HomePage() {
           <GameCategories gameCounts={gameCounts} gameIcons={gameIcons} />
         </section>
 
-        {/* Featured Esports Matches */}
+        {/* Featured Esports Markets */}
         <section className="mx-auto w-full max-w-screen-2xl px-4 pb-10 md:px-6 xl:px-10">
           <div className="mb-6">
             <div className="flex items-center gap-3">
@@ -259,10 +267,10 @@ export async function HomePage() {
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-white tracking-tight">
-                  Featured Esports Matches
+                  Featured Esports Markets
                 </h2>
                 <p className="text-sm text-white/50 mt-0.5">
-                  Active markets with real-time updates
+                  Active matches and tournaments with real-time updates
                 </p>
               </div>
             </div>

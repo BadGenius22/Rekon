@@ -51,7 +51,13 @@ export interface Market {
   // Supported games: cs2, lol, dota2, valorant, cod, r6, hok
   game?: "cs2" | "lol" | "dota2" | "valorant" | "cod" | "r6" | "hok";
   // Market type: game (individual matches), outright (tournament winners), esports (all)
+  // DEPRECATED: Use marketCategory instead
   marketType?: "game" | "outright" | "esports";
+  // Market category: Improved categorization with 3 tiers
+  // - "match" = Individual match/series (Team A vs Team B)
+  // - "tournament" = Tournament/league winner markets (Will X win Major?)
+  // - "entertainment" = Awards, retirements, personality markets (Will player retire?)
+  marketCategory?: "match" | "tournament" | "entertainment";
   // Tags from Polymarket (e.g., "cs2", "Esports", "counter strike 2")
   // Used for reliable game detection
   tags?: string[];

@@ -13,6 +13,11 @@ interface MarketGridProps {
   sortOption: SortOption;
 }
 
+// Check if market has multiple outcomes (3+) requiring special display
+function isMultiOutcomeMarket(market: Market): boolean {
+  return market.outcomes.length > 2;
+}
+
 function getTeamPrices(market: Market): {
   team1: { name: string; price: number };
   team2: { name: string; price: number };
@@ -177,6 +182,8 @@ export function MarketGrid({
             volumeLabel={has24hVolume ? "24h Vol" : "Vol"}
             liquidity={formatVolume(market.liquidity)}
             badge={badge}
+            outcomes={market.outcomes}
+            isMultiOutcome={isMultiOutcomeMarket(market)}
           />
         );
       })}
@@ -201,6 +208,8 @@ function MarketCard({
   volumeLabel = "Vol",
   liquidity,
   badge,
+  outcomes,
+  isMultiOutcome,
 }: {
   marketId: string;
   marketSlug?: string;
@@ -218,6 +227,8 @@ function MarketCard({
   volumeLabel?: string;
   liquidity: string;
   badge?: "New" | "Trending";
+  outcomes?: Array<{ id: string; name: string; price: number; impliedProbability?: number }>;
+  isMultiOutcome?: boolean;
 }) {
   // Get game label for fallback
   const gameLabel = game
@@ -355,9 +366,49 @@ function MarketCard({
           {timeStatus && <p className="text-xs text-white/55">{timeStatus}</p>}
         </div>
       </div>
-      <div className="mt-5 flex items-center justify-between gap-2.5">
-        <OutcomeChip label={team1.name} value={team1.price} positive />
-        <OutcomeChip label={team2.name} value={team2.price} />
+      <div className="mt-5">
+        {isMultiOutcome && outcomes ? (
+          // Multi-outcome market (3+ outcomes): show outcome count and top outcome preview
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-white/60">
+                {outcomes.length} outcomes
+              </span>
+              <span className="text-white/50">Click to see all →</span>
+            </div>
+            {/* Show top 2 outcomes as preview */}
+            <div className="space-y-1.5">
+              {outcomes.slice(0, 2).map((outcome, idx) => {
+                const price = outcome.price ?? outcome.impliedProbability ?? 0;
+                const pct = (price * 100).toFixed(1);
+                return (
+                  <div
+                    key={outcome.id || idx}
+                    className="flex items-center justify-between rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs"
+                  >
+                    <span className="font-medium text-white/90 truncate">
+                      {outcome.name}
+                    </span>
+                    <span className="font-mono font-bold text-emerald-300 shrink-0 ml-2">
+                      {pct}%
+                    </span>
+                  </div>
+                );
+              })}
+              {outcomes.length > 2 && (
+                <div className="text-center text-[10px] text-white/40">
+                  +{outcomes.length - 2} more
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          // Binary market (0-2 outcomes): show 2 outcome chips side-by-side
+          <div className="flex items-center justify-between gap-2.5">
+            <OutcomeChip label={team1.name} value={team1.price} positive />
+            <OutcomeChip label={team2.name} value={team2.price} />
+          </div>
+        )}
       </div>
       <div className="mt-5 flex items-center justify-between text-xs text-white/60">
         <span className="inline-flex items-center gap-1.5">

@@ -41,6 +41,10 @@ const GetMarketsQuerySchema = z.object({
     .string()
     .transform((val) => val === "true")
     .optional(),
+  grouped: z
+    .string()
+    .transform((val) => val === "true")
+    .optional(),
   limit: z
     .string()
     .transform((val) => parseInt(val, 10))
@@ -70,6 +74,7 @@ export async function getMarketsController(c: Context) {
     active: query.active,
     closed: query.closed,
     featured: query.featured,
+    grouped: query.grouped,
     limit: query.limit,
     offset: query.offset,
   };

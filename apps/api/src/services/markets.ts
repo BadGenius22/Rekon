@@ -54,6 +54,12 @@ export interface GetMarketsParams extends FetchMarketsParams {
    * - undefined  → all esports markets (same as "esports")
    */
   marketType?: "game" | "outright" | "esports";
+  /**
+   * Group multi-outcome markets by conditionId.
+   * When true, markets with the same conditionId are combined into a single entry.
+   * Default: false (maintains backward compatibility)
+   */
+  grouped?: boolean;
 }
 
 /**
@@ -87,6 +93,7 @@ export async function getMarkets(
     // a previous tag.
     tagId: params.tagId,
     marketType: params.marketType,
+    grouped: params.grouped, // Include grouped flag in cache key
   });
   const cached = await marketsListCacheService.get(cacheKey);
   if (cached) {
@@ -127,19 +134,22 @@ export async function getMarkets(
         : events;
 
     // Flatten markets from events and attach event context
-    // IMPORTANT: Tags are at the event level, so we need to copy them to each market
+    // IMPORTANT: Tags and event slug are at the event level, so we need to copy them to each market
     const rawMarkets = activeEvents.flatMap(
       (event: {
         markets?: unknown[];
         ended?: boolean;
+        slug?: string;
         tags?: Array<{ id: string; label: string; slug: string }>;
       }) => {
         const eventMarkets = Array.isArray(event.markets) ? event.markets : [];
         const eventTags = event.tags || [];
-        // Attach event ended status and tags to each market so mapPolymarketMarket can use them
+        const eventSlug = event.slug || "";
+        // Attach event ended status, slug, and tags to each market so mapPolymarketMarket can use them
         return eventMarkets.map((market: unknown) => ({
           ...(market as object),
           _eventEnded: event.ended,
+          _eventSlug: eventSlug, // Used for grouping markets by event
           // Copy event-level tags to market (critical for game detection!)
           tags: eventTags,
         }));
@@ -189,10 +199,101 @@ export async function getMarkets(
     markets = markets.filter((market) => !isGameMarket(market));
   }
 
+  // Group markets by conditionId if requested
+  // This combines multi-outcome markets (e.g., tournament winners) into single entries
+  if (params.grouped) {
+    markets = groupMarketsByCondition(markets);
+  }
+
   // Cache the result
   await marketsListCacheService.set(cacheKey, markets);
 
   return markets;
+}
+
+/**
+ * Groups markets by eventSlug to create unified multi-outcome markets.
+ * This is used to display markets with multiple outcomes (e.g., tournament winners)
+ * as a single card rather than separate cards for each outcome.
+ *
+ * Each group becomes a single Market with all outcomes aggregated.
+ *
+ * Example: "Dota 2 tournament winner" with 4 teams creates 1 grouped market
+ * instead of 4 separate market entries.
+ *
+ * Note: Polymarket's negRisk markets (like "How many SpaceX launches") have
+ * different conditionIds per market but share the same eventSlug or negRiskMarketID.
+ * We group by eventSlug since it's available on all markets after Gamma fetch.
+ */
+export function groupMarketsByCondition(markets: Market[]): Market[] {
+  const grouped = new Map<string, Market[]>();
+
+  // Group by eventSlug (markets from same event) or fallback to conditionId
+  for (const market of markets) {
+    // Use eventSlug as primary grouping key, fallback to conditionId for markets without events
+    const key = market.eventSlug || market.conditionId;
+    if (!grouped.has(key)) {
+      grouped.set(key, []);
+    }
+    grouped.get(key)!.push(market);
+  }
+
+  const result: Market[] = [];
+
+  for (const [groupKey, marketGroup] of grouped.entries()) {
+    if (marketGroup.length === 0) continue;
+
+    // Sort by groupItemTitle if available (e.g., "Moneyline" first, then "Game 1", etc.)
+    marketGroup.sort((a, b) => {
+      const aTitle = (a.groupItemTitle || "").toLowerCase();
+      const bTitle = (b.groupItemTitle || "").toLowerCase();
+
+      // Moneyline/Match Winner should come first
+      const aIsMain = aTitle.includes("moneyline") || aTitle.includes("match winner");
+      const bIsMain = bTitle.includes("moneyline") || bTitle.includes("match winner");
+      if (aIsMain && !bIsMain) return -1;
+      if (bIsMain && !aIsMain) return 1;
+
+      return 0;
+    });
+
+    // Use first market as template (usually the main market)
+    const template = marketGroup[0];
+
+    // Aggregate all outcomes from all markets in the group
+    // For multi-market groups, each market's outcomes represent different selections
+    const allOutcomes = marketGroup.flatMap(m => m.outcomes);
+
+    // Aggregate volume and liquidity
+    const totalVolume = marketGroup.reduce((sum, m) => sum + m.volume, 0);
+    const totalVolume24h = marketGroup.reduce((sum, m) => sum + (m.volume24h ?? 0), 0);
+    const totalLiquidity = marketGroup.reduce((sum, m) => sum + m.liquidity, 0);
+
+    // For price changes, use the maximum absolute change (most significant movement)
+    const maxPriceChange24h = marketGroup.reduce((max, m) =>
+      Math.max(max, Math.abs(m.priceChange24h ?? 0)), 0
+    );
+    const maxPriceChange1h = marketGroup.reduce((max, m) =>
+      Math.max(max, Math.abs(m.priceChange1h ?? 0)), 0
+    );
+    const maxPriceChange1w = marketGroup.reduce((max, m) =>
+      Math.max(max, Math.abs(m.priceChange1w ?? 0)), 0
+    );
+
+    // Create the grouped market
+    result.push({
+      ...template,
+      outcomes: allOutcomes,
+      volume: totalVolume,
+      volume24h: totalVolume24h,
+      liquidity: totalLiquidity,
+      priceChange24h: maxPriceChange24h,
+      priceChange1h: maxPriceChange1h,
+      priceChange1w: maxPriceChange1w,
+    });
+  }
+
+  return result;
 }
 
 /**
@@ -674,6 +775,179 @@ function filterEsportsMarkets(markets: Market[]): Market[] {
 }
 
 /**
+ * Categorizes a market into one of three categories:
+ * - "match" - Individual match/series (Team A vs Team B), including child markets
+ * - "tournament" - Tournament/league winner markets (Will X win Major?)
+ * - "entertainment" - Awards, retirements, personality markets
+ *
+ * This is the SINGLE SOURCE OF TRUTH for market categorization.
+ * Uses multiple signals: question text, sportsMarketType, groupItemTitle, slug.
+ */
+function categorizeMarket(market: Market): "match" | "tournament" | "entertainment" {
+  const q = market.question.toLowerCase();
+  const slug = (market.slug ?? "").toLowerCase();
+  const sportsType = (market.sportsMarketType ?? "").toLowerCase();
+  const groupTitle = (market.groupItemTitle ?? "").toLowerCase();
+
+  // ============================================================================
+  // STEP 1: Use Polymarket's sportsMarketType if available (most reliable)
+  // ============================================================================
+  if (sportsType === "moneyline" || sportsType === "match_winner") {
+    return "match";
+  }
+  if (sportsType === "totals" || sportsType === "child_moneyline") {
+    // Child markets are still part of a match
+    return "match";
+  }
+  if (sportsType === "outright" || sportsType === "tournament_winner") {
+    return "tournament";
+  }
+
+  // ============================================================================
+  // STEP 2: Check groupItemTitle (reliable for grouped markets)
+  // ============================================================================
+  if (groupTitle) {
+    // Match indicators
+    if (
+      groupTitle.includes("moneyline") ||
+      groupTitle.includes("match winner") ||
+      groupTitle.includes("game 1") ||
+      groupTitle.includes("game 2") ||
+      groupTitle.includes("map 1") ||
+      groupTitle.includes("map 2") ||
+      groupTitle.includes("total") ||
+      groupTitle.includes("over/under")
+    ) {
+      return "match";
+    }
+  }
+
+  // ============================================================================
+  // STEP 3: Detect MATCH markets (primary category)
+  // ============================================================================
+  // "vs" pattern is the strongest signal for a match
+  const hasVsPattern =
+    q.includes(" vs ") ||
+    q.includes(" vs. ") ||
+    q.includes(" vs\t") ||
+    q.includes(" vs\n") ||
+    / vs$/i.test(q) ||
+    slug.includes("-vs-");
+
+  // Best-of notation (BO3, BO5)
+  const hasBestOf = /\(bo\d+\)/i.test(q);
+
+  // Date in slug (e.g., "2025-12-14" indicates a specific match)
+  const hasMatchDateInSlug = /\d{4}-\d{2}-\d{2}/.test(slug);
+
+  if (hasVsPattern || hasBestOf || hasMatchDateInSlug) {
+    return "match";
+  }
+
+  // ============================================================================
+  // STEP 4: Detect TOURNAMENT markets (championship/league winners)
+  // ============================================================================
+  // Tournament name keywords
+  const tournamentKeywords = [
+    // Year-specific events
+    "major 2024",
+    "major 2025",
+    "major 2026",
+    "championship 2024",
+    "championship 2025",
+    "championship 2026",
+    "worlds 2024",
+    "worlds 2025",
+    "worlds 2026",
+    "msi 2024",
+    "msi 2025",
+    "msi 2026",
+    // CS2 tournaments
+    "blast premier",
+    "esl pro league",
+    "iem katowice",
+    "iem cologne",
+    "iem dallas",
+    "pgl major",
+    "starladder",
+    "dreamhack",
+    // LoL tournaments
+    "lpl spring",
+    "lpl summer",
+    "lec spring",
+    "lec summer",
+    "lcs spring",
+    "lcs summer",
+    // Dota 2 tournaments
+    "the international",
+    // Valorant tournaments
+    "vct champions",
+    "valorant champions",
+    // CoD tournaments
+    "cdl major",
+    "cdl championship",
+    "call of duty league",
+    // R6 tournaments
+    "six invitational",
+    "six major",
+  ];
+
+  const hasTournamentKeyword = tournamentKeywords.some((keyword) =>
+    q.includes(keyword)
+  );
+
+  // "Will [Team] win the [Tournament]" pattern
+  const willWinTournamentPattern =
+    /\bwill\s+.+\s+win\s+(the\s+)?(pgl|blast|esl|iem|starladder|dreamhack|cdl|vct|worlds|msi|lpl|lec|lcs|major|championship|tournament|league|international|invitational)/i;
+
+  // "[Team] to win [Tournament]" pattern
+  const toWinTournamentPattern =
+    /\bto\s+win\s+(the\s+)?(pgl|blast|esl|iem|starladder|dreamhack|cdl|vct|worlds|msi|lpl|lec|lcs|major|championship|tournament|league|international|invitational)/i;
+
+  if (
+    hasTournamentKeyword ||
+    willWinTournamentPattern.test(q) ||
+    toWinTournamentPattern.test(q)
+  ) {
+    return "tournament";
+  }
+
+  // ============================================================================
+  // STEP 5: Detect ENTERTAINMENT markets (awards, retirements, personality)
+  // ============================================================================
+  const entertainmentKeywords = [
+    "award",
+    "hltv",
+    "player of the year",
+    "team of the year",
+    "retire",
+    "retirement",
+    "sign with",
+    "join",
+    "leave",
+    "transfer",
+    "mvp",
+    "most valuable player",
+    "rookie of the year",
+  ];
+
+  const isEntertainmentMarket = entertainmentKeywords.some((keyword) =>
+    q.includes(keyword)
+  );
+
+  if (isEntertainmentMarket) {
+    return "entertainment";
+  }
+
+  // ============================================================================
+  // STEP 6: Default fallback
+  // If we can't determine, assume "entertainment" (safest for unknown markets)
+  // ============================================================================
+  return "entertainment";
+}
+
+/**
+ * DEPRECATED: Use categorizeMarket() instead.
  * Heuristic to detect "game" markets (individual matches/maps) versus
  * long-dated outrights or futures. This is used to approximate Polymarket's
  * /games views for CS2, LoL, Dota 2, Valorant.
@@ -682,69 +956,8 @@ function filterEsportsMarkets(markets: Market[]): Market[] {
  * NOT child markets like "Game 1 Winner", "Map 2 Winner", "Games Total: O/U 2.5", etc.
  */
 function isGameMarket(market: Market): boolean {
-  const q = market.question.toLowerCase();
-
-  // EXCLUDE child markets - these are sub-markets within a match
-  // Examples: "Game 1 Winner", "Map 2 Winner", "Games Total: O/U 2.5"
-  const isChildMarket =
-    q.includes("game 1") ||
-    q.includes("game 2") ||
-    q.includes("game 3") ||
-    q.includes("map 1") ||
-    q.includes("map 2") ||
-    q.includes("map 3") ||
-    /\bgame\s*\d+\s*winner/i.test(q) ||
-    /\bmap\s*\d+\s*winner/i.test(q) ||
-    q.includes("games total") ||
-    q.includes("total games") ||
-    q.includes("o/u") ||
-    q.includes("over/under");
-
-  if (isChildMarket) {
-    return false;
-  }
-
-  // Match-style questions with "Team A vs Team B"
-  const hasVsPattern =
-    q.includes(" vs ") ||
-    q.includes(" vs. ") ||
-    q.includes(" vs\n") ||
-    q.includes(" vs\t");
-
-  // Best-of notation is a strong signal of a specific match/series.
-  const hasBestOf = /\(bo\d+\)/i.test(q);
-
-  // Outright-style phrases that usually indicate season/championship futures.
-  const outrightPhrases = [
-    "win the lpl",
-    "win the lec",
-    "win the lcs",
-    "win worlds",
-    "win the split",
-    "win the season",
-    "to win lpl",
-    "to win lec",
-    "to win lcs",
-    "to win worlds",
-    "outright",
-    "winner of worlds",
-  ];
-  const looksLikeOutright = outrightPhrases.some((phrase) =>
-    q.includes(phrase)
-  );
-
-  // Treat as a game market when it clearly looks like a main match and not
-  // like an outright/season future or child market.
-  const gameSignals = hasVsPattern || hasBestOf;
-  if (!gameSignals) {
-    return false;
-  }
-
-  if (looksLikeOutright) {
-    return false;
-  }
-
-  return true;
+  const category = categorizeMarket(market);
+  return category === "match";
 }
 
 /**
@@ -944,15 +1157,19 @@ function enrichMarket(market: Market): Market {
   // Detect game for esports markets
   const game = detectGame(market);
 
-  // Detect market type (game vs outright)
-  const marketType = isGameMarket(market) ? 'game' : 'outright';
+  // Categorize market (match/tournament/entertainment)
+  const marketCategory = categorizeMarket(market);
+
+  // Legacy marketType for backwards compatibility (DEPRECATED)
+  const marketType = marketCategory === "match" ? "game" : "outright";
 
   return {
     ...market,
     trendingScore,
     isTrending,
     game,
-    marketType,
+    marketCategory,
+    marketType, // DEPRECATED: Use marketCategory instead
     // Ensure derived fields are set (already mapped from raw data, but ensure they exist)
     volume24h: market.volume24h ?? 0,
     priceChange24h: market.priceChange24h ?? 0,

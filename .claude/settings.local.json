@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /home/dewaxindo/Rekon log --oneline --decorate -15)",
+      "Bash(git -C /home/dewaxindo/Rekon diff --name-status HEAD~5..HEAD)",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(pnpm dev)",
+      "Bash(curl:*)",
+      "Bash(pnpm type-check:*)",
+      "Bash(npx tsc:*)",
+      "Bash(lsof:*)",
+      "Bash(pnpm build:*)",
+      "Bash(node -e:*)",
+      "Bash(echo:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm --filter @rekon/web build:*)",
+      "Skill(frontend-design:frontend-design)",
+      "Bash(pnpm --filter @rekon/web type-check:*)"
+    ],
+    "deny": [],
+    "ask": []
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
+}

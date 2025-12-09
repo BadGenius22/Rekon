@@ -23,6 +23,10 @@ async function getMarkets(
     if (game) {
       url.searchParams.set("game", game);
     }
+    // Group multi-outcome markets (e.g., tournament winners with 4+ teams)
+    // This ensures markets are displayed as single cards rather than separate outcomes
+    url.searchParams.set("grouped", "true");
+
     // Fetch all esports markets (matches/maps AND tournament winners/outrights)
     // This matches the home page behavior and shows major league matches
 
