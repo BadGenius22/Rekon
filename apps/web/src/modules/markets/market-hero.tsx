@@ -18,6 +18,7 @@ interface MarketHeroProps {
   marketId: string;
   league?: string;
   onBet?: (side: "yes" | "no", teamSide: "team1" | "team2") => void;
+  isTotalsMarket?: boolean;
 }
 
 interface TeamLogo {
@@ -89,12 +90,15 @@ export function MarketHero({
   marketId,
   league,
   onBet,
+  isTotalsMarket = false,
 }: MarketHeroProps) {
   const [team1Logo, setTeam1Logo] = useState<string | undefined>(team1Image);
   const [team2Logo, setTeam2Logo] = useState<string | undefined>(team2Image);
 
-  // Fetch team logos from API
+  // Fetch team logos from API (skip for totals markets)
   useEffect(() => {
+    if (isTotalsMarket) return; // Don't fetch logos for Over/Under markets
+
     async function loadTeamLogos() {
       const [logo1, logo2] = await Promise.all([
         fetchTeamLogo(team1Name, league),
@@ -110,7 +114,7 @@ export function MarketHero({
     }
 
     loadTeamLogos();
-  }, [team1Name, team2Name, league]);
+  }, [team1Name, team2Name, league, isTotalsMarket]);
 
   return (
     <div className="relative w-full overflow-hidden rounded-2xl">
@@ -156,20 +160,47 @@ export function MarketHero({
         >
           <div className="relative group">
             {/* Card glow */}
-            <div className="absolute -inset-1 bg-gradient-to-br from-blue-500/50 via-blue-400/30 to-cyan-500/50 rounded-2xl blur-sm opacity-75 group-hover:opacity-100 transition-opacity" />
+            <div className={cn(
+              "absolute -inset-1 rounded-2xl blur-sm opacity-75 group-hover:opacity-100 transition-opacity",
+              isTotalsMarket
+                ? "bg-gradient-to-br from-emerald-500/50 via-emerald-400/30 to-green-500/50"
+                : "bg-gradient-to-br from-blue-500/50 via-blue-400/30 to-cyan-500/50"
+            )} />
 
             {/* Card content */}
-            <div className="relative rounded-2xl overflow-hidden border border-blue-500/30 bg-gradient-to-br from-blue-900/80 via-blue-800/60 to-blue-900/80 backdrop-blur-sm">
+            <div className={cn(
+              "relative rounded-2xl overflow-hidden border backdrop-blur-sm",
+              isTotalsMarket
+                ? "border-emerald-500/30 bg-gradient-to-br from-emerald-900/80 via-emerald-800/60 to-emerald-900/80"
+                : "border-blue-500/30 bg-gradient-to-br from-blue-900/80 via-blue-800/60 to-blue-900/80"
+            )}>
               {/* Team ticker */}
               <div className="absolute top-3 left-3 z-20">
                 <span className="font-mono text-sm sm:text-base font-bold text-white/90 tracking-wider">
-                  ${team1Name.toUpperCase().replace(/\s+/g, "").slice(0, 10)}
+                  {isTotalsMarket ? "OVER" : `$${team1Name.toUpperCase().replace(/\s+/g, "").slice(0, 10)}`}
                 </span>
               </div>
 
               {/* Image container */}
               <div className="relative aspect-[4/5] overflow-hidden">
-                {team1Logo ? (
+                {isTotalsMarket ? (
+                  <div className="w-full h-full bg-gradient-to-br from-emerald-600/30 to-emerald-900/50 flex items-center justify-center">
+                    {/* Over arrow icon */}
+                    <svg
+                      className="w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 text-emerald-400/60"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 10l7-7m0 0l7 7m-7-7v18"
+                      />
+                    </svg>
+                  </div>
+                ) : team1Logo ? (
                   <div className="w-full h-full bg-gradient-to-br from-blue-600/30 to-blue-900/50 flex items-center justify-center p-8">
                     <img
                       src={team1Logo}
@@ -186,10 +217,16 @@ export function MarketHero({
                 )}
 
                 {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-blue-900/90 via-blue-900/20 to-transparent" />
+                <div className={cn(
+                  "absolute inset-0 bg-gradient-to-t via-transparent to-transparent",
+                  isTotalsMarket ? "from-emerald-900/90 via-emerald-900/20" : "from-blue-900/90 via-blue-900/20"
+                )} />
 
-                {/* Yellow accent gradient at bottom */}
-                <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-amber-500/30 via-amber-500/10 to-transparent" />
+                {/* Accent gradient at bottom */}
+                <div className={cn(
+                  "absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t via-transparent to-transparent",
+                  isTotalsMarket ? "from-emerald-500/30 via-emerald-500/10" : "from-amber-500/30 via-amber-500/10"
+                )} />
               </div>
 
               {/* Market cap */}
@@ -256,7 +293,7 @@ export function MarketHero({
           </div>
         </motion.div>
 
-        {/* Team 2 Card */}
+        {/* Team 2 Card (Under for totals markets) */}
         <motion.div
           initial={{ x: 50, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
@@ -265,20 +302,47 @@ export function MarketHero({
         >
           <div className="relative group">
             {/* Card glow */}
-            <div className="absolute -inset-1 bg-gradient-to-br from-red-500/50 via-rose-400/30 to-pink-500/50 rounded-2xl blur-sm opacity-75 group-hover:opacity-100 transition-opacity" />
+            <div className={cn(
+              "absolute -inset-1 rounded-2xl blur-sm opacity-75 group-hover:opacity-100 transition-opacity",
+              isTotalsMarket
+                ? "bg-gradient-to-br from-rose-500/50 via-red-400/30 to-orange-500/50"
+                : "bg-gradient-to-br from-red-500/50 via-rose-400/30 to-pink-500/50"
+            )} />
 
             {/* Card content */}
-            <div className="relative rounded-2xl overflow-hidden border border-red-500/30 bg-gradient-to-br from-red-900/80 via-rose-800/60 to-red-900/80 backdrop-blur-sm">
+            <div className={cn(
+              "relative rounded-2xl overflow-hidden border backdrop-blur-sm",
+              isTotalsMarket
+                ? "border-rose-500/30 bg-gradient-to-br from-rose-900/80 via-red-800/60 to-rose-900/80"
+                : "border-red-500/30 bg-gradient-to-br from-red-900/80 via-rose-800/60 to-red-900/80"
+            )}>
               {/* Team ticker */}
               <div className="absolute top-3 right-3 z-20">
                 <span className="font-mono text-sm sm:text-base font-bold text-white/90 tracking-wider">
-                  ${team2Name.toUpperCase().replace(/\s+/g, "").slice(0, 10)}
+                  {isTotalsMarket ? "UNDER" : `$${team2Name.toUpperCase().replace(/\s+/g, "").slice(0, 10)}`}
                 </span>
               </div>
 
               {/* Image container */}
               <div className="relative aspect-[4/5] overflow-hidden">
-                {team2Logo ? (
+                {isTotalsMarket ? (
+                  <div className="w-full h-full bg-gradient-to-br from-rose-600/30 to-rose-900/50 flex items-center justify-center">
+                    {/* Under arrow icon */}
+                    <svg
+                      className="w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 text-rose-400/60"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                      />
+                    </svg>
+                  </div>
+                ) : team2Logo ? (
                   <div className="w-full h-full bg-gradient-to-br from-red-600/30 to-red-900/50 flex items-center justify-center p-8">
                     <img
                       src={team2Logo}
@@ -295,10 +359,16 @@ export function MarketHero({
                 )}
 
                 {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-red-900/90 via-red-900/20 to-transparent" />
+                <div className={cn(
+                  "absolute inset-0 bg-gradient-to-t via-transparent to-transparent",
+                  isTotalsMarket ? "from-rose-900/90 via-rose-900/20" : "from-red-900/90 via-red-900/20"
+                )} />
 
-                {/* Red accent gradient at bottom */}
-                <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-rose-500/30 via-rose-500/10 to-transparent" />
+                {/* Accent gradient at bottom */}
+                <div className={cn(
+                  "absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t via-transparent to-transparent",
+                  isTotalsMarket ? "from-rose-500/30 via-rose-500/10" : "from-rose-500/30 via-rose-500/10"
+                )} />
               </div>
 
               {/* Market cap */}

@@ -165,9 +165,17 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
     }
   }
 
-  // Get team names and prices from outcomes
-  const team1Name = market.outcomes[0]?.name || "Team 1";
-  const team2Name = market.outcomes[1]?.name || "Team 2";
+  // Check if this is a totals/over-under market
+  const isTotalsMarket = market.sportsMarketType?.toLowerCase() === "totals";
+
+  // Get outcome names and prices
+  // For totals markets, use "Over" and "Under" labels instead of team names
+  const team1Name = isTotalsMarket
+    ? "Over"
+    : market.outcomes[0]?.name || "Team 1";
+  const team2Name = isTotalsMarket
+    ? "Under"
+    : market.outcomes[1]?.name || "Team 2";
   const team1Price = market.outcomes[0]?.price ?? 0.5;
   const team2Price = market.outcomes[1]?.price ?? 0.5;
   const team1PriceChange24h = metrics.priceChange24h;
@@ -235,6 +243,7 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
           league={league}
           allMarkets={allMarkets}
           shouldShowSubevents={shouldShowSubevents}
+          isTotalsMarket={isTotalsMarket}
         />
       </WatchlistProviderWrapper>
     </div>

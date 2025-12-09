@@ -38,6 +38,7 @@ interface MarketDetailClientProps {
   league?: string;
   allMarkets: Market[];
   shouldShowSubevents: boolean;
+  isTotalsMarket?: boolean;
 }
 
 export function MarketDetailClient({
@@ -58,6 +59,7 @@ export function MarketDetailClient({
   league,
   allMarkets,
   shouldShowSubevents,
+  isTotalsMarket = false,
 }: MarketDetailClientProps) {
   const [showBetModal, setShowBetModal] = useState(false);
   const [selectedBetData, setSelectedBetData] = useState<{
@@ -170,6 +172,7 @@ export function MarketDetailClient({
           status={status}
           league={league}
           onBet={handleHeroBet}
+          isTotalsMarket={isTotalsMarket}
         />
       </motion.div>
 
