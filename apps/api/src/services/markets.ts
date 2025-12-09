@@ -944,11 +944,15 @@ function enrichMarket(market: Market): Market {
   // Detect game for esports markets
   const game = detectGame(market);
 
+  // Detect market type (game vs outright)
+  const marketType = isGameMarket(market) ? 'game' : 'outright';
+
   return {
     ...market,
     trendingScore,
     isTrending,
     game,
+    marketType,
     // Ensure derived fields are set (already mapped from raw data, but ensure they exist)
     volume24h: market.volume24h ?? 0,
     priceChange24h: market.priceChange24h ?? 0,

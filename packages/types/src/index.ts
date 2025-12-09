@@ -50,6 +50,8 @@ export interface Market {
   // Game categorization
   // Supported games: cs2, lol, dota2, valorant, cod, r6, hok
   game?: "cs2" | "lol" | "dota2" | "valorant" | "cod" | "r6" | "hok";
+  // Market type: game (individual matches), outright (tournament winners), esports (all)
+  marketType?: "game" | "outright" | "esports";
   // Tags from Polymarket (e.g., "cs2", "Esports", "counter strike 2")
   // Used for reliable game detection
   tags?: string[];

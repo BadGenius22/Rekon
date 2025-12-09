@@ -23,8 +23,8 @@ async function getMarkets(
     if (game) {
       url.searchParams.set("game", game);
     }
-    // Always fetch game markets (matches/maps)
-    url.searchParams.set("type", "game");
+    // Fetch all esports markets (matches/maps AND tournament winners/outrights)
+    // This matches the home page behavior and shows major league matches
 
     const response = await fetch(url.toString(), {
       next: { revalidate: 10 }, // ISR: Cache for 10 seconds, then revalidate
@@ -68,7 +68,13 @@ export async function MarketsPage(props: {
     status === "resolved" ? marketsRaw.filter((m) => m.isResolved) : marketsRaw;
 
   // Calculate totals (same as home page)
-  const liveMarketsCount = markets.length;
+  // Supported games for filtering
+  const supportedGames = ["cs2", "lol", "dota2", "valorant", "cod", "r6", "hok"];
+
+  // Count only markets with detected games (matches home page logic)
+  const liveMarketsCount = markets.filter((m) =>
+    supportedGames.includes(m.game ?? "")
+  ).length;
   const total24hVolume = markets.reduce(
     (sum, market) => sum + (market.volume24h ?? market.volume ?? 0),
     0

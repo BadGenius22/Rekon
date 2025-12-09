@@ -142,6 +142,73 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
   const { market, bestBid, bestAsk, recentTrades, metrics, spread } =
     marketFull;
 
+  // Validate that this is an esports market
+  // Rekon is an esports terminal - only show competitive esports markets
+  const supportedGames = ["cs2", "lol", "dota2", "valorant", "cod", "r6", "hok"];
+  const isEsportsMarket = market.game && supportedGames.includes(market.game);
+
+  if (!isEsportsMarket) {
+    return (
+      <div className="min-h-screen bg-[#030711] text-white">
+        <AppHeader />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center space-y-4 max-w-md mx-auto px-4">
+            {/* Icon */}
+            <div className="flex items-center justify-center mb-4">
+              <div className="h-16 w-16 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
+                <span className="text-3xl">🎮</span>
+              </div>
+            </div>
+
+            {/* Title */}
+            <h1 className="text-2xl font-bold mb-2">Not an Esports Market</h1>
+
+            {/* Description */}
+            <p className="text-white/60 leading-relaxed">
+              Rekon is a professional esports trading terminal. This market is not related to competitive esports and is not available on this platform.
+            </p>
+
+            {/* Market Info */}
+            <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-left">
+              <p className="text-sm text-white/50 mb-1">Market:</p>
+              <p className="text-sm text-white font-mono break-all">{market.question}</p>
+              {market.category && (
+                <>
+                  <p className="text-sm text-white/50 mt-3 mb-1">Category:</p>
+                  <p className="text-sm text-white/70">{market.category}</p>
+                </>
+              )}
+            </div>
+
+            {/* Supported Games */}
+            <div className="text-sm text-white/40 mt-4">
+              <p className="mb-2">Supported esports:</p>
+              <p className="text-white/60">CS2 • LoL • Dota 2 • Valorant • CoD • Rainbow Six • Honor of Kings</p>
+            </div>
+
+            {/* CTA */}
+            <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
+              <Link
+                href="/markets"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-500 px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors"
+              >
+                Browse Esports Markets
+              </Link>
+              <a
+                href={`https://polymarket.com/event/${identifier}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/5 px-6 py-3 text-sm font-semibold text-white hover:border-white/40 hover:bg-white/10 transition-colors"
+              >
+                View on Polymarket ↗
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Fetch related markets (subevents) if eventSlug is available
   let relatedMarkets: Market[] = [];
   const shouldShowSubevents = !!market.eventSlug;

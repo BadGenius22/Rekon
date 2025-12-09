@@ -53,6 +53,16 @@ function categorizeByGame(markets: Market[]): {
   return categorized;
 }
 
+function categorizeByType(markets: Market[]): {
+  matches: Market[];
+  tournaments: Market[];
+} {
+  return {
+    matches: markets.filter((m) => m.marketType === "game"),
+    tournaments: markets.filter((m) => m.marketType === "outright"),
+  };
+}
+
 function SectionHeader({
   title,
   markets,
@@ -67,6 +77,42 @@ function SectionHeader({
         {markets.length} {markets.length === 1 ? "market" : "markets"}
       </span>
     </div>
+  );
+}
+
+// Helper component to render game sections
+function GameSection({
+  title,
+  markets,
+  delay,
+}: {
+  title: string;
+  markets: Market[];
+  delay: number;
+}) {
+  if (markets.length === 0) return null;
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay }}
+      className="space-y-4 mb-8 border-t border-white/5 pt-6"
+    >
+      <SectionHeader title={title} markets={markets} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
+        {markets.map((market, index) => (
+          <motion.div
+            key={market.id}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2, delay: index * 0.02 }}
+          >
+            <MarketCard market={market} compact />
+          </motion.div>
+        ))}
+      </div>
+    </motion.section>
   );
 }
 
@@ -261,7 +307,7 @@ function MarketsPageClientInner({
 
     // Merge markets from current list and watchlist
     const marketMap = new Map<string, Market>();
-    
+
     // Add current markets
     markets.forEach((market) => {
       if (isInWatchlist(market.id)) {
@@ -295,8 +341,12 @@ function MarketsPageClientInner({
     return filteredMarkets.filter((market) => market.game === game);
   }, [filteredMarkets, game]);
 
-  // Categorize markets
-  const categorized = categorizeByGame(gameFilteredMarkets);
+  // Categorize markets by type (matches vs tournaments)
+  const { matches, tournaments } = categorizeByType(gameFilteredMarkets);
+
+  // Further categorize by game within each type
+  const matchesByGame = categorizeByGame(matches);
+  const tournamentsByGame = categorizeByGame(tournaments);
 
   const watchlistCount = watchlist?.entries.length ?? 0;
 
@@ -422,217 +472,73 @@ function MarketsPageClientInner({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
+            className="space-y-12"
           >
-            {categorized.cs2.length > 0 && (
-              <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.05 }}
-                className="space-y-4 mb-12 border-t border-white/5 pt-6"
-              >
-                <SectionHeader title="CS2 Markets" markets={categorized.cs2} />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
-                  {categorized.cs2.map((market, index) => (
-                    <motion.div
-                      key={market.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.2, delay: index * 0.02 }}
-                    >
-                      <MarketCard market={market} compact />
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.section>
-            )}
-
-            {categorized.lol.length > 0 && (
-              <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
-                className="space-y-4 mb-12 border-t border-white/5 pt-6"
-              >
-                <SectionHeader
-                  title="League of Legends Markets"
-                  markets={categorized.lol}
-                />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
-                  {categorized.lol.map((market, index) => (
-                    <motion.div
-                      key={market.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.2, delay: index * 0.02 }}
-                    >
-                      <MarketCard market={market} compact />
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.section>
-            )}
-
-            {categorized.dota2.length > 0 && (
-              <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.15 }}
-                className="space-y-4 mb-12 border-t border-white/5 pt-6"
-              >
-                <SectionHeader title="Dota 2 Markets" markets={categorized.dota2} />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
-                  {categorized.dota2.map((market, index) => (
-                    <motion.div
-                      key={market.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.2, delay: index * 0.02 }}
-                    >
-                      <MarketCard market={market} compact />
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.section>
-            )}
-
-            {categorized.valorant.length > 0 && (
-              <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.2 }}
-                className="space-y-4 mb-12 border-t border-white/5 pt-6"
-              >
-                <SectionHeader title="Valorant Markets" markets={categorized.valorant} />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
-                  {categorized.valorant.map((market, index) => (
-                    <motion.div
-                      key={market.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.2, delay: index * 0.02 }}
-                    >
-                      <MarketCard market={market} compact />
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.section>
-            )}
-
-            {categorized.cod.length > 0 && (
-              <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.25 }}
-                className="space-y-4 mb-12 border-t border-white/5 pt-6"
-              >
-                <SectionHeader title="Call of Duty Markets" markets={categorized.cod} />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
-                  {categorized.cod.map((market, index) => (
-                    <motion.div
-                      key={market.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.2, delay: index * 0.02 }}
-                    >
-                      <MarketCard market={market} compact />
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.section>
-            )}
-
-            {categorized.r6.length > 0 && (
-              <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.3 }}
-                className="space-y-4 mb-12 border-t border-white/5 pt-6"
-              >
-                <SectionHeader title="Rainbow Six Siege Markets" markets={categorized.r6} />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
-                  {categorized.r6.map((market, index) => (
-                    <motion.div
-                      key={market.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.2, delay: index * 0.02 }}
-                    >
-                      <MarketCard market={market} compact />
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.section>
-            )}
-
-            {categorized.hok.length > 0 && (
-              <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.35 }}
-                className="space-y-4 mb-12 border-t border-white/5 pt-6"
-              >
-                <SectionHeader title="Honor of Kings Markets" markets={categorized.hok} />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
-                  {categorized.hok.map((market, index) => (
-                    <motion.div
-                      key={market.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.2, delay: index * 0.02 }}
-                    >
-                      <MarketCard market={market} compact />
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.section>
-            )}
-
-            {/* Show uncategorized markets if any */}
-            {(() => {
-              const uncategorized = gameFilteredMarkets.filter(
-                (m) =>
-                  !categorized.cs2.includes(m) &&
-                  !categorized.lol.includes(m) &&
-                  !categorized.dota2.includes(m) &&
-                  !categorized.valorant.includes(m) &&
-                  !categorized.cod.includes(m) &&
-                  !categorized.r6.includes(m) &&
-                  !categorized.hok.includes(m)
-              );
-              return uncategorized.length > 0 ? (
-                <motion.section
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.4 }}
-                  className="space-y-5"
-                >
-                  <div className="flex items-center gap-3">
-                    <h2 className="text-2xl font-bold text-white">
-                      Other Markets
-                    </h2>
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs font-semibold text-white/70">
-                      {uncategorized.length}
-                    </span>
+            {/* 🎮 MATCH MARKETS SECTION */}
+            {matches.length > 0 && (
+              <div className="space-y-6">
+                {/* Section Header */}
+                <div className="flex items-center gap-3 pb-3 border-b border-white/10">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-sky-500/20 border border-emerald-500/30 flex items-center justify-center">
+                    <span className="text-xl">🎮</span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
-                    {uncategorized.map((market, index) => (
-                      <motion.div
-                        key={market.id}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.2, delay: index * 0.02 }}
-                      >
-                        <MarketCard market={market} compact />
-                      </motion.div>
-                    ))}
+                  <div className="flex-1">
+                    <h2 className="text-xl font-bold text-white tracking-tight">Live Matches</h2>
+                    <p className="text-xs text-white/50 mt-0.5">Predict individual match outcomes</p>
                   </div>
-                </motion.section>
-              ) : null;
-            })()}
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/10 border border-emerald-400/30 px-3 py-1.5 text-xs font-semibold text-emerald-300">
+                    {matches.length} {matches.length === 1 ? "market" : "markets"}
+                  </span>
+                </div>
+
+                {/* Match Markets by Game */}
+                <GameSection title="CS2 Matches" markets={matchesByGame.cs2} delay={0.05} />
+                <GameSection title="Call of Duty Matches" markets={matchesByGame.cod} delay={0.1} />
+                <GameSection title="League of Legends Matches" markets={matchesByGame.lol} delay={0.15} />
+                <GameSection title="Dota 2 Matches" markets={matchesByGame.dota2} delay={0.2} />
+                <GameSection title="Valorant Matches" markets={matchesByGame.valorant} delay={0.25} />
+                <GameSection title="Rainbow Six Siege Matches" markets={matchesByGame.r6} delay={0.3} />
+                <GameSection title="Honor of Kings Matches" markets={matchesByGame.hok} delay={0.35} />
+              </div>
+            )}
+
+            {/* 🏆 TOURNAMENT MARKETS SECTION */}
+            {tournaments.length > 0 && (
+              <div className="space-y-6">
+                {/* Section Header */}
+                <div className="flex items-center gap-3 pb-3 border-b border-white/10">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 flex items-center justify-center">
+                    <span className="text-xl">🏆</span>
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-xl font-bold text-white tracking-tight">Tournament Winners</h2>
+                    <p className="text-xs text-white/50 mt-0.5">Predict championship & league winners</p>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/10 border border-amber-400/30 px-3 py-1.5 text-xs font-semibold text-amber-300">
+                    {tournaments.length} {tournaments.length === 1 ? "market" : "markets"}
+                  </span>
+                </div>
+
+                {/* Tournament Markets by Game */}
+                <GameSection title="CS2 Tournaments" markets={tournamentsByGame.cs2} delay={0.4} />
+                <GameSection title="Call of Duty Tournaments" markets={tournamentsByGame.cod} delay={0.45} />
+                <GameSection title="League of Legends Tournaments" markets={tournamentsByGame.lol} delay={0.5} />
+                <GameSection title="Dota 2 Tournaments" markets={tournamentsByGame.dota2} delay={0.55} />
+                <GameSection title="Valorant Tournaments" markets={tournamentsByGame.valorant} delay={0.6} />
+                <GameSection title="Rainbow Six Siege Tournaments" markets={tournamentsByGame.r6} delay={0.65} />
+                <GameSection title="Honor of Kings Tournaments" markets={tournamentsByGame.hok} delay={0.7} />
+              </div>
+            )}
+
+            {/*
+              Uncategorized markets (markets without detected games) are intentionally hidden.
+              Rekon is an esports trading terminal - we only show competitive match/tournament markets.
+              Markets like streamer bets, personality predictions, or misc entertainment markets
+              are filtered out to maintain focus on professional esports trading.
+            */}
           </motion.div>
         </AnimatePresence>
       )}
     </>
   );
 }
-
