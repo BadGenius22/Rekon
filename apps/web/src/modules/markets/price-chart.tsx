@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LineChart,
@@ -21,9 +21,17 @@ interface PriceChartProps {
   team2Name: string;
   team1Price: number;
   team2Price: number;
+  team1TokenId?: string;
+  team2TokenId?: string;
 }
 
 interface PricePoint {
+  timestamp: number;
+  team1Price: number;
+  team2Price: number;
+}
+
+interface ApiPricePoint {
   timestamp: number;
   team1Price: number;
   team2Price: number;
@@ -55,10 +63,12 @@ function formatTime(timestamp: number, range: TimeRange): string {
   if (range === "1d") {
     const minutes = date.getMinutes();
     if (minutes === 0) {
-      return date.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        hour12: false,
-      }).replace(":00", "");
+      return date
+        .toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          hour12: false,
+        })
+        .replace(":00", "");
     }
     return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
@@ -128,7 +138,6 @@ function generateMockData(
     const timestamp = now - duration + i * interval;
 
     // Add some random walk with mean reversion toward current price
-    const progress = i / numPoints;
     const drift1 = (team1Price - t1) * 0.02;
     const drift2 = (team2Price - t2) * 0.02;
 
@@ -174,7 +183,6 @@ function CustomTooltip({
   label,
   team1Name,
   team2Name,
-  range,
 }: CustomTooltipProps) {
   if (!active || !payload || !label) return null;
 
@@ -212,34 +220,80 @@ function CustomTooltip({
 }
 
 export function PriceChart({
-  conditionId,
   team1Name,
   team2Name,
   team1Price,
   team2Price,
+  team1TokenId,
+  team2TokenId,
 }: PriceChartProps) {
   const [selectedRange, setSelectedRange] = useState<TimeRange>("1h");
   const [isLoading, setIsLoading] = useState(false);
   const [priceHistory, setPriceHistory] = useState<PricePoint[]>([]);
+  const [useMockData, setUseMockData] = useState(false);
 
-  // Generate mock data for demo (in production, fetch from API)
+  // Fetch price history from API
+  const fetchPriceHistory = useCallback(async () => {
+    // If no token IDs provided, fall back to mock data
+    if (!team1TokenId || !team2TokenId) {
+      setUseMockData(true);
+      return null;
+    }
+
+    try {
+      const url = new URL(`${API_CONFIG.baseUrl}/price-history/dual`);
+      url.searchParams.set("token1Id", team1TokenId);
+      url.searchParams.set("token2Id", team2TokenId);
+      url.searchParams.set("timeRange", selectedRange);
+
+      const response = await fetch(url.toString());
+
+      if (!response.ok) {
+        console.warn("Failed to fetch price history, falling back to mock data");
+        setUseMockData(true);
+        return null;
+      }
+
+      const data = await response.json();
+
+      if (!data.history || data.history.length === 0) {
+        setUseMockData(true);
+        return null;
+      }
+
+      setUseMockData(false);
+      return data.history as ApiPricePoint[];
+    } catch (error) {
+      console.warn("Error fetching price history:", error);
+      setUseMockData(true);
+      return null;
+    }
+  }, [team1TokenId, team2TokenId, selectedRange]);
+
   useEffect(() => {
     setIsLoading(true);
 
-    // Simulate API call
-    const timer = setTimeout(() => {
-      const data = generateMockData(selectedRange, team1Price, team2Price);
-      setPriceHistory(data);
-      setIsLoading(false);
-    }, 300);
+    const loadData = async () => {
+      const apiData = await fetchPriceHistory();
 
-    return () => clearTimeout(timer);
-  }, [selectedRange, team1Price, team2Price]);
+      if (apiData && apiData.length > 0) {
+        setPriceHistory(apiData);
+      } else {
+        // Fall back to mock data
+        const mockData = generateMockData(selectedRange, team1Price, team2Price);
+        setPriceHistory(mockData);
+      }
+
+      setIsLoading(false);
+    };
+
+    loadData();
+  }, [selectedRange, team1Price, team2Price, fetchPriceHistory]);
 
   const chartData = useMemo(() => {
     return priceHistory.map((point) => ({
       ...point,
-      // Convert to percentage for display
+      // Convert to cents for display (price is 0-1, display as 0-100)
       team1Display: point.team1Price * 100,
       team2Display: point.team2Price * 100,
     }));
@@ -285,6 +339,9 @@ export function PriceChart({
               {(team2Price * 100).toFixed(1)}¢
             </span>
           </div>
+          {useMockData && (
+            <span className="text-xs text-white/30 italic">(simulated)</span>
+          )}
         </div>
 
         {/* Time Range Selector */}
@@ -334,13 +391,33 @@ export function PriceChart({
                   margin={{ top: 10, right: 10, left: 0, bottom: 10 }}
                 >
                   <defs>
-                    <linearGradient id="team1Gradient" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient
+                      id="team1Gradient"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
                       <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#fbbf24" stopOpacity={0} />
+                      <stop
+                        offset="100%"
+                        stopColor="#fbbf24"
+                        stopOpacity={0}
+                      />
                     </linearGradient>
-                    <linearGradient id="team2Gradient" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient
+                      id="team2Gradient"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
                       <stop offset="0%" stopColor="#f87171" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#f87171" stopOpacity={0} />
+                      <stop
+                        offset="100%"
+                        stopColor="#f87171"
+                        stopOpacity={0}
+                      />
                     </linearGradient>
                   </defs>
 

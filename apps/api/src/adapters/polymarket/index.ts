@@ -112,3 +112,12 @@ export {
   fetchPolymarketPortfolioValue,
   type PolymarketPosition,
 } from "./positions";
+
+// Export price history functions
+export {
+  fetchPriceHistory,
+  fetchDualPriceHistory,
+  type PriceHistoryPoint,
+  type PriceHistoryInterval,
+  type FetchPriceHistoryParams,
+} from "./price-history";

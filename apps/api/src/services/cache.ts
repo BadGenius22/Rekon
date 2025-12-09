@@ -1,4 +1,5 @@
 import type { Market, OrderBook, Trade, OHLCV, Order } from "@rekon/types";
+import type { PriceHistoryPoint } from "../adapters/polymarket";
 import { HybridCache } from "../adapters/redis/cache.js";
 
 /**
@@ -50,6 +51,12 @@ const orderConfirmationCache = new HybridCache<Order>({
   max: 1000,
   ttl: 1000 * 30, // 30 seconds for order confirmations
   prefix: "rekon:order",
+});
+
+const priceHistoryCache = new HybridCache<PriceHistoryPoint[]>({
+  max: 500,
+  ttl: 1000 * 30, // 30 seconds for price history (longer TTL since historical data is stable)
+  prefix: "rekon:price-history",
 });
 
 /**
@@ -165,6 +172,31 @@ export const orderConfirmationCacheService = {
 };
 
 /**
+ * Price History Cache
+ */
+export const priceHistoryCacheService = {
+  get: async (key: string): Promise<PriceHistoryPoint[] | undefined> => {
+    return await priceHistoryCache.get(key);
+  },
+
+  set: async (key: string, data: PriceHistoryPoint[]): Promise<void> => {
+    await priceHistoryCache.set(key, data);
+  },
+
+  generateKey: (
+    tokenId: string,
+    interval?: string,
+    fidelity?: number
+  ): string => {
+    return generateCacheKey("price-history", {
+      tokenId,
+      interval: interval || "default",
+      fidelity: fidelity || 0,
+    });
+  },
+};
+
+/**
  * Clears all caches.
  */
 export async function clearAllCaches(): Promise<void> {
@@ -175,6 +207,7 @@ export async function clearAllCaches(): Promise<void> {
     tradesCache.clear(),
     chartCache.clear(),
     orderConfirmationCache.clear(),
+    priceHistoryCache.clear(),
   ]);
 }
 
@@ -200,6 +233,9 @@ export function getCacheStats() {
     },
     orderConfirmation: {
       size: orderConfirmationCache.size,
+    },
+    priceHistory: {
+      size: priceHistoryCache.size,
     },
   };
 }

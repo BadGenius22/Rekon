@@ -177,6 +177,10 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
   const team1Image = market.imageUrl; // Fallback, team logos fetched in hero component
   const team2Image = market.imageUrl; // Fallback, team logos fetched in hero component
 
+  // Get token IDs for price history chart
+  const team1TokenId = market.outcomes[0]?.tokenAddress;
+  const team2TokenId = market.outcomes[1]?.tokenAddress;
+
   // Map game to league for team logo API
   const gameToLeague: Record<string, string> = {
     cs2: "csgo",
@@ -226,6 +230,8 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
           team2PriceChange24h={team2PriceChange24h}
           team1Image={team1Image}
           team2Image={team2Image}
+          team1TokenId={team1TokenId}
+          team2TokenId={team2TokenId}
           league={league}
           allMarkets={allMarkets}
           shouldShowSubevents={shouldShowSubevents}

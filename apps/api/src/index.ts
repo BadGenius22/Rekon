@@ -128,6 +128,7 @@ app.use("/search/*", sessionMiddleware);
 app.use("/activity/*", sessionMiddleware);
 app.use("/gamification/*", sessionMiddleware);
 app.use("/games/*", sessionMiddleware);
+app.use("/price-history/*", sessionMiddleware);
 // Webhooks don't use session middleware (called by external services)
 
 // API routes (with rate limiting to protect Polymarket API)
@@ -154,6 +155,7 @@ import { searchRoutes } from "./routes/search";
 import { activityRoutes } from "./routes/activity";
 import { gamificationRoutes } from "./routes/gamification";
 import { gamesRoutes } from "./routes/games";
+import { priceHistoryRoutes } from "./routes/price-history";
 
 // Apply rate limiting to all API routes that call Polymarket
 // Rate limiter is applied to each route group
@@ -170,6 +172,7 @@ app.use("/search/*", polymarketRateLimiter);
 app.use("/activity/*", polymarketRateLimiter);
 app.use("/gamification/*", polymarketRateLimiter);
 app.use("/games/*", polymarketRateLimiter);
+app.use("/price-history/*", polymarketRateLimiter);
 
 app.route("/markets", marketsRoutes);
 app.route("/orderbook", orderbookRoutes);
@@ -194,6 +197,7 @@ app.route("/activity", activityRoutes);
 app.route("/teams", teamsRoutes);
 app.route("/gamification", gamificationRoutes);
 app.route("/games", gamesRoutes);
+app.route("/price-history", priceHistoryRoutes);
 
 const port = Number(process.env.PORT) || 3001;
 

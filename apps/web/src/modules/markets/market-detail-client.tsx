@@ -33,6 +33,8 @@ interface MarketDetailClientProps {
   team2PriceChange24h: number;
   team1Image?: string;
   team2Image?: string;
+  team1TokenId?: string;
+  team2TokenId?: string;
   league?: string;
   allMarkets: Market[];
   shouldShowSubevents: boolean;
@@ -51,6 +53,8 @@ export function MarketDetailClient({
   team2PriceChange24h,
   team1Image,
   team2Image,
+  team1TokenId,
+  team2TokenId,
   league,
   allMarkets,
   shouldShowSubevents,
@@ -230,6 +234,8 @@ export function MarketDetailClient({
           team2Name={team2Name}
           team1Price={team1Price}
           team2Price={team2Price}
+          team1TokenId={team1TokenId}
+          team2TokenId={team2TokenId}
         />
       </motion.div>
 
