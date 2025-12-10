@@ -16,7 +16,10 @@
       "Bash(pnpm add:*)",
       "Bash(pnpm --filter @rekon/web build:*)",
       "Skill(frontend-design:frontend-design)",
-      "Bash(pnpm --filter @rekon/web type-check:*)"
+      "Bash(pnpm --filter @rekon/web type-check:*)",
+      "Bash(cat:*)",
+      "Bash(find:*)",
+      "Bash(chmod:*)"
     ],
     "deny": [],
     "ask": []

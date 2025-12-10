@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Prepare commit message hook - Suggests DCO sign-off
+#
+# This hook helps developers remember to sign their commits.
+# It's informational only and doesn't enforce signing.
+#
+# To install: git config core.hooksPath .githooks
+# To remove: git config --unset core.hooksPath
+
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+
+# Don't add sign-off for merge commits, squash, or amend
+if [ "$COMMIT_SOURCE" != "" ]; then
+  exit 0
+fi
+
+# Get git user info
+GIT_USER_NAME=$(git config user.name)
+GIT_USER_EMAIL=$(git config user.email)
+
+# Skip if user info not configured
+if [ -z "$GIT_USER_NAME" ] || [ -z "$GIT_USER_EMAIL" ]; then
+  exit 0
+fi
+
+# Check if commit message already has a sign-off
+if grep -q "^Signed-off-by:" "$COMMIT_MSG_FILE"; then
+  exit 0
+fi
+
+# Check if this is a merge commit (has MERGE_HEAD)
+if [ -f "$(git rev-parse --git-dir)/MERGE_HEAD" ]; then
+  exit 0
+fi
+
+# Add suggested sign-off line as a comment
+{
+  echo ""
+  echo "# DCO Sign-off"
+  echo "# Consider signing your commit with: git commit -s"
+  echo "# Sign-off example:"
+  echo "# Signed-off-by: $GIT_USER_NAME <$GIT_USER_EMAIL>"
+} >> "$COMMIT_MSG_FILE"
+
+exit 0
