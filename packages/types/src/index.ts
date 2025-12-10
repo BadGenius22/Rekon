@@ -295,3 +295,17 @@ export interface GamificationProfile {
     tradesLast24h: number;
   };
 }
+
+// ============================================================================
+// Polymarket Types
+// ============================================================================
+
+export type {
+  Transaction,
+  RelayerTransaction,
+} from "./polymarket";
+
+export {
+  RelayerTxType,
+  RelayerTransactionState,
+} from "./polymarket";

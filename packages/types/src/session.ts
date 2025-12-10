@@ -19,8 +19,10 @@ export interface UserSession {
   expiresAt: string; // ISO timestamp
 
   // User identity (when wallet is connected)
-  walletAddress?: string; // User's wallet address (if connected)
+  walletAddress?: string; // User's EOA wallet address (if connected)
+  safeAddress?: string; // User's Polymarket Safe address (derived from EOA)
   signatureType?: 0 | 1; // 0 = browser wallet, 1 = email login
+  walletLinkedAt?: string; // ISO timestamp when wallet was linked
 
   // Trading context
   tradingPreferences?: TradingPreferences;
@@ -73,5 +75,6 @@ export interface SessionResponse {
   sessionId: string;
   expiresAt: string;
   walletAddress?: string;
+  safeAddress?: string;
 }
 
