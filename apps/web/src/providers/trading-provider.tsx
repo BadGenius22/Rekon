@@ -136,16 +136,22 @@ export function TradingProvider({ children }: TradingProviderProps) {
       });
     } catch (err) {
       console.error("[TradingProvider] Signer verification failed:", err);
-      throw new Error("Failed to verify wallet signer. Please reconnect your wallet.");
+      throw new Error(
+        "Failed to verify wallet signer. Please reconnect your wallet."
+      );
     }
 
     // BuilderConfig is required for Polymarket relayer authentication
     // The relayer requires valid builder credentials even for Safe deployment
-    const baseUrl = typeof window !== "undefined"
-      ? window.location.origin
-      : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const baseUrl =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-    console.log("[TradingProvider] Initializing BuilderConfig with URL:", `${baseUrl}/api/polymarket/sign`);
+    console.log(
+      "[TradingProvider] Initializing BuilderConfig with URL:",
+      `${baseUrl}/api/polymarket/sign`
+    );
 
     const builderConfig = new BuilderConfig({
       remoteBuilderConfig: {
@@ -161,7 +167,9 @@ export function TradingProvider({ children }: TradingProviderProps) {
       RelayerTxType.SAFE
     );
 
-    console.log("[TradingProvider] RelayClient initialized successfully with BuilderConfig");
+    console.log(
+      "[TradingProvider] RelayClient initialized successfully with BuilderConfig"
+    );
     return client;
   }, [ethersSigner]);
 
@@ -195,9 +203,13 @@ export function TradingProvider({ children }: TradingProviderProps) {
       // If Safe was just deployed, skip derive and go straight to create
       // This avoids the confusing "Could not derive api key!" error for first-time users
       if (skipDerive) {
-        console.log("[TradingProvider] New Safe wallet detected, creating API key directly...");
+        console.log(
+          "[TradingProvider] New Safe wallet detected, creating API key directly..."
+        );
         try {
-          console.log("[TradingProvider] Calling createApiKey() - user will be prompted to sign...");
+          console.log(
+            "[TradingProvider] Calling createApiKey() - user will be prompted to sign..."
+          );
           creds = await tempClient.createApiKey();
           console.log("[TradingProvider] API key created successfully");
         } catch (createError) {
@@ -205,8 +217,12 @@ export function TradingProvider({ children }: TradingProviderProps) {
             error: createError,
             errorType: typeof createError,
             errorConstructor: createError?.constructor?.name,
-            errorMessage: createError instanceof Error ? createError.message : String(createError),
-            errorStack: createError instanceof Error ? createError.stack : undefined,
+            errorMessage:
+              createError instanceof Error
+                ? createError.message
+                : String(createError),
+            errorStack:
+              createError instanceof Error ? createError.stack : undefined,
           });
 
           let errorMsg = "Unknown error";
@@ -218,41 +234,61 @@ export function TradingProvider({ children }: TradingProviderProps) {
             errorMsg = JSON.stringify(createError);
           }
 
-          throw new Error(`Failed to create API credentials: ${errorMsg}. Please ensure you sign the message in MetaMask.`);
+          throw new Error(
+            `Failed to create API credentials: ${errorMsg}. Please ensure you sign the message in MetaMask.`
+          );
         }
       } else {
         // For returning users, try to derive existing credentials first
         try {
           // Try to derive existing key first (for returning users)
           // This retrieves credentials if they were created before on Polymarket
-          console.log("[TradingProvider] Attempting to derive existing API key...");
+          console.log(
+            "[TradingProvider] Attempting to derive existing API key..."
+          );
           creds = await tempClient.deriveApiKey();
-          console.log("[TradingProvider] Existing API key derived successfully");
+          console.log(
+            "[TradingProvider] Existing API key derived successfully"
+          );
         } catch (deriveError) {
           // Deriving failed - this is expected for first-time users
-          console.log("[TradingProvider] Could not derive existing API key (expected for first-time users)");
+          console.log(
+            "[TradingProvider] Could not derive existing API key (expected for first-time users)"
+          );
           console.log("[TradingProvider] Derive error details:", {
             error: deriveError,
             errorType: typeof deriveError,
             errorConstructor: deriveError?.constructor?.name,
-            errorMessage: deriveError instanceof Error ? deriveError.message : String(deriveError),
+            errorMessage:
+              deriveError instanceof Error
+                ? deriveError.message
+                : String(deriveError),
           });
 
           // For first-time users, derive will fail - create new key instead
           // This requires the user to sign an EIP-712 message
           try {
-            console.log("[TradingProvider] Calling createApiKey() - user will be prompted to sign...");
+            console.log(
+              "[TradingProvider] Calling createApiKey() - user will be prompted to sign..."
+            );
             creds = await tempClient.createApiKey();
             console.log("[TradingProvider] API key created successfully");
           } catch (createError) {
             // If both fail, throw a descriptive error
-            console.error("[TradingProvider] Failed to create API credentials:", {
-              error: createError,
-              errorType: typeof createError,
-              errorConstructor: createError?.constructor?.name,
-              errorMessage: createError instanceof Error ? createError.message : String(createError),
-              errorStack: createError instanceof Error ? createError.stack : undefined,
-            });
+            console.error(
+              "[TradingProvider] Failed to create API credentials:",
+              {
+                error: createError,
+                errorType: typeof createError,
+                errorConstructor: createError?.constructor?.name,
+                errorMessage:
+                  createError instanceof Error
+                    ? createError.message
+                    : String(createError),
+                errorStack:
+                  createError instanceof Error ? createError.stack : undefined,
+              }
+            );
 
             let errorMsg = "Unknown error";
             if (createError instanceof Error) {
@@ -263,7 +299,9 @@ export function TradingProvider({ children }: TradingProviderProps) {
               errorMsg = JSON.stringify(createError);
             }
 
-            throw new Error(`Failed to create API credentials: ${errorMsg}. Please ensure you sign the message in MetaMask.`);
+            throw new Error(
+              `Failed to create API credentials: ${errorMsg}. Please ensure you sign the message in MetaMask.`
+            );
           }
         }
       }
@@ -298,7 +336,10 @@ export function TradingProvider({ children }: TradingProviderProps) {
             },
           ],
           functionName: "allowance",
-          args: [safeAddr as `0x${string}`, POLYMARKET_CONTRACTS.CTF_EXCHANGE as `0x${string}`],
+          args: [
+            safeAddr as `0x${string}`,
+            POLYMARKET_CONTRACTS.CTF_EXCHANGE as `0x${string}`,
+          ],
         });
 
         // Check CTF approval for CTF_EXCHANGE
@@ -317,11 +358,15 @@ export function TradingProvider({ children }: TradingProviderProps) {
             },
           ],
           functionName: "isApprovedForAll",
-          args: [safeAddr as `0x${string}`, POLYMARKET_CONTRACTS.CTF_EXCHANGE as `0x${string}`],
+          args: [
+            safeAddr as `0x${string}`,
+            POLYMARKET_CONTRACTS.CTF_EXCHANGE as `0x${string}`,
+          ],
         });
 
         // If both have some approval, consider approvals set
-        const isApproved = (usdcCtfAllowance as bigint) > 0n && (ctfApproved as boolean);
+        const isApproved =
+          (usdcCtfAllowance as bigint) > 0n && (ctfApproved as boolean);
 
         console.log("[TradingProvider] Approval check:", {
           safeAddr,
@@ -350,9 +395,18 @@ export function TradingProvider({ children }: TradingProviderProps) {
 
     // ERC1155 setApprovalForAll function selector + operator + approved
     const setApprovalForAllData = (operator: string) =>
-      `0xa22cb465${operator.slice(2).padStart(64, "0")}${"1".padStart(64, "0")}`;
+      `0xa22cb465${operator.slice(2).padStart(64, "0")}${"1".padStart(
+        64,
+        "0"
+      )}`;
 
     const transactions: Transaction[] = [
+      // USDCe approvals
+      {
+        to: POLYMARKET_CONTRACTS.USDCe,
+        data: approveData(POLYMARKET_CONTRACTS.CTF_EXCHANGE),
+        value: "0",
+      },
       // USDC approvals
       {
         to: POLYMARKET_CONTRACTS.USDC,
@@ -385,8 +439,10 @@ export function TradingProvider({ children }: TradingProviderProps) {
     console.log("[TradingProvider] Executing approval transactions...");
     const response = await client.execute(transactions, "Set token approvals");
 
-    console.log("[TradingProvider] Waiting for approval transaction confirmation...");
-    const result = await response.wait() as RelayerTransaction | undefined;
+    console.log(
+      "[TradingProvider] Waiting for approval transaction confirmation..."
+    );
+    const result = (await response.wait()) as RelayerTransaction | undefined;
 
     if (result) {
       console.log("[TradingProvider] Approval transaction confirmed:", {
@@ -398,7 +454,9 @@ export function TradingProvider({ children }: TradingProviderProps) {
         throw new Error("Token approval transaction failed");
       }
     } else {
-      console.error("[TradingProvider] Approval transaction failed or timed out");
+      console.error(
+        "[TradingProvider] Approval transaction failed or timed out"
+      );
       throw new Error("Token approval transaction failed or timed out");
     }
   }, []);
@@ -412,9 +470,10 @@ export function TradingProvider({ children }: TradingProviderProps) {
 
       // Configure remote builder signing for order attribution
       // BuilderConfig requires a full URL (including protocol and host)
-      const baseUrl = typeof window !== "undefined"
-        ? window.location.origin
-        : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const baseUrl =
+        typeof window !== "undefined"
+          ? window.location.origin
+          : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
       const builderConfig = new BuilderConfig({
         remoteBuilderConfig: {
@@ -480,16 +539,22 @@ export function TradingProvider({ children }: TradingProviderProps) {
         // Safe not deployed - AUTO-DEPLOY immediately
         // This will trigger the relayer to deploy the Safe (Polymarket pays gas)
         // User will be prompted to sign a message to authorize deployment
-        console.log("[TradingProvider] Safe not deployed. Prompting user to deploy...");
+        console.log(
+          "[TradingProvider] Safe not deployed. Prompting user to deploy..."
+        );
         setCurrentStep("deploying_safe");
 
         try {
           console.log("[TradingProvider] Calling client.deploy()...");
           const response = await client.deploy();
           console.log("[TradingProvider] Deploy response received:", response);
-          console.log("[TradingProvider] Waiting for deployment confirmation...");
+          console.log(
+            "[TradingProvider] Waiting for deployment confirmation..."
+          );
 
-          const result = await response.wait() as RelayerTransaction | undefined;
+          const result = (await response.wait()) as
+            | RelayerTransaction
+            | undefined;
           console.log("[TradingProvider] Deploy result:", result);
 
           if (!result) {
@@ -523,8 +588,12 @@ export function TradingProvider({ children }: TradingProviderProps) {
             error: deployError,
             errorType: typeof deployError,
             errorConstructor: deployError?.constructor?.name,
-            errorMessage: deployError instanceof Error ? deployError.message : String(deployError),
-            errorStack: deployError instanceof Error ? deployError.stack : undefined,
+            errorMessage:
+              deployError instanceof Error
+                ? deployError.message
+                : String(deployError),
+            errorStack:
+              deployError instanceof Error ? deployError.stack : undefined,
           });
 
           let errorMsg = "Deployment failed";
@@ -537,18 +606,33 @@ export function TradingProvider({ children }: TradingProviderProps) {
           }
 
           // Check for invalid authorization (invalid builder credentials)
-          if (errorMsg.includes("invalid authorization") || errorMsg.includes("401")) {
+          if (
+            errorMsg.includes("invalid authorization") ||
+            errorMsg.includes("401")
+          ) {
             throw new Error(
               "Safe deployment failed: Invalid Polymarket Builder credentials. " +
-              "Please ensure you have valid credentials in your .env file. " +
-              "Apply for the Polymarket Builder Program at https://polymarket.com/builder to get credentials."
+                "Please ensure you have valid credentials in your .env file. " +
+                "Apply for the Polymarket Builder Program at https://polymarket.com/builder to get credentials."
             );
           }
 
           // Check for user rejection
-          const rejectionKeywords = ["rejected", "denied", "cancelled", "user rejected", "user denied"];
-          if (rejectionKeywords.some(keyword => errorMsg.toLowerCase().includes(keyword))) {
-            throw new Error("Safe deployment cancelled. Please try again and sign the message to create your trading wallet.");
+          const rejectionKeywords = [
+            "rejected",
+            "denied",
+            "cancelled",
+            "user rejected",
+            "user denied",
+          ];
+          if (
+            rejectionKeywords.some((keyword) =>
+              errorMsg.toLowerCase().includes(keyword)
+            )
+          ) {
+            throw new Error(
+              "Safe deployment cancelled. Please try again and sign the message to create your trading wallet."
+            );
           }
 
           throw new Error(`Safe deployment failed: ${errorMsg}`);
@@ -556,16 +640,23 @@ export function TradingProvider({ children }: TradingProviderProps) {
 
         // Verify deployment succeeded by checking again
         console.log("[TradingProvider] Verifying Safe deployment...");
-        const verifyDeployed = await checkSafeDeployed(actualSafeAddress, client);
+        const verifyDeployed = await checkSafeDeployed(
+          actualSafeAddress,
+          client
+        );
         if (!verifyDeployed) {
-          throw new Error("Safe deployment verification failed. Please try again.");
+          throw new Error(
+            "Safe deployment verification failed. Please try again."
+          );
         }
         console.log("[TradingProvider] Safe deployment verified!");
 
         // Mark that we just deployed the Safe in this session
         safeWasJustDeployed = true;
       } else {
-        console.log("[TradingProvider] Safe already deployed, skipping deployment");
+        console.log(
+          "[TradingProvider] Safe already deployed, skipping deployment"
+        );
       }
 
       // Check if token approvals are already set
@@ -589,7 +680,10 @@ export function TradingProvider({ children }: TradingProviderProps) {
       // If Safe was just deployed, skip derive and go straight to create
       console.log("[TradingProvider] Getting API credentials...");
       setCurrentStep("getting_credentials");
-      const creds = await getOrCreateApiCredentials(actualSafeAddress, safeWasJustDeployed);
+      const creds = await getOrCreateApiCredentials(
+        actualSafeAddress,
+        safeWasJustDeployed
+      );
       setUserApiCreds(creds);
 
       // Step 5: Initialize CLOB client
@@ -647,7 +741,9 @@ export function TradingProvider({ children }: TradingProviderProps) {
       // Polymarket pays the gas fees for deployment
       console.log("[TradingProvider] Step 1: Deploying Safe wallet...");
       const response = await relayClient.deploy();
-      console.log("[TradingProvider] Deploy response received, waiting for confirmation...");
+      console.log(
+        "[TradingProvider] Deploy response received, waiting for confirmation..."
+      );
 
       const result = await response.wait();
       console.log("[TradingProvider] Deploy result:", result);
@@ -683,7 +779,9 @@ export function TradingProvider({ children }: TradingProviderProps) {
       // Step 2: Get or create user API credentials
       // First-time users: createApiKey() - requires EIP-712 signature
       // Returning users: deriveApiKey() - retrieves existing credentials
-      console.log("[TradingProvider] Step 2: Getting/creating API credentials...");
+      console.log(
+        "[TradingProvider] Step 2: Getting/creating API credentials..."
+      );
       setCurrentStep("getting_credentials");
       const creds = await getOrCreateApiCredentials(deployedSafeAddress);
       setUserApiCreds(creds);
@@ -702,7 +800,9 @@ export function TradingProvider({ children }: TradingProviderProps) {
       setClobClient(clob);
 
       setCurrentStep("ready");
-      console.log("[TradingProvider] Safe deployment complete! Ready to trade.");
+      console.log(
+        "[TradingProvider] Safe deployment complete! Ready to trade."
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
       console.error("[TradingProvider] Safe deployment error:", err);
