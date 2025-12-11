@@ -94,7 +94,6 @@ async function triggerPriceAlertNotification(
 ): Promise<void> {
   const market = await getMarketById(alert.marketId);
   if (!market) {
-    console.warn(`[Notification Triggers] Market not found: ${alert.marketId}`);
     return;
   }
 
@@ -188,16 +187,10 @@ export async function notifyMarketResolved(
   // Find all watchlists that contain this market
   // Note: For MVP, we need to iterate through all watchlists
   // In production, you'd index watchlists by marketId for efficient lookup
-  
-  // Get all watchlists (we need to check all)
-  // For MVP, we'll need to track this differently or check on-demand
-  // This is a limitation of the current in-memory storage
-  
+
   // TODO: Implement watchlist indexing by marketId for efficient lookup
   // For now, we'll check watchlists when users fetch their notifications
   // or implement a background job that periodically checks resolved markets
-  
-  console.log(`[Notification Triggers] Market ${marketId} resolved: ${resolution}`);
 }
 
 /**
@@ -218,6 +211,5 @@ export async function notifyNewMarket(
   // - Users who have traded in this game before
 
   // For MVP, we can skip this or implement a simple interest tracking system
-  console.log(`[Notification Triggers] New market ${marketId} created for game ${game}`);
 }
 

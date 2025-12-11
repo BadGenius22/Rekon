@@ -140,16 +140,9 @@ export async function getPositionsBySession(
       }
     }
 
-    console.log(
-      `[Positions] Fetched ${allPositions.length} total positions from Polymarket API`
-    );
-
     // Filter to only active positions (size > 0)
     // Note: sizeThreshold=1 already filters, but we double-check for safety
     const activePositions = allPositions.filter((pos) => pos.size > 0);
-    console.log(
-      `[Positions] ${activePositions.length} active positions (size > 0)`
-    );
 
     // Deduplicate by conditionId + outcome (same as portfolio service)
     const uniquePositions = new Map<string, PolymarketPosition>();
@@ -159,18 +152,11 @@ export async function getPositionsBySession(
         uniquePositions.set(key, pos);
       }
     }
-    console.log(
-      `[Positions] ${uniquePositions.size} unique positions after deduplication`
-    );
 
     // Map to our Position type, filtering out null values
     const mappedPositions = Array.from(uniquePositions.values())
       .map(mapPolymarketPositionToPosition)
       .filter((pos): pos is Position => pos !== null);
-
-    console.log(
-      `[Positions] ${mappedPositions.length} positions after mapping and validation`
-    );
 
     return mappedPositions;
   } catch (error) {

@@ -69,9 +69,6 @@ export async function getSigningHeaders(
   const signingUrl = getBuilderSigningUrl();
 
   if (!signingUrl) {
-    console.log(
-      "[Builder] No signing URL configured - skipping order attribution"
-    );
     return null;
   }
 
@@ -115,9 +112,6 @@ export async function fetchRekonVolume(): Promise<RekonVolumeStats | null> {
   const builderId = POLYMARKET_CONFIG.builderId;
 
   if (!builderId) {
-    console.log(
-      "[Builder] No builder ID configured - volume tracking disabled"
-    );
     return null;
   }
 
@@ -277,49 +271,3 @@ export async function fetchMyBuilderStats(): Promise<BuilderVolumeData | null> {
 // Utility Functions
 // ============================================================================
 
-/**
- * Log Builder status for debugging
- */
-export function logBuilderStatus(): void {
-  const signingUrl = getBuilderSigningUrl();
-  const builderId = POLYMARKET_CONFIG.builderId;
-  const builderName = POLYMARKET_CONFIG.builderName;
-
-  console.log("");
-  console.log("╔═══════════════════════════════════════════════════════════╗");
-  console.log("║          REKON ORDER ATTRIBUTION STATUS                    ║");
-  console.log("╠═══════════════════════════════════════════════════════════╣");
-  console.log(
-    `║  Builder ID:     ${(builderId || "Not configured").padEnd(40)}║`
-  );
-  console.log(
-    `║  Builder Name:   ${(builderName || "Not configured").padEnd(40)}║`
-  );
-  console.log(
-    `║  Signing Server: ${(signingUrl || "Not configured").padEnd(40)}║`
-  );
-  console.log("╚═══════════════════════════════════════════════════════════╝");
-
-  if (!signingUrl) {
-    console.log("");
-    console.log("[Builder] To enable Rekon order attribution:");
-    console.log("");
-    console.log("  1. Register as a Polymarket Builder:");
-    console.log("     https://polymarket.com/settings/api");
-    console.log("");
-    console.log("  2. Configure apps/builder-signing-server/.env:");
-    console.log("     POLYMARKET_BUILDER_API_KEY=your_key");
-    console.log("     POLYMARKET_BUILDER_SECRET=your_secret");
-    console.log("     POLYMARKET_BUILDER_PASSPHRASE=your_passphrase");
-    console.log("");
-    console.log("  3. Configure apps/api/.env:");
-    console.log(
-      "     POLYMARKET_BUILDER_SIGNING_URL=http://localhost:3000/sign"
-    );
-    console.log("     POLYMARKET_BUILDER_ID=0xYourBuilderAddress");
-    console.log("     POLYMARKET_BUILDER_NAME=Rekon");
-    console.log("");
-    console.log("  4. Run both servers: pnpm dev");
-    console.log("");
-  }
-}

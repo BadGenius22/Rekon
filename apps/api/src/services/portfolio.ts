@@ -270,17 +270,7 @@ export async function getPortfolioBySession(
 
     // Debug logging to verify filtering is working
     if (scope === "all") {
-      console.log(
-        `[Portfolio] scope=all: Total positions fetched: ${
-          pmPositions.length
-        }, Active positions: ${activePositions.length}, Esports positions: ${
-          activePositions.filter(isEsportsPosition).length
-        }`
-      );
     } else {
-      console.log(
-        `[Portfolio] scope=esports: Total positions fetched: ${pmPositions.length}, Active positions: ${activePositions.length}, Filtered to esports: ${positionsForScope.length}`
-      );
     }
 
     // Calculate totalValue from scoped positions
@@ -289,19 +279,6 @@ export async function getPortfolioBySession(
       0
     );
 
-    // Debug logging for totalValue
-    if (scope === "all") {
-      const esportsValue = activePositions
-        .filter(isEsportsPosition)
-        .reduce((sum, pos) => sum + pos.currentValue, 0);
-      console.log(
-        `[Portfolio] scope=all: totalValue=${totalValue}, esportsValue=${esportsValue}, share=${
-          (esportsValue / totalValue) * 100
-        }%`
-      );
-    } else {
-      console.log(`[Portfolio] scope=esports: totalValue=${totalValue}`);
-    }
 
     const totalUnrealizedPnL = positionsForScope.reduce(
       (sum, pos) => sum + pos.cashPnl,

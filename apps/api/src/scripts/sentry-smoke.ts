@@ -31,8 +31,6 @@ async function main(): Promise<void> {
     },
   });
 
-  // eslint-disable-next-line no-console
-  console.log("Sentry smoke test events sent (check your Sentry project).");
 }
 
 void main();

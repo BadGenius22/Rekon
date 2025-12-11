@@ -15,13 +15,8 @@ async function main(): Promise<void> {
   const sql = getSql();
   const rows = (await sql`SELECT 1 as value`) as Array<{ value: number }>;
   const value = rows[0]?.value ?? null;
-
-  // eslint-disable-next-line no-console
-  console.log("Neon DB smoke test:", { rows, value });
 }
 
 main().catch((error) => {
-  // eslint-disable-next-line no-console
-  console.error("Neon DB smoke test failed:", error);
   process.exit(1);
 });

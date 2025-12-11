@@ -23,10 +23,6 @@ async function getMarketFull(
 
     // If 404, try the regular market endpoint as fallback
     if (response.status === 404) {
-      console.warn(
-        `Market full endpoint returned 404 for ${identifier}, trying regular market endpoint`
-      );
-
       // Try slug endpoint first (if identifier looks like a slug)
       const looksLikeSlug =
         /^[a-z0-9-]+$/.test(identifier) && identifier.includes("-");
@@ -63,7 +59,6 @@ async function getMarketFull(
 
       if (marketResponse && marketResponse.ok) {
         const market = await marketResponse.json();
-        console.log(`Successfully fetched market via fallback: ${market.id}`);
         // Return a minimal MarketFullResponse with just the market data
         // This allows the page to render even if full endpoint fails
         return {
@@ -85,24 +80,13 @@ async function getMarketFull(
       }
 
       // If all endpoints failed, return null (will show 404 page)
-      console.warn(
-        `Market not found: ${identifier}. Tried: /market/full/${identifier}, /markets/slug/${identifier}, /markets/${identifier}, /markets/condition/${identifier}`
-      );
       return null;
     }
 
     // Handle other error statuses
-    const errorText = await response.text().catch(() => "Unknown error");
-    console.error(
-      `Failed to fetch market full: ${response.status} ${response.statusText}. Error: ${errorText}`
-    );
     return null;
   } catch (error) {
     // Handle network errors and other exceptions
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(
-      `Failed to fetch market full (network/exception): ${errorMessage}`
-    );
     return null;
   }
 }
@@ -267,14 +251,9 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
       );
       if (relatedMarketsResponse.ok) {
         relatedMarkets = await relatedMarketsResponse.json();
-      } else {
-        console.warn(
-          `Failed to fetch related markets: ${relatedMarketsResponse.status}`,
-          market.eventSlug
-        );
       }
     } catch (error) {
-      console.warn("Failed to fetch related markets:", error, market.eventSlug);
+      // Failed to fetch related markets, continue without them
     }
   }
 

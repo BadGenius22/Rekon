@@ -8,22 +8,7 @@ export async function POST(request: Request) {
   const secret = process.env.POLYMARKET_BUILDER_SECRET;
   const passphrase = process.env.POLYMARKET_BUILDER_PASSPHRASE;
 
-  // Debug logging
-  console.log("[/api/polymarket/sign] Request received:", {
-    method,
-    path,
-    hasBody: !!body,
-    hasApiKey: !!apiKey,
-    hasSecret: !!secret,
-    hasPassphrase: !!passphrase,
-  });
-
   if (!apiKey || !secret || !passphrase) {
-    console.error("[/api/polymarket/sign] Missing credentials:", {
-      hasApiKey: !!apiKey,
-      hasSecret: !!secret,
-      hasPassphrase: !!passphrase,
-    });
     return NextResponse.json(
       { error: "Builder credentials not configured" },
       { status: 500 }
@@ -45,8 +30,6 @@ export async function POST(request: Request) {
     path,
     body || ""
   );
-
-  console.log("[/api/polymarket/sign] Signature generated successfully");
 
   return NextResponse.json({
     POLY_BUILDER_SIGNATURE: signature,

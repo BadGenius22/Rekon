@@ -19,7 +19,8 @@
       "Bash(pnpm --filter @rekon/web type-check:*)",
       "Bash(cat:*)",
       "Bash(find:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(git -C /home/dewaxindo/Rekon diff --stat HEAD)"
     ],
     "deny": [],
     "ask": []

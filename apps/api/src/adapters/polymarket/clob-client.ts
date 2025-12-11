@@ -67,36 +67,13 @@ export async function getClobClient(): Promise<ClobClient> {
       // If that fails, fall back to createOrDeriveApiKey()
       try {
         apiKeyCreds = await tempClient.createApiKey();
-        console.log("[CLOB Client] API key created using createApiKey()");
       } catch (createError) {
-        console.warn("[CLOB Client] createApiKey() failed, trying createOrDeriveApiKey():", 
-          createError instanceof Error ? createError.message : createError);
     apiKeyCreds = await tempClient.createOrDeriveApiKey();
-        console.log("[CLOB Client] API key created using createOrDeriveApiKey()");
       }
-      console.log("[CLOB Client] API key created successfully");
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       const eoaAddress = await signer.getAddress();
-      console.warn("[CLOB Client] API key creation failed:", errorMessage);
-      console.warn("[CLOB Client] EOA (signer):", eoaAddress);
-      if (POLYMARKET_CONFIG.funderAddress) {
-        console.warn(
-          "[CLOB Client] Funder (Safe proxy):",
-          POLYMARKET_CONFIG.funderAddress
-        );
-        console.warn(
-          "[CLOB Client] Continuing without API key - read operations (fills, positions) will work via direct API calls. Write operations (orders) will fail."
-        );
-      } else {
-        console.warn(
-          "[CLOB Client] POLYMARKET_FUNDER_ADDRESS not set. For Safe proxy wallets, set this to your Safe proxy address."
-        );
-        console.warn(
-          "[CLOB Client] Continuing without API key - read operations will work, but write operations will fail."
-        );
-      }
       // Continue without API key - ClobClient can still work for read-only operations
       // The client will be created without apiKeyCreds, which limits write functionality
       // but allows read operations to fall back to direct API calls
@@ -111,10 +88,6 @@ export async function getClobClient(): Promise<ClobClient> {
   try {
     builderConfig = createBuilderConfig();
   } catch (error) {
-    console.warn(
-      "[CLOB Client] Builder config creation failed (continuing without builder attribution):",
-      error instanceof Error ? error.message : error
-    );
     builderConfig = undefined;
   }
 

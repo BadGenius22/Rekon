@@ -128,14 +128,8 @@ export function TradingProvider({ children }: TradingProviderProps) {
 
     // Verify signer is working
     try {
-      const signerAddress = await ethersSigner.getAddress();
-      console.log("[TradingProvider] Initializing RelayClient with signer:", {
-        signerAddress,
-        relayerUrl: POLYMARKET_URLS.RELAYER,
-        chainId: POLYGON_CHAIN_ID,
-      });
+      await ethersSigner.getAddress();
     } catch (err) {
-      console.error("[TradingProvider] Signer verification failed:", err);
       throw new Error(
         "Failed to verify wallet signer. Please reconnect your wallet."
       );
@@ -147,11 +141,6 @@ export function TradingProvider({ children }: TradingProviderProps) {
       typeof window !== "undefined"
         ? window.location.origin
         : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-
-    console.log(
-      "[TradingProvider] Initializing BuilderConfig with URL:",
-      `${baseUrl}/api/polymarket/sign`
-    );
 
     const builderConfig = new BuilderConfig({
       remoteBuilderConfig: {
@@ -167,9 +156,6 @@ export function TradingProvider({ children }: TradingProviderProps) {
       RelayerTxType.SAFE
     );
 
-    console.log(
-      "[TradingProvider] RelayClient initialized successfully with BuilderConfig"
-    );
     return client;
   }, [ethersSigner]);
 
@@ -203,27 +189,9 @@ export function TradingProvider({ children }: TradingProviderProps) {
       // If Safe was just deployed, skip derive and go straight to create
       // This avoids the confusing "Could not derive api key!" error for first-time users
       if (skipDerive) {
-        console.log(
-          "[TradingProvider] New Safe wallet detected, creating API key directly..."
-        );
         try {
-          console.log(
-            "[TradingProvider] Calling createApiKey() - user will be prompted to sign..."
-          );
           creds = await tempClient.createApiKey();
-          console.log("[TradingProvider] API key created successfully");
         } catch (createError) {
-          console.error("[TradingProvider] Failed to create API credentials:", {
-            error: createError,
-            errorType: typeof createError,
-            errorConstructor: createError?.constructor?.name,
-            errorMessage:
-              createError instanceof Error
-                ? createError.message
-                : String(createError),
-            errorStack:
-              createError instanceof Error ? createError.stack : undefined,
-          });
 
           let errorMsg = "Unknown error";
           if (createError instanceof Error) {
@@ -243,52 +211,15 @@ export function TradingProvider({ children }: TradingProviderProps) {
         try {
           // Try to derive existing key first (for returning users)
           // This retrieves credentials if they were created before on Polymarket
-          console.log(
-            "[TradingProvider] Attempting to derive existing API key..."
-          );
           creds = await tempClient.deriveApiKey();
-          console.log(
-            "[TradingProvider] Existing API key derived successfully"
-          );
         } catch (deriveError) {
           // Deriving failed - this is expected for first-time users
-          console.log(
-            "[TradingProvider] Could not derive existing API key (expected for first-time users)"
-          );
-          console.log("[TradingProvider] Derive error details:", {
-            error: deriveError,
-            errorType: typeof deriveError,
-            errorConstructor: deriveError?.constructor?.name,
-            errorMessage:
-              deriveError instanceof Error
-                ? deriveError.message
-                : String(deriveError),
-          });
-
           // For first-time users, derive will fail - create new key instead
           // This requires the user to sign an EIP-712 message
           try {
-            console.log(
-              "[TradingProvider] Calling createApiKey() - user will be prompted to sign..."
-            );
             creds = await tempClient.createApiKey();
-            console.log("[TradingProvider] API key created successfully");
           } catch (createError) {
             // If both fail, throw a descriptive error
-            console.error(
-              "[TradingProvider] Failed to create API credentials:",
-              {
-                error: createError,
-                errorType: typeof createError,
-                errorConstructor: createError?.constructor?.name,
-                errorMessage:
-                  createError instanceof Error
-                    ? createError.message
-                    : String(createError),
-                errorStack:
-                  createError instanceof Error ? createError.stack : undefined,
-              }
-            );
 
             let errorMsg = "Unknown error";
             if (createError instanceof Error) {
@@ -368,16 +299,8 @@ export function TradingProvider({ children }: TradingProviderProps) {
         const isApproved =
           (usdcCtfAllowance as bigint) > 0n && (ctfApproved as boolean);
 
-        console.log("[TradingProvider] Approval check:", {
-          safeAddr,
-          usdcCtfAllowance: usdcCtfAllowance?.toString(),
-          ctfApproved,
-          isApproved,
-        });
-
         return isApproved;
       } catch (error) {
-        console.error("[TradingProvider] Error checking approvals:", error);
         return false;
       }
     },
@@ -436,27 +359,14 @@ export function TradingProvider({ children }: TradingProviderProps) {
       },
     ];
 
-    console.log("[TradingProvider] Executing approval transactions...");
     const response = await client.execute(transactions, "Set token approvals");
-
-    console.log(
-      "[TradingProvider] Waiting for approval transaction confirmation..."
-    );
     const result = (await response.wait()) as RelayerTransaction | undefined;
 
     if (result) {
-      console.log("[TradingProvider] Approval transaction confirmed:", {
-        transactionHash: result.transactionHash,
-        state: result.state,
-      });
-
       if (result.state === RelayerTransactionState.STATE_FAILED) {
         throw new Error("Token approval transaction failed");
       }
     } else {
-      console.error(
-        "[TradingProvider] Approval transaction failed or timed out"
-      );
       throw new Error("Token approval transaction failed or timed out");
     }
   }, []);
@@ -500,14 +410,7 @@ export function TradingProvider({ children }: TradingProviderProps) {
 
   // Main initialization flow - automatically deploys Safe if not exists
   const initializeTrading = useCallback(async () => {
-    console.log("[TradingProvider] initializeTrading called", {
-      isConnected,
-      hasEthersSigner: !!ethersSigner,
-      eoaAddress,
-    });
-
     if (!isConnected || !ethersSigner || !eoaAddress) {
-      console.error("[TradingProvider] Wallet not connected");
       setError("Wallet not connected");
       setCurrentStep("error");
       return;
@@ -520,7 +423,6 @@ export function TradingProvider({ children }: TradingProviderProps) {
       // Step 1: Derive Safe address from EOA
       const derivedSafe = deriveSafeAddress(eoaAddress);
       setSafeAddress(derivedSafe);
-      console.log("[TradingProvider] Derived Safe address:", derivedSafe);
 
       // Step 2: Initialize RelayClient
       const client = await initializeRelayClient();
@@ -528,9 +430,7 @@ export function TradingProvider({ children }: TradingProviderProps) {
 
       // Step 3: Check if Safe is deployed
       setCurrentStep("checking_safe");
-      console.log("[TradingProvider] Checking if Safe is deployed...");
       const deployed = await checkSafeDeployed(derivedSafe, client);
-      console.log("[TradingProvider] Safe deployed:", deployed);
 
       let actualSafeAddress = derivedSafe;
       let safeWasJustDeployed = false;
@@ -539,23 +439,14 @@ export function TradingProvider({ children }: TradingProviderProps) {
         // Safe not deployed - AUTO-DEPLOY immediately
         // This will trigger the relayer to deploy the Safe (Polymarket pays gas)
         // User will be prompted to sign a message to authorize deployment
-        console.log(
-          "[TradingProvider] Safe not deployed. Prompting user to deploy..."
-        );
         setCurrentStep("deploying_safe");
 
         try {
-          console.log("[TradingProvider] Calling client.deploy()...");
           const response = await client.deploy();
-          console.log("[TradingProvider] Deploy response received:", response);
-          console.log(
-            "[TradingProvider] Waiting for deployment confirmation..."
-          );
 
           const result = (await response.wait()) as
             | RelayerTransaction
             | undefined;
-          console.log("[TradingProvider] Deploy result:", result);
 
           if (!result) {
             throw new Error("Safe deployment returned no result");
@@ -571,30 +462,16 @@ export function TradingProvider({ children }: TradingProviderProps) {
             throw new Error("No proxy address returned from deployment");
           }
 
-          console.log("[TradingProvider] Safe deployed at:", deployedAddress);
           actualSafeAddress = deployedAddress;
 
           // Verify the deployed address matches the derived address
           if (deployedAddress.toLowerCase() !== derivedSafe.toLowerCase()) {
-            console.warn(
-              `[TradingProvider] Safe address mismatch: expected ${derivedSafe}, got ${deployedAddress}`
-            );
+            // Address mismatch, but continue
           }
 
           setSafeAddress(actualSafeAddress);
         } catch (deployError) {
           // Handle user rejection or deployment failure
-          console.error("[TradingProvider] Safe deployment failed:", {
-            error: deployError,
-            errorType: typeof deployError,
-            errorConstructor: deployError?.constructor?.name,
-            errorMessage:
-              deployError instanceof Error
-                ? deployError.message
-                : String(deployError),
-            errorStack:
-              deployError instanceof Error ? deployError.stack : undefined,
-          });
 
           let errorMsg = "Deployment failed";
           if (deployError instanceof Error) {
@@ -639,7 +516,6 @@ export function TradingProvider({ children }: TradingProviderProps) {
         }
 
         // Verify deployment succeeded by checking again
-        console.log("[TradingProvider] Verifying Safe deployment...");
         const verifyDeployed = await checkSafeDeployed(
           actualSafeAddress,
           client
@@ -649,28 +525,18 @@ export function TradingProvider({ children }: TradingProviderProps) {
             "Safe deployment verification failed. Please try again."
           );
         }
-        console.log("[TradingProvider] Safe deployment verified!");
 
         // Mark that we just deployed the Safe in this session
         safeWasJustDeployed = true;
-      } else {
-        console.log(
-          "[TradingProvider] Safe already deployed, skipping deployment"
-        );
       }
 
       // Check if token approvals are already set
-      console.log("[TradingProvider] Checking if approvals are already set...");
       const approvalsSet = await checkApprovalsSet(actualSafeAddress);
 
       if (!approvalsSet) {
         // Set token approvals if not already set
-        console.log("[TradingProvider] Approvals not set, setting them now...");
         setCurrentStep("setting_approvals");
         await setTokenApprovals(client);
-        console.log("[TradingProvider] Token approvals set");
-      } else {
-        console.log("[TradingProvider] Approvals already set, skipping");
       }
 
       setIsSafeDeployed(true);
@@ -678,7 +544,6 @@ export function TradingProvider({ children }: TradingProviderProps) {
       // Step 4: Get or create user API credentials
       // This will prompt user to sign EIP-712 message
       // If Safe was just deployed, skip derive and go straight to create
-      console.log("[TradingProvider] Getting API credentials...");
       setCurrentStep("getting_credentials");
       const creds = await getOrCreateApiCredentials(
         actualSafeAddress,
@@ -687,15 +552,12 @@ export function TradingProvider({ children }: TradingProviderProps) {
       setUserApiCreds(creds);
 
       // Step 5: Initialize CLOB client
-      console.log("[TradingProvider] Initializing CLOB client...");
       const clob = initializeClobClient(actualSafeAddress, creds);
       setClobClient(clob);
 
       setCurrentStep("ready");
-      console.log("[TradingProvider] Initialization complete. Ready to trade.");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
-      console.error("[TradingProvider] Initialization error:", err);
       setError(message);
       setCurrentStep("error");
     }
@@ -713,21 +575,13 @@ export function TradingProvider({ children }: TradingProviderProps) {
   // Deploy Safe wallet for new EOA users
   // Flow: Deploy Safe → Create API credentials (EIP-712 signature) → Set approvals → Initialize CLOB
   const deploySafe = useCallback(async () => {
-    console.log("[TradingProvider] deploySafe called", {
-      hasRelayClient: !!relayClient,
-      eoaAddress,
-      currentStep,
-    });
-
     if (!relayClient) {
-      console.error("[TradingProvider] RelayClient not initialized");
       setError("RelayClient not initialized. Please reconnect your wallet.");
       setCurrentStep("error");
       return;
     }
 
     if (!eoaAddress) {
-      console.error("[TradingProvider] EOA address not available");
       setError("Wallet not connected");
       setCurrentStep("error");
       return;
@@ -739,14 +593,9 @@ export function TradingProvider({ children }: TradingProviderProps) {
       // Step 1: Deploy Safe via RelayClient
       // This creates a new Safe wallet for the user's EOA
       // Polymarket pays the gas fees for deployment
-      console.log("[TradingProvider] Step 1: Deploying Safe wallet...");
       const response = await relayClient.deploy();
-      console.log(
-        "[TradingProvider] Deploy response received, waiting for confirmation..."
-      );
 
       const result = await response.wait();
-      console.log("[TradingProvider] Deploy result:", result);
 
       if (!result) {
         throw new Error("Safe deployment returned no result");
@@ -762,14 +611,10 @@ export function TradingProvider({ children }: TradingProviderProps) {
         throw new Error("No proxy address returned from deployment");
       }
 
-      console.log("[TradingProvider] Safe deployed at:", deployedSafeAddress);
-
       // Verify the deployed address matches the derived address (they should be deterministic)
       const expectedAddress = deriveSafeAddress(eoaAddress);
       if (deployedSafeAddress.toLowerCase() !== expectedAddress.toLowerCase()) {
-        console.warn(
-          `[TradingProvider] Safe address mismatch: expected ${expectedAddress}, got ${deployedSafeAddress}`
-        );
+        // Address mismatch, but continue
       }
 
       // Update state with actual deployed address
@@ -779,33 +624,22 @@ export function TradingProvider({ children }: TradingProviderProps) {
       // Step 2: Get or create user API credentials
       // First-time users: createApiKey() - requires EIP-712 signature
       // Returning users: deriveApiKey() - retrieves existing credentials
-      console.log(
-        "[TradingProvider] Step 2: Getting/creating API credentials..."
-      );
       setCurrentStep("getting_credentials");
       const creds = await getOrCreateApiCredentials(deployedSafeAddress);
       setUserApiCreds(creds);
-      console.log("[TradingProvider] API credentials obtained");
 
       // Step 3: Set token approvals (USDC and CTF)
       // This allows the exchange contracts to spend tokens on behalf of the Safe
-      console.log("[TradingProvider] Step 3: Setting token approvals...");
       setCurrentStep("setting_approvals");
       await setTokenApprovals(relayClient);
-      console.log("[TradingProvider] Token approvals set");
 
       // Step 4: Initialize authenticated CLOB client with the deployed Safe address
-      console.log("[TradingProvider] Step 4: Initializing CLOB client...");
       const clob = initializeClobClient(deployedSafeAddress, creds);
       setClobClient(clob);
 
       setCurrentStep("ready");
-      console.log(
-        "[TradingProvider] Safe deployment complete! Ready to trade."
-      );
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
-      console.error("[TradingProvider] Safe deployment error:", err);
       setError(message);
       setCurrentStep("error");
     }

@@ -94,7 +94,6 @@ export function WalletProvider({ children }: WalletProviderProps) {
       : undefined;
 
     if (!ethereum) {
-      console.error("[WalletProvider] No ethereum provider found");
       setEthersSigner(null);
       return;
     }
@@ -103,9 +102,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
       const provider = new providers.Web3Provider(ethereum, "any");
       const signer = provider.getSigner(address);
       setEthersSigner(signer);
-      console.log("[WalletProvider] Ethers signer initialized for:", address);
     } catch (err) {
-      console.error("[WalletProvider] Failed to create signer:", err);
       setEthersSigner(null);
     }
   }, [isConnected, address]);
@@ -134,17 +131,14 @@ export function WalletProvider({ children }: WalletProviderProps) {
 
           // If not on Polygon, switch to it
           if (currentChainId !== POLYGON_CHAIN_ID) {
-            console.log(`[WalletProvider] Wrong network (${currentChainId}), switching to Polygon (${POLYGON_CHAIN_ID})...`);
             try {
               await ethereum.request({
                 method: "wallet_switchEthereumChain",
                 params: [{ chainId: `0x${POLYGON_CHAIN_ID.toString(16)}` }],
               });
-              console.log("[WalletProvider] Successfully switched to Polygon");
             } catch (switchError: unknown) {
               // This error code indicates that the chain has not been added to MetaMask
               if ((switchError as { code?: number })?.code === 4902) {
-                console.log("[WalletProvider] Polygon not added, adding it now...");
                 await ethereum.request({
                   method: "wallet_addEthereumChain",
                   params: [
@@ -161,14 +155,12 @@ export function WalletProvider({ children }: WalletProviderProps) {
                     },
                   ],
                 });
-                console.log("[WalletProvider] Polygon network added");
               } else {
                 throw switchError;
               }
             }
           }
         } catch (error) {
-          console.error("[WalletProvider] Failed to switch network:", error);
           throw new Error("Please switch to Polygon network in MetaMask");
         }
       }
