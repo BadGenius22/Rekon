@@ -20,7 +20,8 @@
       "Bash(cat:*)",
       "Bash(find:*)",
       "Bash(chmod:*)",
-      "Bash(git -C /home/dewaxindo/Rekon diff --stat HEAD)"
+      "Bash(git -C /home/dewaxindo/Rekon diff --stat HEAD)",
+      "Bash(bash:*)"
     ],
     "deny": [],
     "ask": []

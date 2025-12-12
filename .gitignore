@@ -50,3 +50,9 @@ next-env.d.ts
 *.swo
 *~
 
+# BMAD
+.bmad
+.claude
+.cursor
+docs
+
