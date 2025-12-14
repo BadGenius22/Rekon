@@ -4,17 +4,23 @@ import { useState, useRef, useEffect } from "react";
 import { Wallet, ChevronDown, Copy, ExternalLink, LogOut, Loader2 } from "lucide-react";
 import { useWallet } from "@/providers/wallet-provider";
 import { useTrading } from "@/providers/trading-provider";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { getDemoWalletLabel } from "@/utils/demo-wallet-label";
 
 function truncateAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 export function ConnectWalletButton() {
+  const { isDemoMode, demoSessionId } = useDemoMode();
   const { eoaAddress, safeAddress: walletSafeAddress, isConnected, isConnecting, connect, disconnect } = useWallet();
   const { safeAddress: tradingSafeAddress, isSafeDeployed, currentStep, error, initializeTrading } = useTrading();
 
   // Use Safe address from wallet provider (available immediately) or trading provider (available after initialization)
   const safeAddress = walletSafeAddress || tradingSafeAddress;
+
+  // Get deterministic demo wallet label
+  const demoLabel = isDemoMode ? getDemoWalletLabel(demoSessionId) : null;
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -58,6 +64,13 @@ export function ConnectWalletButton() {
 
   // Disconnected state
   if (!isConnected) {
+    // In demo mode, show demo label instead of "Connect Wallet"
+    const buttonLabel = isDemoMode
+      ? demoLabel || "Demo Wallet"
+      : isConnecting
+      ? "Connecting..."
+      : "Connect Wallet";
+
     return (
       <button
         onClick={connect}
@@ -69,9 +82,7 @@ export function ConnectWalletButton() {
         ) : (
           <Wallet className="h-4 w-4" />
         )}
-        <span className="hidden lg:inline">
-          {isConnecting ? "Connecting..." : "Connect Wallet"}
-        </span>
+        <span className="hidden lg:inline">{buttonLabel}</span>
       </button>
     );
   }
@@ -129,11 +140,14 @@ export function ConnectWalletButton() {
             {/* EOA Address */}
             <div className="p-3 border-b border-white/5">
               <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1">
-                Connected Wallet (EOA)
+                {isDemoMode ? demoLabel || "Demo Wallet" : "Connected Wallet (EOA)"}
               </p>
               <p className="text-xs font-mono text-white/80">
                 {eoaAddress ? truncateAddress(eoaAddress) : "—"}
               </p>
+              {isDemoMode && (
+                <p className="text-[9px] text-orange-400 mt-0.5">Demo Mode (No Real Connection)</p>
+              )}
             </div>
 
             {/* Actions */}
@@ -218,11 +232,14 @@ export function ConnectWalletButton() {
           {/* EOA Address - Show first */}
           <div className="p-3 border-b border-white/5">
             <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1">
-              Connected Wallet (EOA)
+              {isDemoMode ? demoLabel || "Demo Wallet" : "Connected Wallet (EOA)"}
             </p>
             <p className="text-xs font-mono text-white/80">
               {eoaAddress ? truncateAddress(eoaAddress) : "—"}
             </p>
+            {isDemoMode && (
+              <p className="text-[9px] text-orange-400 mt-0.5">Demo Mode (No Real Connection)</p>
+            )}
           </div>
 
           {/* Safe Wallet Status */}

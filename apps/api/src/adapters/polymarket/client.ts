@@ -2,6 +2,17 @@ import { POLYMARKET_CONFIG } from "@rekon/config";
 import type { PolymarketEvent, PolymarketMarket, PolymarketTag } from "./types";
 import { getBuilderApiHeaders, getClobApiHeaders } from "./headers";
 import { trackPolymarketApiFailure } from "../../utils/sentry";
+import { isDemoModeEnabled } from "../../middleware/demo-mode";
+import {
+  fetchDemoMarkets,
+  fetchDemoMarketById,
+  fetchDemoMarketBySlug,
+  fetchDemoEvents,
+  fetchDemoTags,
+  fetchDemoOrderBook,
+  fetchDemoTrades,
+  fetchDemoPrice,
+} from "./demo-adapter";
 
 /**
  * Polymarket API Client
@@ -61,6 +72,13 @@ interface GammaTeam {
 export async function fetchPolymarketMarkets(
   params: FetchMarketsParams = {}
 ): Promise<PolymarketMarket[]> {
+  // Demo mode: return mock data instead of calling real API
+  // Uses runtime check (header/query/env) instead of static config
+  if (isDemoModeEnabled()) {
+    console.log("[Polymarket] DEMO mode enabled – returning mock markets");
+    return fetchDemoMarkets(params);
+  }
+
   // In offline mode, return an empty list so local/dev can boot without Polymarket
   if (OFFLINE_MODE) {
     console.warn(
@@ -245,6 +263,11 @@ export async function fetchGammaTeamByName(
 export async function fetchGammaEvents(
   params: FetchGammaEventsParams = {}
 ): Promise<PolymarketEvent[]> {
+  if (isDemoModeEnabled()) {
+    console.log("[Polymarket] DEMO mode enabled – returning mock events");
+    return fetchDemoEvents();
+  }
+
   if (OFFLINE_MODE) {
     console.warn(
       "[Polymarket] OFFLINE mode enabled (POLYMARKET_OFFLINE=true) – returning empty events list"
@@ -361,6 +384,13 @@ export async function fetchGammaEventBySlug(
 export async function fetchGammaMarketBySlug(
   slug: string
 ): Promise<PolymarketMarket | null> {
+  if (isDemoModeEnabled()) {
+    console.log(
+      "[Polymarket] DEMO mode enabled – returning mock market by slug"
+    );
+    return fetchDemoMarketBySlug(slug);
+  }
+
   if (OFFLINE_MODE) {
     console.warn(
       "[Polymarket] OFFLINE mode enabled (POLYMARKET_OFFLINE=true) – returning null for market by slug"
@@ -667,7 +697,10 @@ export async function fetchGammaPublicSearch(params: {
     });
   }
   if (params.keepClosedMarkets !== undefined) {
-    searchParams.append("keep_closed_markets", String(params.keepClosedMarkets));
+    searchParams.append(
+      "keep_closed_markets",
+      String(params.keepClosedMarkets)
+    );
   }
   if (params.sort) {
     searchParams.append("sort", params.sort);
@@ -728,6 +761,11 @@ export async function fetchGammaPublicSearch(params: {
 export async function fetchPolymarketMarketById(
   marketId: string
 ): Promise<PolymarketMarket | null> {
+  if (isDemoModeEnabled()) {
+    console.log("[Polymarket] DEMO mode enabled – returning mock market by ID");
+    return fetchDemoMarketById(marketId);
+  }
+
   const url = `${BUILDER_API_URL}/markets/${marketId}`;
 
   const response = await fetch(url, {
@@ -797,6 +835,11 @@ export async function fetchPolymarketCondition(
 export async function fetchPolymarketOrderBook(
   tokenId: string
 ): Promise<unknown> {
+  if (isDemoModeEnabled()) {
+    console.log("[Polymarket] DEMO mode enabled – returning mock order book");
+    return fetchDemoOrderBook(tokenId);
+  }
+
   const url = `${CLOB_API_URL}/book?token_id=${tokenId}`;
 
   const response = await fetch(url, {
@@ -826,6 +869,11 @@ export async function fetchPolymarketTrades(
   tokenId: string,
   limit: number = 100
 ): Promise<unknown> {
+  if (isDemoModeEnabled()) {
+    console.log("[Polymarket] DEMO mode enabled – returning mock trades");
+    return fetchDemoTrades(tokenId, limit);
+  }
+
   const url = `${CLOB_API_URL}/trades?token_id=${tokenId}&limit=${limit}`;
 
   const response = await fetch(url, {
@@ -851,6 +899,11 @@ export async function fetchPolymarketTrades(
  * @param tokenId - The outcome token ID (from clobTokenIds)
  */
 export async function fetchPolymarketPrice(tokenId: string): Promise<unknown> {
+  if (isDemoModeEnabled()) {
+    console.log("[Polymarket] DEMO mode enabled – returning mock price");
+    return fetchDemoPrice(tokenId);
+  }
+
   const url = `${CLOB_API_URL}/price?token_id=${tokenId}`;
 
   const response = await fetch(url, {

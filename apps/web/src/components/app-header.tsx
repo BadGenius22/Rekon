@@ -9,6 +9,7 @@ import { SearchBar } from "./search-bar";
 import { SearchModal } from "./search-modal";
 import { NotificationsDropdown } from "./notifications-dropdown";
 import { ConnectWalletButton } from "./connect-wallet-button";
+import { DemoModeBanner } from "./demo-mode-banner";
 
 export function AppHeader() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -28,10 +29,16 @@ export function AppHeader() {
 
   return (
     <>
+      {/* Demo Mode Banner - appears above header when active */}
+      <DemoModeBanner />
+
       <header className="sticky top-0 z-20 h-14 sm:h-16 border-b border-white/5 bg-[#050816]">
         <div className="mx-auto flex h-full w-full max-w-screen-2xl items-center justify-between gap-2 sm:gap-4 px-3 sm:px-4 md:px-6 xl:px-8">
           {/* Logo + name */}
-          <Link href="/" className="flex min-w-0 items-center gap-1.5 sm:gap-2.5 shrink-0">
+          <Link
+            href="/"
+            className="flex min-w-0 items-center gap-1.5 sm:gap-2.5 shrink-0"
+          >
             <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#3B82F6] via-[#22D3EE] to-[#8B5CF6] shadow-[0_0_20px_rgba(59,130,246,0.5)]" />
             <div className="flex flex-col leading-tight">
               <span className="truncate text-xs sm:text-sm font-semibold tracking-tight text-white">

@@ -9,7 +9,9 @@
     "start": "node dist/index.js",
     "type-check": "tsc --noEmit",
     "test": "vitest --root ../..",
-    "clean": "rm -rf dist && rm -rf node_modules"
+    "clean": "rm -rf dist && rm -rf node_modules",
+    "demo:refresh": "tsx --env-file=.env src/scripts/demo-snapshot.ts refresh",
+    "demo:status": "tsx --env-file=.env src/scripts/demo-snapshot.ts status"
   },
   "dependencies": {
     "@ethersproject/wallet": "^5.8.0",

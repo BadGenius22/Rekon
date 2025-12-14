@@ -9,7 +9,9 @@
     "type-check": "turbo run type-check",
     "clean": "turbo run clean",
     "test": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "demo:refresh": "pnpm --filter @rekon/api demo:refresh",
+    "demo:status": "pnpm --filter @rekon/api demo:status"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.0.14",

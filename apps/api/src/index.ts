@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { HTTPException } from "hono/http-exception";
 import { polymarketRateLimiter } from "./middleware/rate-limit";
+import { demoModeMiddleware } from "./middleware/demo-mode";
 import { initSentry, captureError, trackFailedRequest } from "./utils/sentry";
 
 // Initialize Sentry for error tracking
@@ -97,9 +98,14 @@ app.use(
     },
     credentials: true,
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: ["Content-Type", "Authorization", "x-demo-mode"],
   })
 );
+
+// Demo mode middleware - must be early to set context for all routes
+// This allows runtime demo mode toggle from frontend via x-demo-mode header
+// Also wraps requests in AsyncLocalStorage for deep adapter access
+app.use("*", demoModeMiddleware);
 
 // Health check (no rate limiting, no session)
 app.get("/health", (c) => {

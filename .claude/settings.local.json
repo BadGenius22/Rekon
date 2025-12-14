@@ -21,7 +21,8 @@
       "Bash(find:*)",
       "Bash(chmod:*)",
       "Bash(git -C /home/dewaxindo/Rekon diff --stat HEAD)",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "Bash(pnpm --filter @rekon/api type-check:*)"
     ],
     "deny": [],
     "ask": []

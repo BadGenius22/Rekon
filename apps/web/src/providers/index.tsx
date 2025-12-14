@@ -5,6 +5,7 @@ import { WagmiProvider } from "./wagmi-provider";
 import { QueryProvider } from "./query-provider";
 import { WalletProvider } from "./wallet-provider";
 import { TradingProvider } from "./trading-provider";
+import { DemoModeProvider } from "../contexts/DemoModeContext";
 
 interface ProvidersProps {
   children: ReactNode;
@@ -12,13 +13,15 @@ interface ProvidersProps {
 
 export function Providers({ children }: ProvidersProps) {
   return (
-    <WagmiProvider>
-      <QueryProvider>
-        <WalletProvider>
-          <TradingProvider>{children}</TradingProvider>
-        </WalletProvider>
-      </QueryProvider>
-    </WagmiProvider>
+    <DemoModeProvider>
+      <WagmiProvider>
+        <QueryProvider>
+          <WalletProvider>
+            <TradingProvider>{children}</TradingProvider>
+          </WalletProvider>
+        </QueryProvider>
+      </WagmiProvider>
+    </DemoModeProvider>
   );
 }
 

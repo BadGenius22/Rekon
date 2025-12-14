@@ -86,7 +86,7 @@ export const POLYMARKET_CONFIG = {
   funderAddress: process.env.POLYMARKET_FUNDER_ADDRESS || undefined,
   // Signature type refers to the SIGNER (EOA), not the funderAddress (Safe proxy)
   // 0 = EOA/Browser Wallet (MetaMask, Rabby, etc.) - use if private key is from a Web3 wallet
-  // 1 = Magic/Email Login - use if private key exported from https://reveal.magic.link/polymarket
+  // 1 = Magic/Email Login - use if private key exported from https://reveal.magic.land/polymarket
   // Default: 0 (most common - EOA wallets like MetaMask/Rabby)
   signatureType: (process.env.POLYMARKET_SIGNATURE_TYPE || "0") as "0" | "1",
   // Rate limits (per 10 seconds)
@@ -104,6 +104,13 @@ export const POLYMARKET_CONFIG = {
     windowMs: 10 * 1000, // 10 seconds
     maxRequests: 70, // Conservative: 70 requests per 10s (below 80 limit for /prices)
   },
+  // DEMO MODE - when enabled, swap real data calls with mock/demo data
+  demoMode: process.env.NEXT_PUBLIC_DEMO_MODE === "true" || process.env.POLYMARKET_DEMO_MODE === "true",
+} as const;
+
+// Demo Mode configuration aggregate for runtime gating on the frontend/backend
+export const DEMO_CONFIG = {
+  enabled: process.env.NEXT_PUBLIC_DEMO_MODE === "true" || process.env.POLYMARKET_DEMO_MODE === "true",
 } as const;
 
 // Trading Configuration

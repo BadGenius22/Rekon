@@ -288,6 +288,34 @@ Charts:
 
 # ======================================================
 
+# 11. POST-CHANGE VERIFICATION
+
+# ======================================================
+
+After ANY code changes, ALWAYS run type checking and linting:
+
+- Run `pnpm type-check` or `pnpm build` to verify no TypeScript errors.
+- Run `pnpm lint` to check for linting issues.
+- Fix ALL errors before considering the task complete.
+- Never leave the codebase in a broken state.
+
+Verification Commands:
+
+```bash
+pnpm type-check    # Check TypeScript types across all packages
+pnpm lint          # Run ESLint across the monorepo
+pnpm build         # Full build to catch all errors
+```
+
+Rules:
+
+- If type errors are introduced, fix them immediately.
+- If linting errors are introduced, fix them immediately.
+- Do not proceed to new tasks until the build passes.
+- Always verify imports resolve correctly after refactoring.
+
+# ======================================================
+
 # END OF RULES
 
 # ======================================================
