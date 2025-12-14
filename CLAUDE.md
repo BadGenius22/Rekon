@@ -344,6 +344,81 @@ describe("Service Name", () => {
 - **Imports**: All new code MUST live under `/apps` or `/packages`
 - **Absolute Imports**: Use `@rekon/...` aliases
 
+## Market Filtering Implementation
+
+### Problem
+
+Events with multiple subevents (e.g., Dota 2 matches) can have 11+ market types in the API, but Polymarket's UI only shows 4 primary types. Rekon now matches this behavior.
+
+### Solution
+
+**Filtered Market Types:**
+
+✅ **Show (Primary):**
+
+- `moneyline` - Match/series winner
+- `totals` - Over/Under markets
+- `child_moneyline` - Individual game/map winners (Game 1, 2, 3)
+
+❌ **Hide (Derivative):**
+
+- `exact_score` - Exact score markets
+- `player_prop` - Player prop bets
+- `handicap` - Spread markets
+- `special` - Special/novelty bets
+
+### Implementation
+
+**Backend** (`apps/api/src/services/markets.ts`):
+
+```typescript
+function filterRelevantMarketTypes(markets: Market[]): Market[] {
+  const RELEVANT_SPORTS_MARKET_TYPES = [
+    "moneyline",
+    "totals",
+    "child_moneyline",
+  ];
+  // Filter by sportsMarketType or groupItemTitle
+}
+```
+
+**Frontend** (`apps/web/src/lib/market-filters.ts`):
+
+```typescript
+// Shared utilities
+export function filterRelevantMarketTypes(markets: Market[]): Market[];
+export function hasSubevents(market: Market): boolean;
+export function getRelevantMarketTypeCount(eventSlug, markets?): number;
+```
+
+**Usage:**
+
+- **Detail Page**: Filters subevents (11 → 4 buttons)
+- **Market Cards**: Shows "Multiple markets →" indicator
+- **API**: Returns filtered markets from `/markets/event/:slug`
+
+### Key Distinction
+
+**Outcomes** vs **Market Types**:
+
+- Outcomes = Results within ONE market (e.g., ["Team A", "Team B"])
+- Market Types = Different markets for same event (e.g., Moneyline, Game 1, O/U)
+
+**Example:**
+
+- Market card: "2 outcomes | Multiple markets →"
+  - 2 outcomes in current market (Xtreme vs VP)
+  - Multiple markets indicator shows there are 4 market types available
+- Detail page: Shows 4 filtered market type buttons
+
+### Rules
+
+1. Always filter markets to show only primary types
+2. Keep backend and frontend filtering in sync
+3. Use shared utilities from `market-filters.ts`
+4. Market cards indicate multi-market events
+5. Match Polymarket's UI behavior
+
 ## Ref MCP
 
 When working with libraries, check the docs with Ref.

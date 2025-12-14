@@ -7,6 +7,7 @@ import type { Market } from "@rekon/types";
 import { formatVolume } from "@rekon/utils";
 import { cn } from "@rekon/ui";
 import { useWatchlist } from "../../hooks/use-watchlist";
+import { hasSubevents } from "@/lib/market-filters";
 
 function formatDateShort(isoDate: string): string {
   const date = new Date(isoDate);
@@ -148,9 +149,9 @@ export function MarketCard({
   const handleWatchlistToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (isToggling) return;
-    
+
     setIsToggling(true);
     try {
       await toggleWatchlist(market.id);
@@ -167,7 +168,9 @@ export function MarketCard({
   const endLabel = market.endDate ? formatDateShort(market.endDate) : undefined;
 
   const [timeBadge, setTimeBadge] = useState<string | undefined>(undefined);
-  const [statusLabel, setStatusLabel] = useState<"Live" | "In-play" | "Resolved">("Live");
+  const [statusLabel, setStatusLabel] = useState<
+    "Live" | "In-play" | "Resolved"
+  >("Live");
 
   useEffect(() => {
     const now = new Date();
@@ -324,7 +327,14 @@ export function MarketCard({
               <span className="text-white/60">
                 {market.outcomes.length} outcomes
               </span>
-              <span className="text-white/50">Click to see all →</span>
+              {hasSubevents(market) && (
+                <span className="text-emerald-400/80 font-medium">
+                  Multiple markets →
+                </span>
+              )}
+              {!hasSubevents(market) && (
+                <span className="text-white/50">Click to see all →</span>
+              )}
             </div>
             {/* Show top 2 outcomes as preview */}
             <div className="space-y-1.5">
@@ -384,10 +394,14 @@ export function MarketCard({
         </div>
         <span className="inline-flex items-center gap-1 text-[10px] font-medium text-white/50 group-hover:text-white/70 transition-colors">
           <span>View</span>
-          <span aria-hidden className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+          <span
+            aria-hidden
+            className="opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            →
+          </span>
         </span>
       </div>
     </Link>
   );
 }
-

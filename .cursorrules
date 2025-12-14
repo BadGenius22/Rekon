@@ -316,6 +316,72 @@ Rules:
 
 # ======================================================
 
+# 12. MARKET FILTERING & CONSISTENCY
+
+# ======================================================
+
+Market Type Filtering Rules:
+
+When working with markets that have multiple subevents (e.g., Dota 2 matches):
+
+Primary Market Types (SHOW):
+
+- "moneyline" - Match/series winner
+- "totals" - Over/Under markets
+- "child_moneyline" - Individual game/map winners (Game 1, 2, 3)
+
+Filtered Out Market Types (HIDE):
+
+- "exact_score" - Too specific, low liquidity
+- "player_prop" - Niche player markets
+- "handicap" - Spread markets
+- "special" - Derivative/special bets
+
+Implementation Locations:
+
+Backend:
+
+- apps/api/src/services/markets.ts
+  - filterRelevantMarketTypes() function
+  - Applied in getMarketsByEventSlug()
+
+Frontend:
+
+- apps/web/src/lib/market-filters.ts (shared utility)
+  - filterRelevantMarketTypes() - Filter markets
+  - hasSubevents() - Detect multi-market events
+  - getRelevantMarketTypeCount() - Count market types
+- apps/web/src/modules/markets/market-detail-page.tsx
+  - Uses shared utility for subevent filtering
+- apps/web/src/modules/markets/market-card.tsx
+  - Shows "Multiple markets →" indicator for events with subevents
+
+Key Concepts:
+
+Outcomes vs Market Types:
+
+- OUTCOMES = Results within ONE market (e.g., ["Team A", "Team B"] = 2 outcomes)
+- MARKET TYPES = Different markets for same event (e.g., Moneyline, Game 1, O/U = 3 types)
+
+Example:
+
+- API returns: 11 market types (Moneyline + Games + Exact scores + Props)
+- UI displays: 4 market types (Moneyline, Game 1, Game 2, O/U)
+- Match Polymarket's UI behavior
+
+Rules:
+
+- Always filter markets to show only primary types
+- Keep backend and frontend filtering logic in sync
+- Use shared utilities to avoid code duplication
+- Market cards must indicate when multiple market types exist
+- Detail page shows filtered subevent buttons
+- Markets with eventSlug are considered esports markets (subevents like O/U, Game 1, etc.)
+  - This prevents "Not an Esports Market" error for totals/O/U markets
+  - Check: hasEventSlug || hasDetectedGame || hasEsportsCategory || hasEsportsKeywords
+
+# ======================================================
+
 # END OF RULES
 
 # ======================================================

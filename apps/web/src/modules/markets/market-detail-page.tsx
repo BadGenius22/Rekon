@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { WatchlistProviderWrapper } from "@/components/watchlist-provider-wrapper";
 import { MarketDetailClient } from "./market-detail-client";
+import { filterRelevantMarketTypes } from "@/lib/market-filters";
 
 async function getMarketFull(
   identifier: string
@@ -128,54 +129,138 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
 
   // Validate that this is an esports market
   // Rekon is an esports terminal - only show competitive esports markets
-  const supportedGames = ["cs2", "lol", "dota2", "valorant", "cod", "r6", "hok"];
+  const supportedGames = [
+    "cs2",
+    "lol",
+    "dota2",
+    "valorant",
+    "cod",
+    "r6",
+    "hok",
+  ];
   const hasDetectedGame = market.game && supportedGames.includes(market.game);
+
+  // If market has eventSlug, it's part of a multi-market event (subevents)
+  // These are always esports-related (Moneyline, Game 1, O/U, etc.)
+  const hasEventSlug = !!market.eventSlug;
 
   // Also check category/tags for esports markets that may not have game detected
   // This handles tournament/outright markets that might not have a specific game
-  const esportsCategories = ["esports", "gaming", "counter-strike", "league of legends", "dota", "valorant", "call of duty", "rainbow six", "honor of kings"];
+  const esportsCategories = [
+    "esports",
+    "gaming",
+    "counter-strike",
+    "league of legends",
+    "dota",
+    "valorant",
+    "call of duty",
+    "rainbow six",
+    "honor of kings",
+  ];
   const categoryLower = (market.category ?? "").toLowerCase();
   const subcategoryLower = (market.subcategory ?? "").toLowerCase();
   const questionLower = (market.question ?? "").toLowerCase();
 
   // Check if category/subcategory indicates esports
-  const hasEsportsCategory = esportsCategories.some(cat =>
-    categoryLower.includes(cat) || subcategoryLower.includes(cat)
+  const hasEsportsCategory = esportsCategories.some(
+    (cat) => categoryLower.includes(cat) || subcategoryLower.includes(cat)
   );
 
   // Check if question contains esports team/tournament/player keywords
   const esportsKeywords = [
     // CS2 teams & tournaments
-    "faze", "navi", "g2", "vitality", "spirit", "heroic", "mouz", "ence", "cloud9", "liquid", "fnatic", "astralis",
-    "pgl major", "blast premier", "esl pro league", "iem", "starladder", "mongolz", "mongol",
+    "faze",
+    "navi",
+    "g2",
+    "vitality",
+    "spirit",
+    "heroic",
+    "mouz",
+    "ence",
+    "cloud9",
+    "liquid",
+    "fnatic",
+    "astralis",
+    "pgl major",
+    "blast premier",
+    "esl pro league",
+    "iem",
+    "starladder",
+    "mongolz",
+    "mongol",
     // CS2 players (for award/personality markets)
-    "s1mple", "m0nesy", "monesy", "zywoo", "device", "niko", "donk", "b1t",
+    "s1mple",
+    "m0nesy",
+    "monesy",
+    "zywoo",
+    "device",
+    "niko",
+    "donk",
+    "b1t",
     // CS2 awards/media
-    "hltv", "player of the year", "team of the year",
+    "hltv",
+    "player of the year",
+    "team of the year",
     // LoL teams & tournaments
-    "t1", "gen.g", "dk", "drx", "fnatic", "mad lions", "g2 esports",
-    "worlds", "lpl", "lec", "lcs", "msi", "faker",
+    "t1",
+    "gen.g",
+    "dk",
+    "drx",
+    "fnatic",
+    "mad lions",
+    "g2 esports",
+    "worlds",
+    "lpl",
+    "lec",
+    "lcs",
+    "msi",
+    "faker",
     // Dota 2 teams & tournaments
-    "og", "team spirit", "tundra", "gaimin gladiators", "team liquid",
-    "the international", "ti1", "ti2", "ti3",
+    "og",
+    "team spirit",
+    "tundra",
+    "gaimin gladiators",
+    "team liquid",
+    "the international",
+    "ti1",
+    "ti2",
+    "ti3",
     // Valorant teams & tournaments
-    "sentinels", "loud", "fnatic", "drx", "paper rex",
-    "vct", "valorant champions",
+    "sentinels",
+    "loud",
+    "fnatic",
+    "drx",
+    "paper rex",
+    "vct",
+    "valorant champions",
     // CoD teams & tournaments
-    "optic", "faze", "atlanta faze", "la thieves", "seattle surge",
-    "cdl", "call of duty league",
+    "optic",
+    "faze",
+    "atlanta faze",
+    "la thieves",
+    "seattle surge",
+    "cdl",
+    "call of duty league",
     // R6 teams & tournaments
-    "six invitational", "six major",
+    "six invitational",
+    "six major",
     // General esports terms
-    "esport", "retire", "roster",
+    "esport",
+    "retire",
+    "roster",
   ];
 
-  const hasEsportsKeywords = esportsKeywords.some(keyword =>
+  const hasEsportsKeywords = esportsKeywords.some((keyword) =>
     questionLower.includes(keyword.toLowerCase())
   );
 
-  // Market is esports if it has a detected game OR esports category OR esports keywords
-  const isEsportsMarket = hasDetectedGame || hasEsportsCategory || hasEsportsKeywords;
+  // Market is esports if it has:
+  // - A detected game, OR
+  // - An eventSlug (part of multi-market esports event), OR
+  // - Esports category, OR
+  // - Esports keywords in question
+  const isEsportsMarket =
+    hasDetectedGame || hasEventSlug || hasEsportsCategory || hasEsportsKeywords;
 
   if (!isEsportsMarket) {
     return (
@@ -195,13 +280,17 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
 
             {/* Description */}
             <p className="text-white/60 leading-relaxed">
-              Rekon is a professional esports trading terminal. This market is not related to competitive esports and is not available on this platform.
+              Rekon is a professional esports trading terminal. This market is
+              not related to competitive esports and is not available on this
+              platform.
             </p>
 
             {/* Market Info */}
             <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-left">
               <p className="text-sm text-white/50 mb-1">Market:</p>
-              <p className="text-sm text-white font-mono break-all">{market.question}</p>
+              <p className="text-sm text-white font-mono break-all">
+                {market.question}
+              </p>
               {market.category && (
                 <>
                   <p className="text-sm text-white/50 mt-3 mb-1">Category:</p>
@@ -213,7 +302,10 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
             {/* Supported Games */}
             <div className="text-sm text-white/40 mt-4">
               <p className="mb-2">Supported esports:</p>
-              <p className="text-white/60">CS2 • LoL • Dota 2 • Valorant • CoD • Rainbow Six • Honor of Kings</p>
+              <p className="text-white/60">
+                CS2 • LoL • Dota 2 • Valorant • CoD • Rainbow Six • Honor of
+                Kings
+              </p>
             </div>
 
             {/* CTA */}
@@ -349,6 +441,9 @@ function prepareSubevents(market: Market, relatedMarkets: Market[]): Market[] {
   relatedMarkets.forEach((m) => marketMap.set(m.id, m));
   let allMarkets = Array.from(marketMap.values());
 
+  // Filter to show only relevant market types (matches Polymarket UI)
+  allMarkets = filterRelevantMarketTypes(allMarkets);
+
   // Sort markets consistently
   allMarkets.sort((a, b) => {
     if (a.marketGroup !== undefined && b.marketGroup !== undefined) {
@@ -372,24 +467,47 @@ function prepareSubevents(market: Market, relatedMarkets: Market[]): Market[] {
         if (lowerType === "totals") return 1;
         if (lowerType === "child_moneyline") {
           const searchText = (title || question || "").toLowerCase();
-          if (searchText.includes("map 1") || searchText.includes("game 1")) return 2;
-          if (searchText.includes("map 2") || searchText.includes("game 2")) return 3;
-          if (searchText.includes("map 3") || searchText.includes("game 3")) return 4;
+          if (searchText.includes("map 1") || searchText.includes("game 1"))
+            return 2;
+          if (searchText.includes("map 2") || searchText.includes("game 2"))
+            return 3;
+          if (searchText.includes("map 3") || searchText.includes("game 3"))
+            return 4;
           return 10;
         }
       }
 
       const searchText = (title || question || "").toLowerCase();
-      if (searchText.includes("moneyline") || searchText.includes("match winner")) return 0;
-      if (searchText.includes("o/u") || searchText.includes("over/under") || searchText.includes("total")) return 1;
-      if (searchText.includes("map 1") || searchText.includes("game 1")) return 2;
-      if (searchText.includes("map 2") || searchText.includes("game 2")) return 3;
-      if (searchText.includes("map 3") || searchText.includes("game 3")) return 4;
+      if (
+        searchText.includes("moneyline") ||
+        searchText.includes("match winner")
+      )
+        return 0;
+      if (
+        searchText.includes("o/u") ||
+        searchText.includes("over/under") ||
+        searchText.includes("total")
+      )
+        return 1;
+      if (searchText.includes("map 1") || searchText.includes("game 1"))
+        return 2;
+      if (searchText.includes("map 2") || searchText.includes("game 2"))
+        return 3;
+      if (searchText.includes("map 3") || searchText.includes("game 3"))
+        return 4;
       return 999;
     };
 
-    const orderA = getSortOrder(a.groupItemTitle, a.sportsMarketType, a.question);
-    const orderB = getSortOrder(b.groupItemTitle, b.sportsMarketType, b.question);
+    const orderA = getSortOrder(
+      a.groupItemTitle,
+      a.sportsMarketType,
+      a.question
+    );
+    const orderB = getSortOrder(
+      b.groupItemTitle,
+      b.sportsMarketType,
+      b.question
+    );
 
     if (orderA !== orderB) return orderA - orderB;
     return a.id.localeCompare(b.id);

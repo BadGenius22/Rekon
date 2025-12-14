@@ -249,8 +249,10 @@ export function groupMarketsByCondition(markets: Market[]): Market[] {
       const bTitle = (b.groupItemTitle || "").toLowerCase();
 
       // Moneyline/Match Winner should come first
-      const aIsMain = aTitle.includes("moneyline") || aTitle.includes("match winner");
-      const bIsMain = bTitle.includes("moneyline") || bTitle.includes("match winner");
+      const aIsMain =
+        aTitle.includes("moneyline") || aTitle.includes("match winner");
+      const bIsMain =
+        bTitle.includes("moneyline") || bTitle.includes("match winner");
       if (aIsMain && !bIsMain) return -1;
       if (bIsMain && !aIsMain) return 1;
 
@@ -262,22 +264,28 @@ export function groupMarketsByCondition(markets: Market[]): Market[] {
 
     // Aggregate all outcomes from all markets in the group
     // For multi-market groups, each market's outcomes represent different selections
-    const allOutcomes = marketGroup.flatMap(m => m.outcomes);
+    const allOutcomes = marketGroup.flatMap((m) => m.outcomes);
 
     // Aggregate volume and liquidity
     const totalVolume = marketGroup.reduce((sum, m) => sum + m.volume, 0);
-    const totalVolume24h = marketGroup.reduce((sum, m) => sum + (m.volume24h ?? 0), 0);
+    const totalVolume24h = marketGroup.reduce(
+      (sum, m) => sum + (m.volume24h ?? 0),
+      0
+    );
     const totalLiquidity = marketGroup.reduce((sum, m) => sum + m.liquidity, 0);
 
     // For price changes, use the maximum absolute change (most significant movement)
-    const maxPriceChange24h = marketGroup.reduce((max, m) =>
-      Math.max(max, Math.abs(m.priceChange24h ?? 0)), 0
+    const maxPriceChange24h = marketGroup.reduce(
+      (max, m) => Math.max(max, Math.abs(m.priceChange24h ?? 0)),
+      0
     );
-    const maxPriceChange1h = marketGroup.reduce((max, m) =>
-      Math.max(max, Math.abs(m.priceChange1h ?? 0)), 0
+    const maxPriceChange1h = marketGroup.reduce(
+      (max, m) => Math.max(max, Math.abs(m.priceChange1h ?? 0)),
+      0
     );
-    const maxPriceChange1w = marketGroup.reduce((max, m) =>
-      Math.max(max, Math.abs(m.priceChange1w ?? 0)), 0
+    const maxPriceChange1w = marketGroup.reduce(
+      (max, m) => Math.max(max, Math.abs(m.priceChange1w ?? 0)),
+      0
     );
 
     // Create the grouped market
@@ -402,10 +410,63 @@ export async function getMarketsByCategory(
 }
 
 /**
+ * Filters markets to show only the most relevant market types.
+ * Matches Polymarket's UI behavior of showing primary market types only:
+ * - Moneyline (match winner)
+ * - Totals (over/under)
+ * - Child moneyline (individual game/map winners)
+ *
+ * Filters out less common market types like:
+ * - Exact score markets
+ * - Handicap/spread markets
+ * - Player prop markets
+ * - Other derivative markets
+ */
+function filterRelevantMarketTypes(markets: Market[]): Market[] {
+  const RELEVANT_SPORTS_MARKET_TYPES = [
+    "moneyline",
+    "totals",
+    "child_moneyline",
+  ];
+
+  return markets.filter((market) => {
+    // If sportsMarketType is defined, use it for filtering
+    if (market.sportsMarketType) {
+      const lowerType = market.sportsMarketType.toLowerCase();
+      return RELEVANT_SPORTS_MARKET_TYPES.includes(lowerType);
+    }
+
+    // Fallback: Check groupItemTitle for common patterns
+    if (market.groupItemTitle) {
+      const lowerTitle = market.groupItemTitle.toLowerCase();
+      return (
+        lowerTitle.includes("moneyline") ||
+        lowerTitle.includes("match winner") ||
+        lowerTitle.includes("game 1") ||
+        lowerTitle.includes("game 2") ||
+        lowerTitle.includes("game 3") ||
+        lowerTitle.includes("map 1") ||
+        lowerTitle.includes("map 2") ||
+        lowerTitle.includes("map 3") ||
+        lowerTitle.includes("o/u") ||
+        lowerTitle.includes("over/under") ||
+        lowerTitle.includes("total")
+      );
+    }
+
+    // If no market type indicators, include it (for binary markets)
+    return true;
+  });
+}
+
+/**
  * Gets all markets for a specific event (by event slug).
  * Uses Gamma API /events/slug/{slug} endpoint which returns event with all markets.
  * Useful for DOTA 2 subevents (Moneyline, Game 1, Game 2, etc.).
  * Returns markets sorted by groupItemTitle (Moneyline first, then Game 1, Game 2, etc.).
+ *
+ * Note: Filters markets to show only primary market types (moneyline, totals, child_moneyline)
+ * to match Polymarket's UI behavior and avoid showing too many derivative markets.
  */
 export async function getMarketsByEventSlug(
   eventSlug: string
@@ -421,9 +482,12 @@ export async function getMarketsByEventSlug(
     }
 
     // Map all markets from the event
-    const markets = (event.markets as PolymarketMarket[])
+    let markets = (event.markets as PolymarketMarket[])
       .map((pmMarket) => mapPolymarketMarket(pmMarket))
       .map((market) => enrichMarket(market));
+
+    // Filter to show only relevant market types (matches Polymarket UI)
+    markets = filterRelevantMarketTypes(markets);
 
     // Sort by groupItemTitle: Moneyline/Match Winner first, then Game 1, Game 2, etc.
     markets.sort((a, b) => {
@@ -783,7 +847,9 @@ function filterEsportsMarkets(markets: Market[]): Market[] {
  * This is the SINGLE SOURCE OF TRUTH for market categorization.
  * Uses multiple signals: question text, sportsMarketType, groupItemTitle, slug.
  */
-function categorizeMarket(market: Market): "match" | "tournament" | "entertainment" {
+function categorizeMarket(
+  market: Market
+): "match" | "tournament" | "entertainment" {
   const q = market.question.toLowerCase();
   const slug = (market.slug ?? "").toLowerCase();
   const sportsType = (market.sportsMarketType ?? "").toLowerCase();
@@ -1237,7 +1303,13 @@ function filterMarketsByGameSlug(
 
   // Second, try to filter by tags (also very reliable)
   const tagMap: Record<string, string[]> = {
-    cs2: ["cs2", "counter strike 2", "csgo", "counter-strike", "counter-strike 2"],
+    cs2: [
+      "cs2",
+      "counter strike 2",
+      "csgo",
+      "counter-strike",
+      "counter-strike 2",
+    ],
     lol: ["lol", "league of legends", "league-of-legends"],
     dota2: ["dota2", "dota 2", "dota-2"],
     valorant: ["valorant", "vct"],
