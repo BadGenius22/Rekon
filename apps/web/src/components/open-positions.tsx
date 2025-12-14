@@ -60,8 +60,8 @@ export function OpenPositions({
   const [loading, setLoading] = useState(!preFetchedPositions);
   const [error, setError] = useState<string | null>(null);
 
-  // Get demo wallet address from context for synced demo data
-  const { demoWalletAddress } = useDemoMode();
+  // Get demo mode state and demo wallet address from context
+  const { isDemoMode, demoWalletAddress } = useDemoMode();
 
   // Use explicit userAddress prop, or fall back to demo wallet
   const address = userAddress || demoWalletAddress;
@@ -94,10 +94,14 @@ export function OpenPositions({
         url.searchParams.set("sortBy", "TOKENS");
         url.searchParams.set("sortDirection", "DESC");
         url.searchParams.set("scope", "esports");
+        if (isDemoMode) {
+          url.searchParams.set("demo_mode", "true");
+        }
 
         const response = await fetch(url.toString(), {
           cache: "no-store",
           credentials: "include",
+          headers: isDemoMode ? { "x-demo-mode": "true" } : {},
         });
 
         if (!response.ok) {

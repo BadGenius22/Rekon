@@ -23,8 +23,8 @@ export function DashboardPositionsStat({
   >(null);
   const [loading, setLoading] = useState(preFetchedCount === undefined);
 
-  // Get demo wallet address from context for synced demo data
-  const { demoWalletAddress } = useDemoMode();
+  // Get demo mode state and demo wallet address from context
+  const { isDemoMode, demoWalletAddress } = useDemoMode();
 
   const address = userAddress || demoWalletAddress;
 
@@ -52,10 +52,14 @@ export function DashboardPositionsStat({
         url.searchParams.set("sizeThreshold", "1");
         url.searchParams.set("limit", "100");
         url.searchParams.set("scope", "esports");
+        if (isDemoMode) {
+          url.searchParams.set("demo_mode", "true");
+        }
 
         const response = await fetch(url.toString(), {
           cache: "no-store",
           credentials: "include",
+          headers: isDemoMode ? { "x-demo-mode": "true" } : {},
         });
 
         if (!response.ok) {

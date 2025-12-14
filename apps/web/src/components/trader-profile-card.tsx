@@ -147,9 +147,13 @@ export function TraderProfileCard({
           `${API_CONFIG.baseUrl}/gamification/profile`
         );
         profileUrl.searchParams.set("user", walletToUse);
+        if (isDemoMode) {
+          profileUrl.searchParams.set("demo_mode", "true");
+        }
 
         const profileResponse = await fetch(profileUrl.toString(), {
           credentials: "include",
+          headers: isDemoMode ? { "x-demo-mode": "true" } : {},
         });
 
         if (!profileResponse.ok) {

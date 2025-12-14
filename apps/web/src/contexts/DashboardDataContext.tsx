@@ -10,6 +10,7 @@ import React, {
 } from "react";
 import { API_CONFIG } from "@rekon/config";
 import { useDemoMode } from "./DemoModeContext";
+import { useWallet } from "@/providers/wallet-provider";
 import type { Portfolio, Activity } from "@rekon/types";
 
 /**
@@ -115,6 +116,7 @@ export function DashboardDataProvider({
   children: ReactNode;
 }): JSX.Element {
   const { isDemoMode, demoWalletAddress } = useDemoMode();
+  const { safeAddress, isConnected } = useWallet();
 
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [totalPortfolio, setTotalPortfolio] = useState<Portfolio | null>(null);
@@ -126,8 +128,10 @@ export function DashboardDataProvider({
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Determine which wallet address to use
-  const walletAddress = demoWalletAddress;
+  // Determine which wallet address to use:
+  // - In demo mode: use the backend's demoWalletAddress
+  // - In real mode: use the connected wallet's safeAddress
+  const walletAddress = isDemoMode ? demoWalletAddress : safeAddress;
 
   const fetchAllData = useCallback(async () => {
     if (!walletAddress) {
@@ -229,7 +233,7 @@ export function DashboardDataProvider({
     } finally {
       setIsLoading(false);
     }
-  }, [walletAddress]);
+  }, [walletAddress, isDemoMode]);
 
   // Fetch data when wallet address becomes available
   useEffect(() => {

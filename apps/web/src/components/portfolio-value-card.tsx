@@ -17,8 +17,8 @@ export function PortfolioValueCard({
   userAddress,
   portfolioData,
 }: PortfolioValueCardProps) {
-  // Get demo wallet address from context for synced demo data
-  const { demoWalletAddress } = useDemoMode();
+  // Get demo mode state and demo wallet address from context
+  const { isDemoMode, demoWalletAddress } = useDemoMode();
 
   const address = userAddress || demoWalletAddress;
   const [fetchedPortfolio, setFetchedPortfolio] = useState<Portfolio | null>(
@@ -45,10 +45,14 @@ export function PortfolioValueCard({
       const url = new URL(`${API_CONFIG.baseUrl}/portfolio`);
       url.searchParams.set("user", address);
       url.searchParams.set("scope", "esports");
+      if (isDemoMode) {
+        url.searchParams.set("demo_mode", "true");
+      }
 
       const response = await fetch(url.toString(), {
         cache: "no-store",
         credentials: "include",
+        headers: isDemoMode ? { "x-demo-mode": "true" } : {},
       });
 
       if (!response.ok) {

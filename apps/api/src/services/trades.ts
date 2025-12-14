@@ -37,15 +37,15 @@ export async function getTradesForMarket(
   // Fetch trades for all outcome tokens in parallel
   const tradePromises = outcomeTokens.map(async (tokenId, index) => {
     try {
-      // Check cache first
-      const cacheKey = tradesCacheService.generateKey(tokenId, limit);
-      const cached = await tradesCacheService.get(cacheKey);
-      if (cached) {
-        return cached;
-      }
+  // Check cache first
+  const cacheKey = tradesCacheService.generateKey(tokenId, limit);
+  const cached = await tradesCacheService.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
 
-      // Fetch from API
-      const rawTrades = await fetchPolymarketTrades(tokenId, limit);
+  // Fetch from API
+  const rawTrades = await fetchPolymarketTrades(tokenId, limit);
 
       // Determine if this is YES or NO outcome
       // First outcome is typically YES, second is NO
@@ -54,17 +54,17 @@ export async function getTradesForMarket(
       const outcomeName =
         market.outcomes[index]?.name || (isYesOutcome ? "yes" : "no");
 
-      const trades = mapPolymarketTrades(
-        rawTrades,
+  const trades = mapPolymarketTrades(
+    rawTrades,
         market.id,
         outcomeName,
         sideHint
-      );
+  );
 
-      // Cache the result
-      await tradesCacheService.set(cacheKey, trades);
+  // Cache the result
+  await tradesCacheService.set(cacheKey, trades);
 
-      return trades;
+  return trades;
     } catch (error) {
       // Log error but don't fail the entire request
       console.warn(

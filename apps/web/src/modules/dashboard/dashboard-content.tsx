@@ -40,13 +40,23 @@ function DashboardContentInner() {
   const rekonVolume = stats?.rekonVolume ?? 0;
   const exposureByGame = stats?.exposureByGame ?? [];
 
-  // Show loading state while wallet is being synced
+  // Show message when no wallet is available
   if (!walletAddress) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
-          <p className="text-white/60">Syncing wallet address...</p>
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="h-16 w-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
+            <span className="text-3xl">🎮</span>
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-white mb-2">
+              Connect Your Wallet
+            </h3>
+            <p className="text-white/60 max-w-md">
+              Connect your wallet to view your portfolio, positions, and trading
+              history. Or try our demo mode to explore the platform.
+            </p>
+          </div>
         </div>
       </div>
     );
