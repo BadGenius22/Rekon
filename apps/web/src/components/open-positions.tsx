@@ -6,10 +6,12 @@ import { cn } from "@rekon/ui";
 import Image from "next/image";
 import Link from "next/link";
 import { Loader2, TrendingUp, TrendingDown } from "lucide-react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
 
-interface PolymarketPosition {
-  proxyWallet: string;
-  asset: string;
+// Exported for use in other components
+export interface PolymarketPosition {
+  proxyWallet?: string;
+  asset?: string;
   conditionId: string;
   size: number;
   avgPrice: number;
@@ -17,12 +19,12 @@ interface PolymarketPosition {
   currentValue: number;
   cashPnl: number;
   percentPnl: number;
-  totalBought: number;
+  totalBought?: number;
   realizedPnl: number;
-  percentRealizedPnl: number;
+  percentRealizedPnl?: number;
   curPrice: number;
-  redeemable: boolean;
-  mergeable: boolean;
+  redeemable?: boolean;
+  mergeable?: boolean;
   title: string;
   slug: string;
   icon?: string;
@@ -30,7 +32,7 @@ interface PolymarketPosition {
   eventSlug: string;
   outcome: string;
   outcomeIndex: number;
-  oppositeOutcome: string;
+  oppositeOutcome?: string;
   oppositeAsset?: string;
   endDate?: string;
   negativeRisk?: boolean;
@@ -38,11 +40,10 @@ interface PolymarketPosition {
 
 interface OpenPositionsProps {
   userAddress?: string;
+  /** Pre-fetched positions data (from DashboardDataContext) */
+  positions?: PolymarketPosition[];
   onPositionsLoaded?: (count: number) => void;
 }
-
-// Default user address - should match the one in dashboard-page.tsx
-const DEFAULT_USER_ADDRESS = "0x54b56146656e7eef9da02b3a030c18e06e924b31";
 
 /**
  * Open Positions component that displays raw Polymarket position data.
@@ -50,22 +51,44 @@ const DEFAULT_USER_ADDRESS = "0x54b56146656e7eef9da02b3a030c18e06e924b31";
  */
 export function OpenPositions({
   userAddress,
+  positions: preFetchedPositions,
   onPositionsLoaded,
 }: OpenPositionsProps) {
-  const [positions, setPositions] = useState<PolymarketPosition[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [fetchedPositions, setFetchedPositions] = useState<
+    PolymarketPosition[]
+  >([]);
+  const [loading, setLoading] = useState(!preFetchedPositions);
   const [error, setError] = useState<string | null>(null);
 
-  const address = userAddress || DEFAULT_USER_ADDRESS;
+  // Get demo wallet address from context for synced demo data
+  const { demoWalletAddress } = useDemoMode();
+
+  // Use explicit userAddress prop, or fall back to demo wallet
+  const address = userAddress || demoWalletAddress;
+
+  // Use pre-fetched positions if available
+  const positions = preFetchedPositions ?? fetchedPositions;
 
   useEffect(() => {
+    // If positions are pre-fetched, notify parent and skip fetching
+    if (preFetchedPositions) {
+      onPositionsLoaded?.(preFetchedPositions.length);
+      setLoading(false);
+      return;
+    }
+
+    // Wait for address to be available
+    if (!address) {
+      return;
+    }
+
     async function fetchPositions() {
       try {
         setLoading(true);
         setError(null);
 
         const url = new URL(`${API_CONFIG.baseUrl}/positions`);
-        url.searchParams.set("user", address);
+        url.searchParams.set("user", address!);
         url.searchParams.set("sizeThreshold", "1");
         url.searchParams.set("limit", "100");
         url.searchParams.set("sortBy", "TOKENS");
@@ -74,6 +97,7 @@ export function OpenPositions({
 
         const response = await fetch(url.toString(), {
           cache: "no-store",
+          credentials: "include",
         });
 
         if (!response.ok) {
@@ -82,7 +106,7 @@ export function OpenPositions({
 
         const data = (await response.json()) as PolymarketPosition[];
         const positionList = Array.isArray(data) ? data : [];
-        setPositions(positionList);
+        setFetchedPositions(positionList);
         onPositionsLoaded?.(positionList.length);
       } catch (err) {
         console.error("Failed to fetch open positions:", err);
@@ -95,7 +119,7 @@ export function OpenPositions({
     }
 
     fetchPositions();
-  }, [address]);
+  }, [address, preFetchedPositions, onPositionsLoaded]);
 
   if (loading) {
     return (

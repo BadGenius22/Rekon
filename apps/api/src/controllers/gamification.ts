@@ -1,8 +1,10 @@
 import type { Context } from "hono";
 import { z } from "zod";
 import { getGamificationProfile } from "../services/gamification";
+import { generateDemoGamificationProfile } from "../services/demo-portfolio";
 import { getSessionFromContext } from "../middleware/session";
 import { getPortfolioBySession } from "../services/portfolio";
+import { isDemoModeEnabled } from "../middleware/demo-mode";
 
 /**
  * Gamification Controllers
@@ -44,24 +46,58 @@ export async function getGamificationProfileController(c: Context) {
     );
   }
 
-  // Use wallet address from query parameter if provided, otherwise from session
+  // Determine wallet address based on mode and availability
+  // Priority: 1) Query param, 2) Session wallet, 3) Demo wallet (in demo mode)
   let walletAddress: string | undefined;
+
   if (validation.data.user) {
     walletAddress = validation.data.user;
   } else if (session?.walletAddress) {
     walletAddress = session.walletAddress;
+  } else if (isDemoModeEnabled() && session?.demoWalletAddress) {
+    walletAddress = session.demoWalletAddress;
   } else {
+    // Debug logging to understand why wallet is missing
+    console.warn("[Gamification] Missing wallet address", {
+      hasDemoMode: isDemoModeEnabled(),
+      hasSession: !!session,
+      hasWallet: !!session?.walletAddress,
+      hasDemoWallet: !!session?.demoWalletAddress,
+      env: {
+        POLYMARKET_DEMO_MODE: process.env.POLYMARKET_DEMO_MODE,
+        NEXT_PUBLIC_DEMO_MODE: process.env.NEXT_PUBLIC_DEMO_MODE,
+      },
+    });
+
     return c.json(
       {
         error: "Wallet address required",
         message:
           "Provide wallet address via 'user' query parameter or link wallet to session",
+        debug: {
+          hasDemoMode: isDemoModeEnabled(),
+          hasSession: !!session,
+          hasWallet: !!session?.walletAddress,
+          hasDemoWallet: !!session?.demoWalletAddress,
+        },
       },
       400
     );
   }
 
+  // Check if using demo wallet (whether passed via param or session)
+  const isUsingDemoWallet =
+    isDemoModeEnabled() &&
+    (walletAddress === session?.demoWalletAddress ||
+      (walletAddress?.startsWith("0x") && !session?.walletAddress));
+
   try {
+    // In demo mode with demo wallet, return deterministic mock profile
+    if (isUsingDemoWallet && walletAddress) {
+      const demoProfile = generateDemoGamificationProfile(walletAddress);
+      return c.json(demoProfile);
+    }
+
     // Get portfolio stats to get volume data
     const portfolio = await getPortfolioBySession(
       session?.sessionId || "anonymous",
@@ -93,4 +129,3 @@ export async function getGamificationProfileController(c: Context) {
     );
   }
 }
-

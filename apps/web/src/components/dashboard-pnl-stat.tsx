@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { API_CONFIG } from "@rekon/config";
 import { cn } from "@rekon/ui";
 import { TrendingUp, TrendingDown, Loader2 } from "lucide-react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import type { Portfolio } from "@rekon/types";
 
 interface PortfolioData {
   totalPnL: number;
@@ -13,22 +15,49 @@ interface PortfolioData {
 
 interface DashboardPnLStatProps {
   userAddress?: string;
+  /** Pre-fetched portfolio data (from DashboardDataContext) */
+  portfolioData?: Portfolio | null;
 }
-
-// Default user address - should match the one in open-positions.tsx
-const DEFAULT_USER_ADDRESS = "0x54b56146656e7eef9da02b3a030c18e06e924b31";
 
 /**
  * Lifetime PnL stat card using the Portfolio API.
  * Shows total PnL with unrealized/realized breakdown.
  */
-export function DashboardPnLStat({ userAddress }: DashboardPnLStatProps) {
-  const [pnlData, setPnlData] = useState<PortfolioData | null>(null);
-  const [loading, setLoading] = useState(true);
+export function DashboardPnLStat({
+  userAddress,
+  portfolioData,
+}: DashboardPnLStatProps) {
+  const [fetchedPnlData, setFetchedPnlData] = useState<PortfolioData | null>(
+    null
+  );
+  const [loading, setLoading] = useState(!portfolioData);
 
-  const address = userAddress || DEFAULT_USER_ADDRESS;
+  // Get demo wallet address from context for synced demo data
+  const { demoWalletAddress } = useDemoMode();
+
+  const address = userAddress || demoWalletAddress;
+
+  // Use pre-fetched data if available
+  const pnlData: PortfolioData | null = portfolioData
+    ? {
+        totalPnL: portfolioData.totalPnL ?? 0,
+        totalUnrealizedPnL: portfolioData.totalUnrealizedPnL ?? 0,
+        totalRealizedPnL: portfolioData.totalRealizedPnL ?? 0,
+      }
+    : fetchedPnlData;
 
   useEffect(() => {
+    // Skip fetching if data is already provided
+    if (portfolioData) {
+      setLoading(false);
+      return;
+    }
+
+    // Wait for address to be available
+    if (!address) {
+      return;
+    }
+
     async function fetchPnL() {
       try {
         setLoading(true);
@@ -36,15 +65,16 @@ export function DashboardPnLStat({ userAddress }: DashboardPnLStatProps) {
         // Use the portfolio API which calculates lifetime PnL
         // including both open and closed positions
         const url = new URL(`${API_CONFIG.baseUrl}/portfolio`);
-        url.searchParams.set("user", address);
+        url.searchParams.set("user", address!);
         url.searchParams.set("scope", "esports");
 
         const response = await fetch(url.toString(), {
           cache: "no-store",
+          credentials: "include",
         });
 
         if (!response.ok) {
-          setPnlData({
+          setFetchedPnlData({
             totalPnL: 0,
             totalUnrealizedPnL: 0,
             totalRealizedPnL: 0,
@@ -54,21 +84,25 @@ export function DashboardPnLStat({ userAddress }: DashboardPnLStatProps) {
 
         const data = await response.json();
 
-        setPnlData({
+        setFetchedPnlData({
           totalPnL: data.totalPnL ?? 0,
           totalUnrealizedPnL: data.totalUnrealizedPnL ?? 0,
           totalRealizedPnL: data.totalRealizedPnL ?? 0,
         });
       } catch (err) {
         console.error("Failed to fetch PnL data:", err);
-        setPnlData({ totalPnL: 0, totalUnrealizedPnL: 0, totalRealizedPnL: 0 });
+        setFetchedPnlData({
+          totalPnL: 0,
+          totalUnrealizedPnL: 0,
+          totalRealizedPnL: 0,
+        });
       } finally {
         setLoading(false);
       }
     }
 
     fetchPnL();
-  }, [address]);
+  }, [address, portfolioData]);
 
   const formatPnL = (value: number): string => {
     const absValue = Math.abs(value);

@@ -5,7 +5,9 @@ import {
   getPortfolioHistory,
   getPnLHistory,
 } from "../services/portfolio";
+import { generateDemoPortfolio } from "../services/demo-portfolio";
 import { getSessionFromContext } from "../middleware/session";
+import { isDemoModeEnabled } from "../middleware/demo-mode";
 
 /**
  * Portfolio Controllers
@@ -51,12 +53,19 @@ export async function getPortfolioController(c: Context) {
     );
   }
 
-  // Use wallet address from query parameter if provided, otherwise from session
+  // Determine wallet address based on mode and availability
+  // Priority: 1) Query param, 2) Session wallet, 3) Demo wallet (in demo mode)
   let walletAddress: string | undefined;
+
   if (validation.data.user) {
+    // Explicit user address provided (for development/testing)
     walletAddress = validation.data.user;
   } else if (session?.walletAddress) {
+    // User has connected their real wallet
     walletAddress = session.walletAddress;
+  } else if (isDemoModeEnabled() && session?.demoWalletAddress) {
+    // Demo mode: use session's unique demo wallet address
+    walletAddress = session.demoWalletAddress;
   } else {
     return c.json(
       {
@@ -70,7 +79,19 @@ export async function getPortfolioController(c: Context) {
 
   const scope = validation.data.scope ?? "all";
 
-  // Get portfolio for requested scope (all markets or esports-only)
+  // In demo mode, check if the wallet is a demo wallet
+  // This works whether the wallet is passed via user param or from session
+  const isUsingDemoWallet =
+    isDemoModeEnabled() &&
+    (walletAddress === session?.demoWalletAddress ||
+      (walletAddress?.startsWith("0x") && !session?.walletAddress));
+
+  if (isUsingDemoWallet && walletAddress) {
+    const demoPortfolio = generateDemoPortfolio(walletAddress, scope);
+    return c.json(demoPortfolio);
+  }
+
+  // Get real portfolio for requested scope (all markets or esports-only)
   const portfolio = await getPortfolioBySession(
     session?.sessionId || "anonymous",
     walletAddress,
@@ -103,12 +124,16 @@ export async function getPortfolioHistoryController(c: Context) {
     );
   }
 
-  // Use wallet address from query parameter if provided, otherwise from session
+  // Determine wallet address based on mode and availability
+  // Priority: 1) Query param, 2) Session wallet, 3) Demo wallet (in demo mode)
   let walletAddress: string | undefined;
+
   if (validation.data.user) {
     walletAddress = validation.data.user;
   } else if (session?.walletAddress) {
     walletAddress = session.walletAddress;
+  } else if (isDemoModeEnabled() && session?.demoWalletAddress) {
+    walletAddress = session.demoWalletAddress;
   } else {
     return c.json(
       {
@@ -124,10 +149,9 @@ export async function getPortfolioHistoryController(c: Context) {
   const range = validation.data.range ?? "30D";
 
   // Get portfolio history for requested scope and range
-  // walletAddress is guaranteed to be defined at this point due to earlier checks
   const history = await getPortfolioHistory(
     session?.sessionId || "anonymous",
-    walletAddress!,
+    walletAddress,
     scope,
     range as "24H" | "7D" | "30D" | "90D" | "ALL"
   );
@@ -158,12 +182,16 @@ export async function getPnLHistoryController(c: Context) {
     );
   }
 
-  // Use wallet address from query parameter if provided, otherwise from session
+  // Determine wallet address based on mode and availability
+  // Priority: 1) Query param, 2) Session wallet, 3) Demo wallet (in demo mode)
   let walletAddress: string | undefined;
+
   if (validation.data.user) {
     walletAddress = validation.data.user;
   } else if (session?.walletAddress) {
     walletAddress = session.walletAddress;
+  } else if (isDemoModeEnabled() && session?.demoWalletAddress) {
+    walletAddress = session.demoWalletAddress;
   } else {
     return c.json(
       {
@@ -179,10 +207,9 @@ export async function getPnLHistoryController(c: Context) {
   const range = validation.data.range ?? "30D";
 
   // Get PnL history for requested scope and range
-  // walletAddress is guaranteed to be defined at this point due to earlier checks
   const history = await getPnLHistory(
     session?.sessionId || "anonymous",
-    walletAddress!,
+    walletAddress,
     scope,
     range as "24H" | "7D" | "30D" | "90D" | "ALL"
   );

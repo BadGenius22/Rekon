@@ -5,23 +5,39 @@ import { cn } from "@rekon/ui";
 import { API_CONFIG } from "@rekon/config";
 import { Loader2, RefreshCw, Gem, BarChart3 } from "lucide-react";
 import type { Portfolio } from "@rekon/types";
+import { useDemoMode } from "@/contexts/DemoModeContext";
 
 interface PortfolioValueCardProps {
   userAddress?: string;
+  /** Pre-fetched portfolio data (from DashboardDataContext) */
+  portfolioData?: Portfolio | null;
 }
 
-// Default user address
-const DEFAULT_USER_ADDRESS = "0x54b56146656e7eef9da02b3a030c18e06e924b31";
+export function PortfolioValueCard({
+  userAddress,
+  portfolioData,
+}: PortfolioValueCardProps) {
+  // Get demo wallet address from context for synced demo data
+  const { demoWalletAddress } = useDemoMode();
 
-export function PortfolioValueCard({ userAddress }: PortfolioValueCardProps) {
-  const address = userAddress || DEFAULT_USER_ADDRESS;
-  const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
-  const [loading, setLoading] = useState(true);
+  const address = userAddress || demoWalletAddress;
+  const [fetchedPortfolio, setFetchedPortfolio] = useState<Portfolio | null>(
+    null
+  );
+  const [loading, setLoading] = useState(!portfolioData);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [displayValue, setDisplayValue] = useState(0);
 
+  // Use pre-fetched data if available
+  const portfolio = portfolioData ?? fetchedPortfolio;
+
   const fetchPortfolio = async (isRefresh = false) => {
+    // Wait for address to be available
+    if (!address) {
+      return;
+    }
+
     try {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
@@ -32,6 +48,7 @@ export function PortfolioValueCard({ userAddress }: PortfolioValueCardProps) {
 
       const response = await fetch(url.toString(), {
         cache: "no-store",
+        credentials: "include",
       });
 
       if (!response.ok) {
@@ -39,7 +56,7 @@ export function PortfolioValueCard({ userAddress }: PortfolioValueCardProps) {
       }
 
       const data = (await response.json()) as Portfolio;
-      setPortfolio(data);
+      setFetchedPortfolio(data);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Unknown error"));
@@ -51,8 +68,13 @@ export function PortfolioValueCard({ userAddress }: PortfolioValueCardProps) {
   };
 
   useEffect(() => {
+    // Skip fetching if data is already provided
+    if (portfolioData) {
+      setLoading(false);
+      return;
+    }
     fetchPortfolio();
-  }, [address]);
+  }, [address, portfolioData]);
 
   // Animate value counting up
   useEffect(() => {

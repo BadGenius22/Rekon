@@ -1,18 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { OpenPositions } from "./open-positions";
+import { OpenPositions, type PolymarketPosition } from "./open-positions";
 import { BarChart3 } from "lucide-react";
 
 interface OpenPositionsCardProps {
   userAddress?: string;
+  /** Pre-fetched positions data (from DashboardDataContext) */
+  positions?: PolymarketPosition[];
 }
 
 /**
  * Client wrapper for Open Positions that tracks position count.
  */
-export function OpenPositionsCard({ userAddress }: OpenPositionsCardProps) {
-  const [positionCount, setPositionCount] = useState<number | null>(null);
+export function OpenPositionsCard({
+  userAddress,
+  positions: preFetchedPositions,
+}: OpenPositionsCardProps) {
+  const [positionCount, setPositionCount] = useState<number | null>(
+    preFetchedPositions ? preFetchedPositions.length : null
+  );
 
   return (
     <div className="flex flex-col h-[420px]">
@@ -42,6 +49,7 @@ export function OpenPositionsCard({ userAddress }: OpenPositionsCardProps) {
       <div className="flex-1 overflow-auto p-1">
         <OpenPositions
           userAddress={userAddress}
+          positions={preFetchedPositions}
           onPositionsLoaded={setPositionCount}
         />
       </div>

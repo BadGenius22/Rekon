@@ -3,58 +3,79 @@
 import { useState, useEffect } from "react";
 import { API_CONFIG } from "@rekon/config";
 import { Target, Loader2 } from "lucide-react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
 
 interface DashboardPositionsStatProps {
   userAddress?: string;
+  /** Pre-fetched position count (from DashboardDataContext) */
+  positionCount?: number;
 }
-
-// Default user address - should match the one in open-positions.tsx
-const DEFAULT_USER_ADDRESS = "0x54b56146656e7eef9da02b3a030c18e06e924b31";
 
 /**
  * Positions stat card that fetches actual position count from the API.
  */
 export function DashboardPositionsStat({
   userAddress,
+  positionCount: preFetchedCount,
 }: DashboardPositionsStatProps) {
-  const [positionCount, setPositionCount] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [fetchedPositionCount, setFetchedPositionCount] = useState<
+    number | null
+  >(null);
+  const [loading, setLoading] = useState(preFetchedCount === undefined);
 
-  const address = userAddress || DEFAULT_USER_ADDRESS;
+  // Get demo wallet address from context for synced demo data
+  const { demoWalletAddress } = useDemoMode();
+
+  const address = userAddress || demoWalletAddress;
+
+  // Use pre-fetched count if available
+  const positionCount = preFetchedCount ?? fetchedPositionCount;
 
   useEffect(() => {
+    // Skip fetching if count is already provided
+    if (preFetchedCount !== undefined) {
+      setLoading(false);
+      return;
+    }
+
+    // Wait for address to be available
+    if (!address) {
+      return;
+    }
+
     async function fetchPositionCount() {
       try {
         setLoading(true);
 
         const url = new URL(`${API_CONFIG.baseUrl}/positions`);
-        url.searchParams.set("user", address);
+        url.searchParams.set("user", address!);
         url.searchParams.set("sizeThreshold", "1");
         url.searchParams.set("limit", "100");
         url.searchParams.set("scope", "esports");
 
         const response = await fetch(url.toString(), {
           cache: "no-store",
+          credentials: "include",
         });
 
         if (!response.ok) {
-          setPositionCount(0);
+          setFetchedPositionCount(0);
           return;
         }
 
         const data = await response.json();
         const positions = Array.isArray(data) ? data : [];
-        setPositionCount(positions.length);
+        setFetchedPositionCount(positions.length);
       } catch (err) {
         console.error("Failed to fetch position count:", err);
-        setPositionCount(0);
+        setFetchedPositionCount(0);
       } finally {
         setLoading(false);
       }
     }
 
     fetchPositionCount();
-  }, [address]);
+  }, [address, preFetchedCount]);
 
   return (
     <div className="h-full p-6 flex flex-col">

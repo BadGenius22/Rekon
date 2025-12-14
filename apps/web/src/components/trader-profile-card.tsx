@@ -5,15 +5,15 @@ import { createPortal } from "react-dom";
 import { cn } from "@rekon/ui";
 import { API_CONFIG } from "@rekon/config";
 import type { GamificationProfile, Badge } from "@rekon/types";
-import { Loader2, Trophy, Target, Flame, Zap } from "lucide-react";
+import { Loader2, Trophy, Target, Flame, Zap, Copy, Check } from "lucide-react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
 
 interface TraderProfileCardProps {
   userAddress?: string;
   compact?: boolean;
+  /** Pre-fetched profile data (from DashboardDataContext) */
+  profile?: GamificationProfile | null;
 }
-
-// Default user address - should match the one in dashboard
-const DEFAULT_USER_ADDRESS = "0x54b56146656e7eef9da02b3a030c18e06e924b31";
 
 // Tier color mappings with gradient support
 const TIER_COLORS: Record<
@@ -82,32 +82,87 @@ const RARITY_BG: Record<string, string> = {
 export function TraderProfileCard({
   userAddress,
   compact = false,
+  profile: preFetchedProfile,
 }: TraderProfileCardProps) {
-  const [profile, setProfile] = useState<GamificationProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [fetchedProfile, setFetchedProfile] =
+    useState<GamificationProfile | null>(null);
+  const [loading, setLoading] = useState(!preFetchedProfile);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  const address = userAddress || DEFAULT_USER_ADDRESS;
+  // Get demo mode context - this is the single source of truth for demo wallet
+  const { isDemoMode, demoWalletAddress: contextDemoWallet } = useDemoMode();
+
+  // Use pre-fetched profile if available, otherwise use fetched data
+  const profile = preFetchedProfile ?? fetchedProfile;
 
   useEffect(() => {
+    // If profile is already provided, skip fetching
+    if (preFetchedProfile) {
+      setLoading(false);
+      return;
+    }
+
     async function fetchProfile() {
       try {
         setLoading(true);
         setError(null);
 
-        const url = new URL(`${API_CONFIG.baseUrl}/gamification/profile`);
-        url.searchParams.set("user", address);
+        // Determine wallet address for profile request
+        // Priority: explicit prop > demo wallet from context > fetch from session
+        let walletToUse: string | undefined =
+          userAddress || contextDemoWallet || undefined;
 
-        const response = await fetch(url.toString(), {
+        // If no wallet yet, try fetching from session API
+        if (!walletToUse) {
+          try {
+            const sessionUrl = new URL(`${API_CONFIG.baseUrl}/sessions/me`);
+            const sessionResponse = await fetch(sessionUrl.toString(), {
+              credentials: "include",
+            });
+
+            if (sessionResponse.ok) {
+              const sessionData = await sessionResponse.json();
+              walletToUse =
+                sessionData.walletAddress || sessionData.demoWalletAddress;
+              console.debug(
+                "[TraderProfileCard] Got wallet from session:",
+                walletToUse?.slice(0, 10)
+              );
+            }
+          } catch (sessionErr) {
+            console.warn(
+              "[TraderProfileCard] Session fetch error:",
+              sessionErr
+            );
+          }
+        }
+
+        if (!walletToUse) {
+          throw new Error("No wallet address available yet");
+        }
+
+        // Fetch gamification profile
+        const profileUrl = new URL(
+          `${API_CONFIG.baseUrl}/gamification/profile`
+        );
+        profileUrl.searchParams.set("user", walletToUse);
+
+        const profileResponse = await fetch(profileUrl.toString(), {
           credentials: "include",
         });
 
-        if (!response.ok) {
-          throw new Error(`Failed to fetch profile: ${response.status}`);
+        if (!profileResponse.ok) {
+          const errorData = await profileResponse.json().catch(() => ({}));
+          throw new Error(
+            `Profile fetch failed: ${profileResponse.status}${
+              errorData?.message ? ` - ${errorData.message}` : ""
+            }`
+          );
         }
 
-        const data = await response.json();
-        setProfile(data);
+        const profileData = await profileResponse.json();
+        setFetchedProfile(profileData);
       } catch (err) {
         console.error("[TraderProfileCard] Error:", err);
         setError(err instanceof Error ? err.message : "Unknown error");
@@ -117,7 +172,28 @@ export function TraderProfileCard({
     }
 
     fetchProfile();
-  }, [address]);
+  }, [userAddress, contextDemoWallet, preFetchedProfile]);
+
+  // Get the display wallet address - use context's demo wallet as primary source
+  const displayAddress = userAddress || contextDemoWallet;
+  const isUsingDemoWallet = isDemoMode && !userAddress && !!contextDemoWallet;
+
+  // Copy wallet address to clipboard
+  const copyAddress = async () => {
+    if (!displayAddress) return;
+    try {
+      await navigator.clipboard.writeText(displayAddress);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
+  // Format address for display (0x1234...5678)
+  const formatAddress = (addr: string) => {
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
 
   if (loading) {
     return (
@@ -131,19 +207,51 @@ export function TraderProfileCard({
     return (
       <div className="h-full p-6 flex flex-col items-center justify-center text-center">
         <Trophy className="h-12 w-12 text-white/20 mb-3" />
-        <p className="text-sm text-white/40">Unable to load profile</p>
+        {error ? (
+          <>
+            <p className="text-sm text-white/40 mb-2">Error loading profile</p>
+            <p className="text-xs text-white/30 font-mono break-all">{error}</p>
+          </>
+        ) : (
+          <p className="text-sm text-white/40">Unable to load profile</p>
+        )}
       </div>
     );
   }
 
   const tierColors = TIER_COLORS[profile.tier.tier] || TIER_COLORS.bronze;
 
-  if (compact) {
-    return <CompactProfileCard profile={profile} tierColors={tierColors} />;
-  }
-
   return (
     <div className="h-full p-6 flex flex-col">
+      {/* Wallet Address Badge */}
+      {displayAddress && (
+        <div className="flex items-center gap-2 mb-4">
+          <button
+            onClick={copyAddress}
+            className={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono",
+              "bg-white/[0.03] border border-white/10 hover:border-white/20",
+              "transition-all duration-200 group"
+            )}
+            title={displayAddress}
+          >
+            <span className="text-white/60">
+              {formatAddress(displayAddress)}
+            </span>
+            {copied ? (
+              <Check className="h-3 w-3 text-emerald-400" />
+            ) : (
+              <Copy className="h-3 w-3 text-white/40 group-hover:text-white/60" />
+            )}
+          </button>
+          {isUsingDemoWallet && isDemoMode && (
+            <span className="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
+              Demo
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Header with Tier Badge */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
@@ -257,16 +365,9 @@ export function TraderProfileCard({
 
         {profile.badges.length > 0 ? (
           <div className="flex flex-wrap gap-2 relative">
-            {profile.badges.slice(0, 8).map((badge) => (
+            {profile.badges.map((badge) => (
               <BadgeIcon key={badge.id} badge={badge} />
             ))}
-            {profile.badges.length > 8 && (
-              <div className="h-10 px-3 rounded-lg bg-white/[0.03] border border-white/10 flex items-center">
-                <span className="text-sm text-white/50">
-                  +{profile.badges.length - 8}
-                </span>
-              </div>
-            )}
           </div>
         ) : (
           <div className="flex items-center justify-center py-4 rounded-lg bg-white/[0.02] border border-dashed border-white/10">

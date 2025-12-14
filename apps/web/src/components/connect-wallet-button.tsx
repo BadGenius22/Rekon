@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Wallet, ChevronDown, Copy, ExternalLink, LogOut, Loader2 } from "lucide-react";
+import {
+  Wallet,
+  ChevronDown,
+  Copy,
+  ExternalLink,
+  LogOut,
+  Loader2,
+} from "lucide-react";
 import { useWallet } from "@/providers/wallet-provider";
 import { useTrading } from "@/providers/trading-provider";
 import { useDemoMode } from "@/contexts/DemoModeContext";
@@ -12,12 +19,28 @@ function truncateAddress(address: string): string {
 }
 
 export function ConnectWalletButton() {
-  const { isDemoMode, demoSessionId } = useDemoMode();
-  const { eoaAddress, safeAddress: walletSafeAddress, isConnected, isConnecting, connect, disconnect } = useWallet();
-  const { safeAddress: tradingSafeAddress, isSafeDeployed, currentStep, error, initializeTrading } = useTrading();
+  const { isDemoMode, demoSessionId, demoWalletAddress } = useDemoMode();
+  const {
+    eoaAddress,
+    safeAddress: walletSafeAddress,
+    isConnected,
+    isConnecting,
+    connect,
+    disconnect,
+  } = useWallet();
+  const {
+    safeAddress: tradingSafeAddress,
+    isSafeDeployed,
+    currentStep,
+    error,
+    initializeTrading,
+  } = useTrading();
 
   // Use Safe address from wallet provider (available immediately) or trading provider (available after initialization)
-  const safeAddress = walletSafeAddress || tradingSafeAddress;
+  // In demo mode, use the backend's demoWalletAddress for consistency
+  const safeAddress = isDemoMode
+    ? demoWalletAddress
+    : walletSafeAddress || tradingSafeAddress;
 
   // Get deterministic demo wallet label
   const demoLabel = isDemoMode ? getDemoWalletLabel(demoSessionId) : null;
@@ -35,7 +58,10 @@ export function ConnectWalletButton() {
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsDropdownOpen(false);
       }
     }
@@ -112,10 +138,14 @@ export function ConnectWalletButton() {
         >
           <Loader2 className="h-4 w-4 animate-spin" />
           <span className="hidden lg:inline">
-            {safeAddress ? truncateAddress(safeAddress) : stepLabels[currentStep]}
+            {safeAddress
+              ? truncateAddress(safeAddress)
+              : stepLabels[currentStep]}
           </span>
           <ChevronDown
-            className={`h-3 w-3 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
+            className={`h-3 w-3 transition-transform ${
+              isDropdownOpen ? "rotate-180" : ""
+            }`}
           />
         </button>
 
@@ -140,13 +170,17 @@ export function ConnectWalletButton() {
             {/* EOA Address */}
             <div className="p-3 border-b border-white/5">
               <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1">
-                {isDemoMode ? demoLabel || "Demo Wallet" : "Connected Wallet (EOA)"}
+                {isDemoMode
+                  ? demoLabel || "Demo Wallet"
+                  : "Connected Wallet (EOA)"}
               </p>
               <p className="text-xs font-mono text-white/80">
                 {eoaAddress ? truncateAddress(eoaAddress) : "—"}
               </p>
               {isDemoMode && (
-                <p className="text-[9px] text-orange-400 mt-0.5">Demo Mode (No Real Connection)</p>
+                <p className="text-[9px] text-orange-400 mt-0.5">
+                  Demo Mode (No Real Connection)
+                </p>
               )}
             </div>
 
@@ -215,6 +249,11 @@ export function ConnectWalletButton() {
     );
   }
 
+  // Get display address for demo mode
+  const displayAddress = isDemoMode
+    ? demoWalletAddress
+    : safeAddress || eoaAddress;
+
   // Ready state - show address with dropdown
   return (
     <div className="relative" ref={dropdownRef}>
@@ -224,63 +263,81 @@ export function ConnectWalletButton() {
       >
         <div className="h-4 w-4 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#8B5CF6]" />
         <span className="hidden lg:inline">
-          {safeAddress ? truncateAddress(safeAddress) : truncateAddress(eoaAddress!)}
+          {displayAddress ? truncateAddress(displayAddress) : "Loading..."}
         </span>
         <ChevronDown
-          className={`h-3 w-3 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
+          className={`h-3 w-3 transition-transform ${
+            isDropdownOpen ? "rotate-180" : ""
+          }`}
         />
       </button>
 
       {isDropdownOpen && (
         <div className="absolute right-0 top-full mt-2 w-64 rounded-lg border border-white/10 bg-[#0F1629] shadow-xl z-50 overflow-hidden">
-          {/* EOA Address - Show first */}
-          <div className="p-3 border-b border-white/5">
-            <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1">
-              {isDemoMode ? demoLabel || "Demo Wallet" : "Connected Wallet (EOA)"}
-            </p>
-            <p className="text-xs font-mono text-white/80">
-              {eoaAddress ? truncateAddress(eoaAddress) : "—"}
-            </p>
-            {isDemoMode && (
-              <p className="text-[9px] text-orange-400 mt-0.5">Demo Mode (No Real Connection)</p>
-            )}
-          </div>
-
-          {/* Safe Wallet Status */}
-          {safeAddress && (
+          {/* Demo Wallet Address - In demo mode, show the synced address */}
+          {isDemoMode ? (
             <div className="p-3 border-b border-white/5">
               <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1">
-                Trading Wallet (Safe)
+                {demoLabel || "Demo Wallet"}
               </p>
-              {isSafeDeployed ? (
-                <>
-                  <p className="text-xs font-mono text-white/80">
-                    {truncateAddress(safeAddress)}
-                  </p>
-                  <p className="text-[10px] text-green-400/80 mt-1 flex items-center gap-1">
-                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-400"></span>
-                    Deployed & Ready
-                  </p>
-                </>
-              ) : (
-                <>
-                  <div className="px-2 py-1.5 rounded bg-yellow-500/10 border border-yellow-500/20 mb-2">
-                    <p className="text-[10px] text-yellow-400 font-medium">
-                      ⚠️ Safe Wallet Not Deployed
-                    </p>
-                    <p className="text-[9px] text-yellow-400/70 mt-0.5">
-                      Deploy your Safe wallet to start trading
-                    </p>
-                  </div>
-                  <p className="text-xs font-mono text-white/40">
-                    {truncateAddress(safeAddress)}
-                  </p>
-                  <p className="text-[9px] text-white/30 mt-0.5">
-                    Predicted address (not deployed yet)
-                  </p>
-                </>
-              )}
+              <p className="text-xs font-mono text-white/80">
+                {demoWalletAddress
+                  ? truncateAddress(demoWalletAddress)
+                  : "Loading..."}
+              </p>
+              <p className="text-[9px] text-orange-400 mt-0.5">
+                Demo Mode - Unique per session
+              </p>
             </div>
+          ) : (
+            <>
+              {/* EOA Address - Show first */}
+              <div className="p-3 border-b border-white/5">
+                <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1">
+                  Connected Wallet (EOA)
+                </p>
+                <p className="text-xs font-mono text-white/80">
+                  {eoaAddress ? truncateAddress(eoaAddress) : "—"}
+                </p>
+              </div>
+
+              {/* Safe Wallet Status */}
+              {safeAddress && (
+                <div className="p-3 border-b border-white/5">
+                  <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1">
+                    Trading Wallet (Safe)
+                  </p>
+                  {isSafeDeployed ? (
+                    <>
+                      <p className="text-xs font-mono text-white/80">
+                        {truncateAddress(safeAddress)}
+                      </p>
+                      <p className="text-[10px] text-green-400/80 mt-1 flex items-center gap-1">
+                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-400"></span>
+                        Deployed & Ready
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="px-2 py-1.5 rounded bg-yellow-500/10 border border-yellow-500/20 mb-2">
+                        <p className="text-[10px] text-yellow-400 font-medium">
+                          ⚠️ Safe Wallet Not Deployed
+                        </p>
+                        <p className="text-[9px] text-yellow-400/70 mt-0.5">
+                          Deploy your Safe wallet to start trading
+                        </p>
+                      </div>
+                      <p className="text-xs font-mono text-white/40">
+                        {truncateAddress(safeAddress)}
+                      </p>
+                      <p className="text-[9px] text-white/30 mt-0.5">
+                        Predicted address (not deployed yet)
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+            </>
           )}
 
           {/* Actions */}

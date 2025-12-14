@@ -4,8 +4,10 @@ import {
   getPositionsBySession,
   getRawPolymarketPositions,
 } from "../services/positions";
+import { generateDemoPositions } from "../services/demo-portfolio";
 import { getSessionFromContext } from "../middleware/session";
 import { isEsportsPosition } from "../services/portfolio";
+import { isDemoModeEnabled } from "../middleware/demo-mode";
 
 /**
  * Positions Controllers
@@ -52,12 +54,16 @@ export async function getPositionsController(c: Context) {
     );
   }
 
-  // Use wallet address from query parameter if provided, otherwise from session
+  // Determine wallet address based on mode and availability
+  // Priority: 1) Query param, 2) Session wallet, 3) Demo wallet (in demo mode)
   let walletAddress: string | undefined;
+
   if (validation.data.user) {
     walletAddress = validation.data.user;
   } else if (session?.walletAddress) {
     walletAddress = session.walletAddress;
+  } else if (isDemoModeEnabled() && session?.demoWalletAddress) {
+    walletAddress = session.demoWalletAddress;
   } else {
     return c.json(
       {
@@ -69,9 +75,26 @@ export async function getPositionsController(c: Context) {
     );
   }
 
+  // Check if using demo wallet (whether passed via param or session)
+  const isUsingDemoWallet =
+    isDemoModeEnabled() &&
+    (walletAddress === session?.demoWalletAddress ||
+      (walletAddress?.startsWith("0x") && !session?.walletAddress));
+
   try {
-    // Check if we should return raw Polymarket positions
     const query = validation.data;
+
+    // In demo mode with demo wallet, return mock positions
+    if (isUsingDemoWallet && walletAddress) {
+      const demoPositions = generateDemoPositions(
+        walletAddress,
+        query.limit || 12
+      );
+      // All demo positions are esports, so no additional filtering needed
+      return c.json(demoPositions);
+    }
+
+    // Check if we should return raw Polymarket positions
     const shouldReturnRaw =
       query.sizeThreshold !== undefined ||
       query.limit !== undefined ||

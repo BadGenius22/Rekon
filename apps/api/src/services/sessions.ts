@@ -58,6 +58,16 @@ function generateSessionId(): string {
 }
 
 /**
+ * Generates a random Ethereum-style wallet address for demo mode.
+ * This is used to give each session a unique identity for logging/analytics.
+ *
+ * Format: 0x + 40 hex characters (20 bytes)
+ */
+function generateDemoWalletAddress(): string {
+  return "0x" + randomBytes(20).toString("hex");
+}
+
+/**
  * Creates a new user session.
  *
  * @param request - Session creation request
@@ -75,6 +85,9 @@ export async function createSession(
     createdAt: now.toISOString(),
     lastActiveAt: now.toISOString(),
     expiresAt: expiresAt.toISOString(),
+    // Generate a unique demo wallet address for this session
+    // Used for demo mode portfolio/activity and logging
+    demoWalletAddress: generateDemoWalletAddress(),
     tradingPreferences: request.attribution?.userId
       ? undefined
       : {
@@ -129,10 +142,16 @@ export async function getSession(
       return null;
     }
 
+    // Migrate: add demoWalletAddress if missing (for sessions created before this feature)
+    const needsMigration = !session.demoWalletAddress;
+
     // Update last active timestamp and extend TTL
     const updated: UserSession = {
       ...session,
       lastActiveAt: new Date().toISOString(),
+      // Add demoWalletAddress if missing
+      demoWalletAddress:
+        session.demoWalletAddress || generateDemoWalletAddress(),
     };
 
     await redis
@@ -140,6 +159,15 @@ export async function getSession(
       .catch((error: unknown) => {
         console.error(`Redis set error for session ${key}:`, error);
       });
+
+    if (needsMigration) {
+      console.debug(
+        `[Session] Migrated session ${sessionId.slice(
+          0,
+          8
+        )} with demoWalletAddress`
+      );
+    }
 
     return updated;
   }
@@ -154,6 +182,17 @@ export async function getSession(
   if (new Date(session.expiresAt) < new Date()) {
     inMemorySessionStore.delete(sessionId);
     return null;
+  }
+
+  // Migrate: add demoWalletAddress if missing
+  if (!session.demoWalletAddress) {
+    session.demoWalletAddress = generateDemoWalletAddress();
+    console.debug(
+      `[Session] Migrated in-memory session ${sessionId.slice(
+        0,
+        8
+      )} with demoWalletAddress`
+    );
   }
 
   session.lastActiveAt = new Date().toISOString();

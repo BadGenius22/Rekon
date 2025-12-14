@@ -58,6 +58,7 @@ export async function getCurrentSessionController(c: Context) {
   return c.json({
     sessionId: session.sessionId,
     walletAddress: session.walletAddress,
+    demoWalletAddress: session.demoWalletAddress,
     expiresAt: session.expiresAt,
     tradingPreferences: session.tradingPreferences,
   });

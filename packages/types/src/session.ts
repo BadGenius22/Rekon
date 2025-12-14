@@ -24,6 +24,9 @@ export interface UserSession {
   signatureType?: 0 | 1; // 0 = browser wallet, 1 = email login
   walletLinkedAt?: string; // ISO timestamp when wallet was linked
 
+  // Demo mode identity
+  demoWalletAddress?: string; // Random wallet address for demo mode (unique per session)
+
   // Trading context
   tradingPreferences?: TradingPreferences;
   attribution?: AttributionContext;
@@ -76,5 +79,5 @@ export interface SessionResponse {
   expiresAt: string;
   walletAddress?: string;
   safeAddress?: string;
+  demoWalletAddress?: string; // Unique demo wallet for this session
 }
-

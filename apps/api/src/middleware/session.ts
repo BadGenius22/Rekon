@@ -1,18 +1,7 @@
 import type { Context, Next } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import { getSession, createSession } from "../services/sessions";
-
-// Temporary type until @rekon/types is updated
-type UserSession = {
-  sessionId: string;
-  fingerprintId?: string;
-  userAgent?: string;
-  attribution?: {
-    source: string;
-  };
-  createdAt: string;
-  lastActiveAt: string;
-};
+import type { UserSession } from "@rekon/types";
 
 /**
  * Session Middleware
