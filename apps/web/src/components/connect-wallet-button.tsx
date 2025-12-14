@@ -151,15 +151,17 @@ export function ConnectWalletButton() {
             </div>
 
             {/* Actions */}
-            <div className="p-2">
-              <button
-                onClick={handleDisconnect}
-                className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition-colors"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                Disconnect
-              </button>
-            </div>
+            {!isDemoMode && (
+              <div className="p-2">
+                <button
+                  onClick={handleDisconnect}
+                  className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  Disconnect
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -189,22 +191,24 @@ export function ConnectWalletButton() {
             </div>
 
             {/* Actions */}
-            <div className="p-2">
-              <button
-                onClick={handleRetry}
-                className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs bg-[#3B82F6] text-white hover:bg-[#2563EB] transition-colors mb-1"
-              >
-                <Wallet className="h-3.5 w-3.5" />
-                Retry
-              </button>
-              <button
-                onClick={handleDisconnect}
-                className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition-colors"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                Disconnect
-              </button>
-            </div>
+            {!isDemoMode && (
+              <div className="p-2">
+                <button
+                  onClick={handleRetry}
+                  className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs bg-[#3B82F6] text-white hover:bg-[#2563EB] transition-colors mb-1"
+                >
+                  <Wallet className="h-3.5 w-3.5" />
+                  Retry
+                </button>
+                <button
+                  onClick={handleDisconnect}
+                  className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  Disconnect
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -281,7 +285,7 @@ export function ConnectWalletButton() {
 
           {/* Actions */}
           <div className="p-2">
-            {!isSafeDeployed && (
+            {!isSafeDeployed && !isDemoMode && (
               <button
                 onClick={handleRetry}
                 className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs bg-[#FACC15] text-[#020617] font-semibold hover:bg-[#FCD34D] transition-colors mb-1"
@@ -308,13 +312,15 @@ export function ConnectWalletButton() {
                 </button>
               </>
             )}
-            <button
-              onClick={handleDisconnect}
-              className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition-colors"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Disconnect
-            </button>
+            {!isDemoMode && (
+              <button
+                onClick={handleDisconnect}
+                className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Disconnect
+              </button>
+            )}
           </div>
         </div>
       )}

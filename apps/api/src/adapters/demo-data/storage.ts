@@ -73,6 +73,7 @@ export async function getDemoMetadata(): Promise<DemoMetadata | null> {
 
 /**
  * Save demo markets to Redis
+ * Splits into chunks to avoid Upstash 1MB request limit
  */
 export async function saveDemoMarkets(
   markets: PolymarketMarket[]
@@ -84,8 +85,24 @@ export async function saveDemoMarkets(
   }
 
   try {
-    await redis.set(KEYS.markets, JSON.stringify(markets), { ex: DEMO_TTL });
-    console.log(`[Demo Storage] Saved ${markets.length} markets to Redis`);
+    // Upstash has 1MB limit per request, split markets into chunks
+    const CHUNK_SIZE = 50;
+    const chunks = [];
+    for (let i = 0; i < markets.length; i += CHUNK_SIZE) {
+      chunks.push(markets.slice(i, i + CHUNK_SIZE));
+    }
+
+    // Save chunk count first
+    await redis.set(`${KEYS.markets}:count`, chunks.length, { ex: DEMO_TTL });
+
+    // Save each chunk
+    for (let i = 0; i < chunks.length; i++) {
+      await redis.set(`${KEYS.markets}:${i}`, chunks[i], { ex: DEMO_TTL });
+    }
+
+    console.log(
+      `[Demo Storage] Saved ${markets.length} markets in ${chunks.length} chunks`
+    );
     return true;
   } catch (error) {
     console.error("[Demo Storage] Error saving markets:", error);
@@ -95,15 +112,27 @@ export async function saveDemoMarkets(
 
 /**
  * Get demo markets from Redis
+ * Reassembles from chunks
  */
 export async function getDemoMarkets(): Promise<PolymarketMarket[]> {
   const redis = getRedisClient();
   if (!redis) return [];
 
   try {
-    const data = await redis.get<string>(KEYS.markets);
-    if (!data) return [];
-    return JSON.parse(data) as PolymarketMarket[];
+    // Get chunk count
+    const chunkCount = await redis.get<number>(`${KEYS.markets}:count`);
+    if (!chunkCount) return [];
+
+    // Fetch all chunks and combine
+    const markets: PolymarketMarket[] = [];
+    for (let i = 0; i < chunkCount; i++) {
+      const chunk = await redis.get<PolymarketMarket[]>(`${KEYS.markets}:${i}`);
+      if (chunk) {
+        markets.push(...chunk);
+      }
+    }
+
+    return markets;
   } catch (error) {
     console.error("[Demo Storage] Error getting markets:", error);
     return [];
@@ -112,6 +141,7 @@ export async function getDemoMarkets(): Promise<PolymarketMarket[]> {
 
 /**
  * Save demo events to Redis
+ * Splits into chunks to avoid Upstash 1MB request limit
  */
 export async function saveDemoEvents(
   events: PolymarketEvent[]
@@ -123,8 +153,24 @@ export async function saveDemoEvents(
   }
 
   try {
-    await redis.set(KEYS.events, JSON.stringify(events), { ex: DEMO_TTL });
-    console.log(`[Demo Storage] Saved ${events.length} events to Redis`);
+    // Upstash has 1MB limit per request, split events into chunks
+    const CHUNK_SIZE = 25; // Events are larger than markets
+    const chunks = [];
+    for (let i = 0; i < events.length; i += CHUNK_SIZE) {
+      chunks.push(events.slice(i, i + CHUNK_SIZE));
+    }
+
+    // Save chunk count first
+    await redis.set(`${KEYS.events}:count`, chunks.length, { ex: DEMO_TTL });
+
+    // Save each chunk
+    for (let i = 0; i < chunks.length; i++) {
+      await redis.set(`${KEYS.events}:${i}`, chunks[i], { ex: DEMO_TTL });
+    }
+
+    console.log(
+      `[Demo Storage] Saved ${events.length} events in ${chunks.length} chunks`
+    );
     return true;
   } catch (error) {
     console.error("[Demo Storage] Error saving events:", error);
@@ -134,15 +180,27 @@ export async function saveDemoEvents(
 
 /**
  * Get demo events from Redis
+ * Reassembles from chunks
  */
 export async function getDemoEvents(): Promise<PolymarketEvent[]> {
   const redis = getRedisClient();
   if (!redis) return [];
 
   try {
-    const data = await redis.get<string>(KEYS.events);
-    if (!data) return [];
-    return JSON.parse(data) as PolymarketEvent[];
+    // Get chunk count
+    const chunkCount = await redis.get<number>(`${KEYS.events}:count`);
+    if (!chunkCount) return [];
+
+    // Fetch all chunks and combine
+    const events: PolymarketEvent[] = [];
+    for (let i = 0; i < chunkCount; i++) {
+      const chunk = await redis.get<PolymarketEvent[]>(`${KEYS.events}:${i}`);
+      if (chunk) {
+        events.push(...chunk);
+      }
+    }
+
+    return events;
   } catch (error) {
     console.error("[Demo Storage] Error getting events:", error);
     return [];
@@ -160,9 +218,7 @@ export async function saveDemoOrderBook(
   if (!redis) return false;
 
   try {
-    await redis.set(KEYS.orderbook(tokenId), JSON.stringify(orderBook), {
-      ex: DEMO_TTL,
-    });
+    await redis.set(KEYS.orderbook(tokenId), orderBook, { ex: DEMO_TTL });
     return true;
   } catch (error) {
     console.error("[Demo Storage] Error saving order book:", error);
@@ -180,9 +236,8 @@ export async function getDemoOrderBook(
   if (!redis) return null;
 
   try {
-    const data = await redis.get<string>(KEYS.orderbook(tokenId));
-    if (!data) return null;
-    return JSON.parse(data) as PolymarketOrderBook;
+    const data = await redis.get<PolymarketOrderBook>(KEYS.orderbook(tokenId));
+    return data || null;
   } catch (error) {
     console.error("[Demo Storage] Error getting order book:", error);
     return null;
@@ -200,9 +255,7 @@ export async function saveDemoTrades(
   if (!redis) return false;
 
   try {
-    await redis.set(KEYS.trades(tokenId), JSON.stringify(trades), {
-      ex: DEMO_TTL,
-    });
+    await redis.set(KEYS.trades(tokenId), trades, { ex: DEMO_TTL });
     return true;
   } catch (error) {
     console.error("[Demo Storage] Error saving trades:", error);
@@ -220,9 +273,8 @@ export async function getDemoTrades(
   if (!redis) return [];
 
   try {
-    const data = await redis.get<string>(KEYS.trades(tokenId));
-    if (!data) return [];
-    return JSON.parse(data) as PolymarketTrade[];
+    const data = await redis.get<PolymarketTrade[]>(KEYS.trades(tokenId));
+    return data || [];
   } catch (error) {
     console.error("[Demo Storage] Error getting trades:", error);
     return [];
@@ -239,7 +291,7 @@ export async function saveDemoPrices(
   if (!redis) return false;
 
   try {
-    await redis.set(KEYS.prices, JSON.stringify(prices), { ex: DEMO_TTL });
+    await redis.set(KEYS.prices, prices, { ex: DEMO_TTL });
     console.log(
       `[Demo Storage] Saved prices for ${Object.keys(prices).length} tokens`
     );
@@ -260,12 +312,10 @@ export async function getDemoPrice(
   if (!redis) return null;
 
   try {
-    const data = await redis.get<string>(KEYS.prices);
-    if (!data) return null;
-    const prices = JSON.parse(data) as Record<
-      string,
-      { price: number; timestamp: number }
-    >;
+    const prices = await redis.get<
+      Record<string, { price: number; timestamp: number }>
+    >(KEYS.prices);
+    if (!prices) return null;
     return prices[tokenId] || null;
   } catch (error) {
     console.error("[Demo Storage] Error getting price:", error);
