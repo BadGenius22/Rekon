@@ -7,8 +7,8 @@ import type {
   OrderBookEntry,
 } from "@rekon/types";
 import { getMarketById, getMarketBySlug } from "./markets";
-import { getOrderBookByMarketId } from "./orderbook";
-import { getTradesByMarketId } from "./trades";
+import { getOrderBookForMarket } from "./orderbook";
+import { getTradesForMarket } from "./trades";
 import { NotFound } from "../utils/http-errors";
 
 /**
@@ -70,17 +70,21 @@ export async function getMarketFull(
   }
 
   // Fetch all data in parallel for better performance
+  // OPTIMIZED: Pass market object directly to avoid redundant getMarketById calls
   let orderbook: OrderBook | null = null;
   let trades: Trade[] = [];
 
   try {
     [orderbook, trades] = await Promise.all([
-      getOrderBookByMarketId(marketId),
-      getTradesByMarketId(marketId, { limit: tradesLimit }),
+      getOrderBookForMarket(market),
+      getTradesForMarket(market, { limit: tradesLimit }),
     ]);
   } catch (error) {
     // Log the error but continue with whatever data we have
-    console.error(`Failed to fetch orderbook/trades for market ${marketId}:`, error);
+    console.error(
+      `Failed to fetch orderbook/trades for market ${marketId}:`,
+      error
+    );
     // Both are already null/empty, so we can continue
   }
 

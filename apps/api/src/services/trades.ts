@@ -1,4 +1,4 @@
-import type { Trade } from "@rekon/types";
+import type { Trade, Market } from "@rekon/types";
 import {
   fetchPolymarketTrades,
   mapPolymarketTrades,
@@ -18,20 +18,15 @@ export interface GetTradesParams {
 }
 
 /**
- * Gets trades for a market by market ID.
+ * Gets trades for a market using the market object directly.
+ * OPTIMIZED: Avoids redundant getMarketById call when caller already has the market.
  * Fetches trades for both outcome tokens (YES and NO) and combines them.
  * Uses cache to reduce API calls (2 second TTL).
  */
-export async function getTradesByMarketId(
-  marketId: string,
+export async function getTradesForMarket(
+  market: Market,
   params: GetTradesParams = {}
 ): Promise<Trade[]> {
-  const market = await getMarketById(marketId);
-
-  if (!market) {
-    return [];
-  }
-
   const limit = params.limit || 100;
   const outcomeTokens = market.outcomeTokens || [];
 
@@ -42,15 +37,15 @@ export async function getTradesByMarketId(
   // Fetch trades for all outcome tokens in parallel
   const tradePromises = outcomeTokens.map(async (tokenId, index) => {
     try {
-  // Check cache first
-  const cacheKey = tradesCacheService.generateKey(tokenId, limit);
-  const cached = await tradesCacheService.get(cacheKey);
-  if (cached) {
-    return cached;
-  }
+      // Check cache first
+      const cacheKey = tradesCacheService.generateKey(tokenId, limit);
+      const cached = await tradesCacheService.get(cacheKey);
+      if (cached) {
+        return cached;
+      }
 
-  // Fetch from API
-  const rawTrades = await fetchPolymarketTrades(tokenId, limit);
+      // Fetch from API
+      const rawTrades = await fetchPolymarketTrades(tokenId, limit);
 
       // Determine if this is YES or NO outcome
       // First outcome is typically YES, second is NO
@@ -59,21 +54,21 @@ export async function getTradesByMarketId(
       const outcomeName =
         market.outcomes[index]?.name || (isYesOutcome ? "yes" : "no");
 
-  const trades = mapPolymarketTrades(
-    rawTrades,
-    marketId,
+      const trades = mapPolymarketTrades(
+        rawTrades,
+        market.id,
         outcomeName,
         sideHint
-  );
+      );
 
-  // Cache the result
-  await tradesCacheService.set(cacheKey, trades);
+      // Cache the result
+      await tradesCacheService.set(cacheKey, trades);
 
-  return trades;
+      return trades;
     } catch (error) {
       // Log error but don't fail the entire request
       console.warn(
-        `Failed to fetch trades for token ${tokenId} (market ${marketId}):`,
+        `Failed to fetch trades for token ${tokenId} (market ${market.id}):`,
         error
       );
       return [];
@@ -93,6 +88,27 @@ export async function getTradesByMarketId(
 
   // Return limited number of trades
   return allTrades.slice(0, limit);
+}
+
+/**
+ * Gets trades for a market by market ID.
+ * Fetches trades for both outcome tokens (YES and NO) and combines them.
+ * Uses cache to reduce API calls (2 second TTL).
+ *
+ * NOTE: If you already have the market object, use getTradesForMarket() instead
+ * to avoid redundant market lookups.
+ */
+export async function getTradesByMarketId(
+  marketId: string,
+  params: GetTradesParams = {}
+): Promise<Trade[]> {
+  const market = await getMarketById(marketId);
+
+  if (!market) {
+    return [];
+  }
+
+  return getTradesForMarket(market, params);
 }
 
 /**

@@ -22,6 +22,15 @@ async function getHighlightedMarkets(): Promise<Market[]> {
     // This ensures market counts match between home page and markets page
     url.searchParams.set("grouped", "true");
 
+    // Add demo_mode query param for SSR/ISR requests if demo mode is enabled
+    // This ensures backend uses Redis storage instead of calling Gamma API
+    const isDemoMode =
+      process.env.POLYMARKET_DEMO_MODE === "true" ||
+      process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+    if (isDemoMode) {
+      url.searchParams.set("demo_mode", "true");
+    }
+
     const response = await fetch(url.toString(), {
       next: { revalidate: 10 },
     });
@@ -97,7 +106,15 @@ export async function HomePage() {
   };
 
   // Supported games for filtering
-  const supportedGames = ["cs2", "lol", "dota2", "valorant", "cod", "r6", "hok"];
+  const supportedGames = [
+    "cs2",
+    "lol",
+    "dota2",
+    "valorant",
+    "cod",
+    "r6",
+    "hok",
+  ];
 
   // Count only markets with detected games
   const liveMarketsCount = markets.filter((m) =>
@@ -139,7 +156,7 @@ export async function HomePage() {
                 {/* Gradient Background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-[#1D4ED8] via-[#22D3EE]/80 to-[#8B5CF6]" />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(15,23,42,0.7),transparent_60%)]" />
-                
+
                 {/* Content */}
                 <div className="relative p-8 sm:p-10 h-full flex flex-col justify-between min-h-[380px]">
                   <div className="space-y-5 max-w-xl">
@@ -149,16 +166,17 @@ export async function HomePage() {
                         Live Markets
                       </span>
                     </div>
-                    
+
                     <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight text-white tracking-tight">
                       Predict esports match outcomes{" "}
                       <span className="underline decoration-white/50 decoration-wavy underline-offset-4">
                         in real time
                       </span>
                     </h1>
-                    
+
                     <p className="text-base lg:text-lg leading-relaxed text-white/85">
-                      Real-time odds with instant settlements. Powered by Polymarket.
+                      Real-time odds with instant settlements. Powered by
+                      Polymarket.
                     </p>
                   </div>
 
@@ -201,7 +219,9 @@ export async function HomePage() {
                       <div className="text-2xl lg:text-3xl font-mono font-bold text-emerald-400">
                         {formatVolume(totalVolume)}
                       </div>
-                      <p className="text-xs text-white/40 mt-1">Esports markets</p>
+                      <p className="text-xs text-white/40 mt-1">
+                        Esports markets
+                      </p>
                     </div>
                   </div>
                 </BentoGridItem>
@@ -220,7 +240,9 @@ export async function HomePage() {
                       <div className="text-2xl lg:text-3xl font-mono font-bold text-sky-400">
                         {liveMarketsCount}
                       </div>
-                      <p className="text-xs text-white/40 mt-1">Active markets</p>
+                      <p className="text-xs text-white/40 mt-1">
+                        Active markets
+                      </p>
                     </div>
                   </div>
                 </BentoGridItem>
@@ -234,18 +256,64 @@ export async function HomePage() {
                       <Users className="h-5 w-5 text-purple-400" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-white">Volume by Game</h3>
-                      <p className="text-xs text-white/40">24h trading activity</p>
+                      <h3 className="text-sm font-bold text-white">
+                        Volume by Game
+                      </h3>
+                      <p className="text-xs text-white/40">
+                        24h trading activity
+                      </p>
                     </div>
                   </div>
                   <div className="space-y-2.5 max-h-[200px] overflow-y-auto pr-1">
-                    <GameVolumeBar game="CS2" volume={gameVolumes.cs2} colorFrom="#f97316" colorTo="#ea580c" totalVolume={totalVolume} />
-                    <GameVolumeBar game="Call of Duty" volume={gameVolumes.cod} colorFrom="#22c55e" colorTo="#16a34a" totalVolume={totalVolume} />
-                    <GameVolumeBar game="LoL" volume={gameVolumes.lol} colorFrom="#3b82f6" colorTo="#2563eb" totalVolume={totalVolume} />
-                    <GameVolumeBar game="Dota 2" volume={gameVolumes.dota2} colorFrom="#ef4444" colorTo="#dc2626" totalVolume={totalVolume} />
-                    <GameVolumeBar game="R6 Siege" volume={gameVolumes.r6} colorFrom="#a855f7" colorTo="#9333ea" totalVolume={totalVolume} />
-                    <GameVolumeBar game="Valorant" volume={gameVolumes.valorant} colorFrom="#ec4899" colorTo="#db2777" totalVolume={totalVolume} />
-                    <GameVolumeBar game="Honor of Kings" volume={gameVolumes.hok} colorFrom="#eab308" colorTo="#ca8a04" totalVolume={totalVolume} />
+                    <GameVolumeBar
+                      game="CS2"
+                      volume={gameVolumes.cs2}
+                      colorFrom="#f97316"
+                      colorTo="#ea580c"
+                      totalVolume={totalVolume}
+                    />
+                    <GameVolumeBar
+                      game="Call of Duty"
+                      volume={gameVolumes.cod}
+                      colorFrom="#22c55e"
+                      colorTo="#16a34a"
+                      totalVolume={totalVolume}
+                    />
+                    <GameVolumeBar
+                      game="LoL"
+                      volume={gameVolumes.lol}
+                      colorFrom="#3b82f6"
+                      colorTo="#2563eb"
+                      totalVolume={totalVolume}
+                    />
+                    <GameVolumeBar
+                      game="Dota 2"
+                      volume={gameVolumes.dota2}
+                      colorFrom="#ef4444"
+                      colorTo="#dc2626"
+                      totalVolume={totalVolume}
+                    />
+                    <GameVolumeBar
+                      game="R6 Siege"
+                      volume={gameVolumes.r6}
+                      colorFrom="#a855f7"
+                      colorTo="#9333ea"
+                      totalVolume={totalVolume}
+                    />
+                    <GameVolumeBar
+                      game="Valorant"
+                      volume={gameVolumes.valorant}
+                      colorFrom="#ec4899"
+                      colorTo="#db2777"
+                      totalVolume={totalVolume}
+                    />
+                    <GameVolumeBar
+                      game="Honor of Kings"
+                      volume={gameVolumes.hok}
+                      colorFrom="#eab308"
+                      colorTo="#ca8a04"
+                      totalVolume={totalVolume}
+                    />
                   </div>
                 </div>
               </BentoGridItem>
@@ -309,7 +377,7 @@ function GameVolumeBar({
   const percentage = totalVolume > 0 ? (volume / totalVolume) * 100 : 0;
   // Minimum width so bar is always visible
   const barWidth = Math.max(percentage, 3);
-  
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">

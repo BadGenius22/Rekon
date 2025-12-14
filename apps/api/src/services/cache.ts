@@ -8,54 +8,66 @@ import { HybridCache } from "../adapters/redis/cache.js";
  * Provides caching layer for Polymarket API responses to reduce rate limiting.
  * Uses Redis (Upstash) when available, falls back to in-memory LRU cache.
  *
- * Cache TTLs:
- * - Markets list: 5-10 seconds (frequently changing)
- * - Single market: 2-5 seconds (more stable)
- * - Order book: 2-3 seconds (very dynamic)
- * - Trades: 1-2 seconds (most dynamic)
+ * Cache TTLs (normal mode):
+ * - Markets list: 8 seconds (frequently changing)
+ * - Single market: 3 seconds (more stable)
+ * - Order book: 2 seconds (very dynamic)
+ * - Trades: 2 seconds (most dynamic)
+ *
+ * Cache TTLs (demo mode):
+ * - All caches: 5 minutes (demo data is static)
  */
+
+// Check if demo mode is enabled at startup
+// Demo data is static, so we can use much longer cache TTLs
+const isDemoMode =
+  process.env.POLYMARKET_DEMO_MODE === "true" ||
+  process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+
+// TTL multiplier for demo mode (5 minutes vs normal TTLs)
+const DEMO_TTL = 1000 * 60 * 5; // 5 minutes
 
 // Create separate caches for different data types with proper typing
 // These use HybridCache which automatically uses Redis if available
 const marketsListCache = new HybridCache<Market[]>({
   max: 100,
-  ttl: 1000 * 8, // 8 seconds for markets list
+  ttl: isDemoMode ? DEMO_TTL : 1000 * 8, // 5 min in demo, 8s in normal
   prefix: "rekon:markets:list",
 });
 
 const marketCache = new HybridCache<Market>({
   max: 500,
-  ttl: 1000 * 3, // 3 seconds for single market
+  ttl: isDemoMode ? DEMO_TTL : 1000 * 3, // 5 min in demo, 3s in normal
   prefix: "rekon:market",
 });
 
 const orderBookCache = new HybridCache<OrderBook>({
   max: 500,
-  ttl: 1000 * 2, // 2 seconds for order book
+  ttl: isDemoMode ? DEMO_TTL : 1000 * 2, // 5 min in demo, 2s in normal
   prefix: "rekon:orderbook",
 });
 
 const tradesCache = new HybridCache<Trade[]>({
   max: 500,
-  ttl: 1000 * 2, // 2 seconds for trades
+  ttl: isDemoMode ? DEMO_TTL : 1000 * 2, // 5 min in demo, 2s in normal
   prefix: "rekon:trades",
 });
 
 const chartCache = new HybridCache<OHLCV[]>({
   max: 500,
-  ttl: 1000 * 5, // 5 seconds for chart data
+  ttl: isDemoMode ? DEMO_TTL : 1000 * 5, // 5 min in demo, 5s in normal
   prefix: "rekon:chart",
 });
 
 const orderConfirmationCache = new HybridCache<Order>({
   max: 1000,
-  ttl: 1000 * 30, // 30 seconds for order confirmations
+  ttl: isDemoMode ? DEMO_TTL : 1000 * 30, // 5 min in demo, 30s in normal
   prefix: "rekon:order",
 });
 
 const priceHistoryCache = new HybridCache<PriceHistoryPoint[]>({
   max: 500,
-  ttl: 1000 * 30, // 30 seconds for price history (longer TTL since historical data is stable)
+  ttl: isDemoMode ? DEMO_TTL : 1000 * 30, // 5 min in demo, 30s in normal
   prefix: "rekon:price-history",
 });
 

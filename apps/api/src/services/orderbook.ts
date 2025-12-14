@@ -1,4 +1,4 @@
-import type { OrderBook } from "@rekon/types";
+import type { OrderBook, Market } from "@rekon/types";
 import {
   fetchPolymarketOrderBook,
   mapPolymarketOrderBook,
@@ -13,20 +13,15 @@ import { orderBookCacheService } from "./cache";
  */
 
 /**
- * Gets order book for a market by market ID.
+ * Gets order book for a market using the market object directly.
+ * OPTIMIZED: Avoids redundant getMarketById call when caller already has the market.
  * Fetches order book for the first outcome token (Yes outcome typically).
  * Uses cache to reduce API calls (2 second TTL).
- * Returns null if market not found or if Polymarket API fails.
+ * Returns null if market has no tokens or if Polymarket API fails.
  */
-export async function getOrderBookByMarketId(
-  marketId: string
+export async function getOrderBookForMarket(
+  market: Market
 ): Promise<OrderBook | null> {
-  const market = await getMarketById(marketId);
-
-  if (!market) {
-    return null;
-  }
-
   // Get first outcome token (typically Yes outcome)
   const tokenId = market.outcomeTokens?.[0];
   if (!tokenId) {
@@ -53,11 +48,32 @@ export async function getOrderBookByMarketId(
   } catch (error) {
     // Log the error and return null if Polymarket API fails
     console.warn(
-      `Failed to fetch orderbook for market ${marketId} (token ${tokenId}):`,
+      `Failed to fetch orderbook for market ${market.id} (token ${tokenId}):`,
       error
     );
     return null;
   }
+}
+
+/**
+ * Gets order book for a market by market ID.
+ * Fetches order book for the first outcome token (Yes outcome typically).
+ * Uses cache to reduce API calls (2 second TTL).
+ * Returns null if market not found or if Polymarket API fails.
+ *
+ * NOTE: If you already have the market object, use getOrderBookForMarket() instead
+ * to avoid redundant market lookups.
+ */
+export async function getOrderBookByMarketId(
+  marketId: string
+): Promise<OrderBook | null> {
+  const market = await getMarketById(marketId);
+
+  if (!market) {
+    return null;
+  }
+
+  return getOrderBookForMarket(market);
 }
 
 /**

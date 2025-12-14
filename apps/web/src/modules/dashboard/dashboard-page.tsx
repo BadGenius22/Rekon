@@ -21,6 +21,14 @@ async function getPortfolio(
     url.searchParams.set("user", userAddress);
     url.searchParams.set("scope", scope);
 
+    // Add demo_mode query param for SSR/ISR requests if demo mode is enabled
+    const isDemoMode =
+      process.env.POLYMARKET_DEMO_MODE === "true" ||
+      process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+    if (isDemoMode) {
+      url.searchParams.set("demo_mode", "true");
+    }
+
     const response = await fetch(url.toString(), {
       next: { revalidate: 10 },
     });
@@ -47,6 +55,14 @@ async function getTradeHistory(): Promise<Activity[]> {
     url.searchParams.set("sortDirection", "DESC");
     url.searchParams.set("esportsOnly", "true");
     url.searchParams.set("limit", "50");
+
+    // Add demo_mode query param for SSR/ISR requests if demo mode is enabled
+    const isDemoMode =
+      process.env.POLYMARKET_DEMO_MODE === "true" ||
+      process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+    if (isDemoMode) {
+      url.searchParams.set("demo_mode", "true");
+    }
 
     const response = await fetch(url.toString(), {
       next: { revalidate: 10 },

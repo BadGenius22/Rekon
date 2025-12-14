@@ -18,10 +18,21 @@ import type {
  * - demo:orderbook:{tokenId} - Order book for specific token
  * - demo:trades:{tokenId} - Recent trades for specific token
  * - demo:metadata - Snapshot metadata (timestamp, count, etc.)
+ *
+ * PERFORMANCE: Uses in-memory cache to avoid hitting Redis on every request.
+ * The cache is populated once and reused for the lifetime of the process.
  */
 
 const DEMO_PREFIX = "demo:";
 const DEMO_TTL = 60 * 60 * 24 * 7; // 7 days (long TTL for demo data)
+
+// In-memory cache for demo data (populated once from Redis, reused for all requests)
+// This dramatically improves performance by avoiding Redis round-trips on every lookup
+let marketsCache: PolymarketMarket[] | null = null;
+let eventsCache: PolymarketEvent[] | null = null;
+let marketsCacheTimestamp = 0;
+let eventsCacheTimestamp = 0;
+const MEMORY_CACHE_TTL = 60 * 1000; // 1 minute in-memory cache TTL
 
 // Redis keys
 const KEYS = {
@@ -85,6 +96,10 @@ export async function saveDemoMarkets(
   }
 
   try {
+    // Invalidate in-memory cache so next read fetches fresh data
+    marketsCache = null;
+    marketsCacheTimestamp = 0;
+
     // Upstash has 1MB limit per request, split markets into chunks
     const CHUNK_SIZE = 50;
     const chunks = [];
@@ -113,29 +128,52 @@ export async function saveDemoMarkets(
 /**
  * Get demo markets from Redis
  * Reassembles from chunks
+ *
+ * PERFORMANCE: Uses in-memory cache to avoid hitting Redis on every request.
+ * First call fetches from Redis and caches in memory.
+ * Subsequent calls return from memory cache (1 minute TTL).
  */
 export async function getDemoMarkets(): Promise<PolymarketMarket[]> {
+  // Check in-memory cache first
+  const now = Date.now();
+  if (marketsCache && now - marketsCacheTimestamp < MEMORY_CACHE_TTL) {
+    return marketsCache;
+  }
+
   const redis = getRedisClient();
-  if (!redis) return [];
+  if (!redis) return marketsCache || [];
 
   try {
     // Get chunk count
     const chunkCount = await redis.get<number>(`${KEYS.markets}:count`);
-    if (!chunkCount) return [];
+    if (!chunkCount) return marketsCache || [];
 
-    // Fetch all chunks and combine
-    const markets: PolymarketMarket[] = [];
+    // Fetch all chunks in parallel for better performance
+    const chunkPromises = [];
     for (let i = 0; i < chunkCount; i++) {
-      const chunk = await redis.get<PolymarketMarket[]>(`${KEYS.markets}:${i}`);
+      chunkPromises.push(redis.get<PolymarketMarket[]>(`${KEYS.markets}:${i}`));
+    }
+
+    const chunks = await Promise.all(chunkPromises);
+    const markets: PolymarketMarket[] = [];
+    for (const chunk of chunks) {
       if (chunk) {
         markets.push(...chunk);
       }
     }
 
+    // Update in-memory cache
+    marketsCache = markets;
+    marketsCacheTimestamp = now;
+
+    console.log(
+      `[Demo Storage] Loaded ${markets.length} markets into memory cache`
+    );
+
     return markets;
   } catch (error) {
     console.error("[Demo Storage] Error getting markets:", error);
-    return [];
+    return marketsCache || [];
   }
 }
 
@@ -153,6 +191,10 @@ export async function saveDemoEvents(
   }
 
   try {
+    // Invalidate in-memory cache so next read fetches fresh data
+    eventsCache = null;
+    eventsCacheTimestamp = 0;
+
     // Upstash has 1MB limit per request, split events into chunks
     const CHUNK_SIZE = 25; // Events are larger than markets
     const chunks = [];
@@ -181,29 +223,52 @@ export async function saveDemoEvents(
 /**
  * Get demo events from Redis
  * Reassembles from chunks
+ *
+ * PERFORMANCE: Uses in-memory cache to avoid hitting Redis on every request.
+ * First call fetches from Redis and caches in memory.
+ * Subsequent calls return from memory cache (1 minute TTL).
  */
 export async function getDemoEvents(): Promise<PolymarketEvent[]> {
+  // Check in-memory cache first
+  const now = Date.now();
+  if (eventsCache && now - eventsCacheTimestamp < MEMORY_CACHE_TTL) {
+    return eventsCache;
+  }
+
   const redis = getRedisClient();
-  if (!redis) return [];
+  if (!redis) return eventsCache || [];
 
   try {
     // Get chunk count
     const chunkCount = await redis.get<number>(`${KEYS.events}:count`);
-    if (!chunkCount) return [];
+    if (!chunkCount) return eventsCache || [];
 
-    // Fetch all chunks and combine
-    const events: PolymarketEvent[] = [];
+    // Fetch all chunks in parallel for better performance
+    const chunkPromises = [];
     for (let i = 0; i < chunkCount; i++) {
-      const chunk = await redis.get<PolymarketEvent[]>(`${KEYS.events}:${i}`);
+      chunkPromises.push(redis.get<PolymarketEvent[]>(`${KEYS.events}:${i}`));
+    }
+
+    const chunks = await Promise.all(chunkPromises);
+    const events: PolymarketEvent[] = [];
+    for (const chunk of chunks) {
       if (chunk) {
         events.push(...chunk);
       }
     }
 
+    // Update in-memory cache
+    eventsCache = events;
+    eventsCacheTimestamp = now;
+
+    console.log(
+      `[Demo Storage] Loaded ${events.length} events into memory cache`
+    );
+
     return events;
   } catch (error) {
     console.error("[Demo Storage] Error getting events:", error);
-    return [];
+    return eventsCache || [];
   }
 }
 
@@ -343,6 +408,17 @@ export async function saveDemoMetadata(
 }
 
 /**
+ * Clear in-memory cache (call after refreshing demo data)
+ */
+export function invalidateDemoCache(): void {
+  marketsCache = null;
+  eventsCache = null;
+  marketsCacheTimestamp = 0;
+  eventsCacheTimestamp = 0;
+  console.log("[Demo Storage] Invalidated in-memory cache");
+}
+
+/**
  * Clear all demo data from Redis
  */
 export async function clearDemoData(): Promise<boolean> {
@@ -350,6 +426,9 @@ export async function clearDemoData(): Promise<boolean> {
   if (!redis) return false;
 
   try {
+    // Invalidate in-memory cache first
+    invalidateDemoCache();
+
     // Get all keys with demo prefix and delete them
     // Note: Upstash doesn't support SCAN, so we delete known keys
     await redis.del(KEYS.markets);

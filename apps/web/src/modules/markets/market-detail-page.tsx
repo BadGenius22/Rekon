@@ -6,6 +6,27 @@ import { WatchlistProviderWrapper } from "@/components/watchlist-provider-wrappe
 import { MarketDetailClient } from "./market-detail-client";
 import { filterRelevantMarketTypes } from "@/lib/market-filters";
 
+/**
+ * Helper to build API URL with demo mode query param for SSR/ISR requests
+ */
+function buildApiUrlWithDemoMode(path: string): string {
+  const url = new URL(
+    path.startsWith("http")
+      ? path
+      : `${API_CONFIG.baseUrl}${path.startsWith("/") ? path : `/${path}`}`
+  );
+
+  // Add demo_mode query param if demo mode is enabled
+  const isDemoMode =
+    process.env.POLYMARKET_DEMO_MODE === "true" ||
+    process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+  if (isDemoMode) {
+    url.searchParams.set("demo_mode", "true");
+  }
+
+  return url.toString();
+}
+
 async function getMarketFull(
   identifier: string
 ): Promise<MarketFullResponse | null> {
@@ -13,6 +34,14 @@ async function getMarketFull(
     // Try the full market endpoint first (supports both slugs and IDs)
     const url = new URL(`${API_CONFIG.baseUrl}/market/full/${identifier}`);
     url.searchParams.set("tradesLimit", "20");
+
+    // Add demo_mode query param if demo mode is enabled
+    const isDemoMode =
+      process.env.POLYMARKET_DEMO_MODE === "true" ||
+      process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+    if (isDemoMode) {
+      url.searchParams.set("demo_mode", "true");
+    }
 
     const response = await fetch(url.toString(), {
       next: { revalidate: 10 },
@@ -31,7 +60,7 @@ async function getMarketFull(
 
       if (looksLikeSlug) {
         marketResponse = await fetch(
-          `${API_CONFIG.baseUrl}/markets/slug/${identifier}`,
+          buildApiUrlWithDemoMode(`/markets/slug/${identifier}`),
           {
             next: { revalidate: 10 },
           }
@@ -41,7 +70,7 @@ async function getMarketFull(
       // If slug lookup failed or doesn't look like a slug, try ID endpoint
       if (!marketResponse || !marketResponse.ok) {
         marketResponse = await fetch(
-          `${API_CONFIG.baseUrl}/markets/${identifier}`,
+          buildApiUrlWithDemoMode(`/markets/${identifier}`),
           {
             next: { revalidate: 10 },
           }
@@ -51,7 +80,7 @@ async function getMarketFull(
       // If that also fails, try condition ID endpoint (market ID might be condition ID)
       if (!marketResponse || !marketResponse.ok) {
         marketResponse = await fetch(
-          `${API_CONFIG.baseUrl}/markets/condition/${identifier}`,
+          buildApiUrlWithDemoMode(`/markets/condition/${identifier}`),
           {
             next: { revalidate: 10 },
           }
@@ -338,7 +367,7 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
   if (shouldShowSubevents) {
     try {
       const relatedMarketsResponse = await fetch(
-        `${API_CONFIG.baseUrl}/markets/event/${market.eventSlug}`,
+        buildApiUrlWithDemoMode(`/markets/event/${market.eventSlug}`),
         { next: { revalidate: 60 } }
       );
       if (relatedMarketsResponse.ok) {

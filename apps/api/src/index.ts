@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { compress } from "hono/compress";
 import { HTTPException } from "hono/http-exception";
 import { polymarketRateLimiter } from "./middleware/rate-limit";
 import { demoModeMiddleware } from "./middleware/demo-mode";
@@ -83,13 +84,21 @@ app.onError((err, c) => {
 
 // Middleware
 app.use("*", logger());
+
+// Compression middleware - reduces response sizes by ~70%
+app.use("*", compress());
+
 app.use(
   "*",
   cors({
     origin: (origin) => {
       // Allow requests from localhost (any port) in development
       if (process.env.NODE_ENV !== "production") {
-        if (!origin || origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
+        if (
+          !origin ||
+          origin.startsWith("http://localhost:") ||
+          origin.startsWith("http://127.0.0.1:")
+        ) {
           return origin;
         }
       }
