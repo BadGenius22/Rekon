@@ -309,3 +309,14 @@ export {
   RelayerTxType,
   RelayerTransactionState,
 } from "./polymarket";
+
+// ============================================================================
+// AI Signal Types
+// ============================================================================
+
+export type {
+  SignalResult,
+  SignalMetrics,
+  MarketSnapshot,
+  SignalPricing,
+} from "./signal";

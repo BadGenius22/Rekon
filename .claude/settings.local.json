@@ -22,7 +22,22 @@
       "Bash(chmod:*)",
       "Bash(git -C /home/dewaxindo/Rekon diff --stat HEAD)",
       "Bash(bash:*)",
-      "Bash(pnpm --filter @rekon/api type-check:*)"
+      "Bash(pnpm --filter @rekon/api type-check:*)",
+      "WebSearch",
+      "WebFetch(domain:docs.cdp.coinbase.com)",
+      "WebFetch(domain:www.quicknode.com)",
+      "Bash(pnpm --filter @rekon/config type-check:*)",
+      "Bash(pnpm --filter @rekon/types lint:*)",
+      "Bash(pnpm --filter @rekon/config lint:*)",
+      "Bash(pnpm --filter @rekon/types build:*)",
+      "Bash(pnpm --filter @rekon/config build:*)",
+      "Bash(pnpm --filter @rekon/types type-check:*)",
+      "Bash(pnpm install:*)",
+      "Bash(git -C /home/dewaxindo/Rekon status:*)",
+      "Bash(git -C /home/dewaxindo/Rekon diff --cached tsconfig.json)",
+      "Bash(git -C /home/dewaxindo/Rekon diff HEAD tsconfig.json)",
+      "Bash(pnpm lint:*)",
+      "Bash(npx eslint:*)"
     ],
     "deny": [],
     "ask": []

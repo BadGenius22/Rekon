@@ -149,3 +149,6 @@ export const REDIS_CONFIG = {
     process.env.REDIS_ENABLED !== "false" &&
     !!process.env.UPSTASH_REDIS_REST_URL,
 } as const;
+
+// x402 Payment Protocol Configuration
+export { X402_CONFIG } from "./x402";
