@@ -30,12 +30,13 @@ export const X402_CONFIG = {
   recipientAddress: process.env.X402_RECIPIENT_ADDRESS || "",
 
   // Network configuration
-  // Options: "polygon-amoy" (testnet), "polygon" (mainnet), "base" (mainnet), "base-sepolia" (testnet)
-  network: process.env.X402_NETWORK || "polygon-amoy",
+  // Options: "polygon" (mainnet), "polygon-amoy" (testnet), "base" (mainnet), "base-sepolia" (testnet)
+  network: process.env.X402_NETWORK || "polygon-mainnet",
 
   // x402 facilitator URL for payment verification
   // Coinbase CDP facilitator handles verification and settlement
-  facilitatorUrl: process.env.X402_FACILITATOR_URL || "https://x402.org/facilitator",
+  facilitatorUrl:
+    process.env.X402_FACILITATOR_URL || "https://x402.polygon.technology",
 
   // LLM configuration for signal explanations
   llmProvider: (process.env.LLM_PROVIDER || "openai") as "openai" | "anthropic",
@@ -49,13 +50,13 @@ if (X402_CONFIG.enabled) {
   if (!X402_CONFIG.recipientAddress) {
     throw new Error(
       "X402_RECIPIENT_ADDRESS is required when X402_ENABLED=true. " +
-      "Set this to your wallet address where x402 payments will be received."
+        "Set this to your wallet address where x402 payments will be received."
     );
   }
   if (!X402_CONFIG.llmApiKey) {
     throw new Error(
       "LLM_API_KEY is required when X402_ENABLED=true. " +
-      "Set this to your OpenAI or Anthropic API key for signal explanations."
+        "Set this to your OpenAI or Anthropic API key for signal explanations."
     );
   }
 }

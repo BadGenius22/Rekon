@@ -23,8 +23,8 @@ import { X402_CONFIG } from "@rekon/config";
 // Network mapping: Rekon config → CAIP-2 format
 // CAIP-2: https://github.com/ChainAgnostic/CAIPs/blob/main/CAIPs/caip-2.md
 const NETWORK_TO_CAIP2: Record<string, string> = {
+  "polygon-mainnet": "eip155:137", // Polygon Mainnet
   "polygon-amoy": "eip155:80002", // Polygon Amoy Testnet
-  polygon: "eip155:137", // Polygon Mainnet
   "base-sepolia": "eip155:84532", // Base Sepolia Testnet
   base: "eip155:8453", // Base Mainnet
 };
@@ -76,7 +76,8 @@ export function createX402Middleware() {
           network: network,
           payTo: X402_CONFIG.recipientAddress,
         },
-        description: "AI-powered market signal with bias, confidence, and explanation",
+        description:
+          "AI-powered market signal with bias, confidence, and explanation",
         mimeType: "application/json",
       },
     },
