@@ -173,7 +173,7 @@ import { gamificationRoutes } from "./routes/gamification";
 import { gamesRoutes } from "./routes/games";
 import { priceHistoryRoutes } from "./routes/price-history";
 import { signalRoutes } from "./routes/signal";
-import { x402Middleware, isX402Enabled } from "./middleware/x402";
+import { x402Middleware } from "./middleware/x402";
 
 // Apply rate limiting to all API routes that call Polymarket
 // Rate limiter is applied to each route group

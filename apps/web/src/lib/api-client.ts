@@ -1,4 +1,5 @@
 import { API_CONFIG } from "@rekon/config";
+import type { SignalResult, SignalPricing } from "@rekon/types";
 
 /**
  * API Client for Rekon Frontend
@@ -146,4 +147,112 @@ export function buildApiUrl(path: string, isDemoMode?: boolean): string {
   }
 
   return baseUrl;
+}
+
+// ============================================================================
+// Signal API (x402 Payment)
+// ============================================================================
+
+export interface SignalStatusResponse {
+  enabled: boolean;
+  message: string;
+}
+
+export interface SignalPricingResponse extends SignalPricing {
+  enabled: boolean;
+  networkCaip2: string | null;
+  description: string;
+}
+
+export interface SignalPreviewResponse extends SignalResult {
+  isPreview: true;
+  note: string;
+}
+
+export interface X402PaymentRequired {
+  x402Version: number;
+  error: string;
+  resource: {
+    url: string;
+    description: string;
+    mimeType: string;
+  };
+  accepts: Array<{
+    scheme: string;
+    network: string;
+    amount: string;
+    asset: string;
+    payTo: string;
+    maxTimeoutSeconds: number;
+    extra?: Record<string, unknown>;
+  }>;
+}
+
+/**
+ * Get signal system status (free endpoint)
+ */
+export async function getSignalStatus(): Promise<SignalStatusResponse> {
+  return apiGet<SignalStatusResponse>("/signal/status");
+}
+
+/**
+ * Get signal pricing info (free endpoint)
+ */
+export async function getSignalPricing(): Promise<SignalPricingResponse> {
+  return apiGet<SignalPricingResponse>("/signal/pricing");
+}
+
+/**
+ * Get signal preview without LLM explanation (free endpoint)
+ */
+export async function getSignalPreview(
+  marketId: string
+): Promise<SignalPreviewResponse> {
+  return apiGet<SignalPreviewResponse>(`/signal/market/${marketId}/preview`);
+}
+
+/**
+ * Get full signal with LLM explanation (paid endpoint)
+ *
+ * When x402 is enabled, this will return 402 Payment Required on first request.
+ * The response includes payment requirements in the X-PAYMENT-REQUIRED header.
+ *
+ * @param marketId - Market ID to get signal for
+ * @param paymentToken - Optional x402 payment token from wallet
+ * @returns Signal result or payment requirements
+ */
+export async function getSignal(
+  marketId: string,
+  paymentToken?: string
+): Promise<SignalResult | { paymentRequired: true; requirements: X402PaymentRequired }> {
+  const headers: Record<string, string> = {};
+
+  if (paymentToken) {
+    headers["X-PAYMENT"] = paymentToken;
+  }
+
+  const response = await apiFetch(`/signal/market/${marketId}`, {
+    method: "GET",
+    headers,
+  });
+
+  // Handle 402 Payment Required
+  if (response.status === 402) {
+    const paymentRequiredHeader = response.headers.get("X-PAYMENT-REQUIRED");
+    if (paymentRequiredHeader) {
+      const requirements = JSON.parse(
+        atob(paymentRequiredHeader)
+      ) as X402PaymentRequired;
+      return { paymentRequired: true, requirements };
+    }
+    throw new Error("Payment required but no requirements provided");
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `Signal API failed: ${response.status} ${response.statusText}`
+    );
+  }
+
+  return response.json();
 }
