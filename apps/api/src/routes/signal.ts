@@ -5,6 +5,7 @@ import {
   getSignalPricingController,
   getSignalStatusController,
 } from "../controllers/signal";
+import { x402Middleware } from "../middleware/x402";
 
 /**
  * Signal Routes
@@ -17,8 +18,7 @@ import {
  * - GET /signal/market/:marketId/preview - Preview signal without LLM (free)
  * - GET /signal/market/:marketId - Full signal with LLM (requires payment when x402 enabled)
  *
- * Note: The x402 middleware is applied at the app level in index.ts,
- * not here. This keeps routes clean and middleware configuration centralized.
+ * x402 middleware is applied only to the paid endpoint.
  */
 
 const signalRoutes = new Hono()
@@ -27,6 +27,6 @@ const signalRoutes = new Hono()
   .get("/status", getSignalStatusController)
   .get("/market/:marketId/preview", getSignalPreviewController)
   // Paid endpoint (protected by x402 middleware when enabled)
-  .get("/market/:marketId", getSignalController);
+  .get("/market/:marketId", x402Middleware, getSignalController);
 
 export { signalRoutes };

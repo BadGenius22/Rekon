@@ -195,30 +195,41 @@ function SignalContent({ signal }: { signal: SignalResult }) {
 function PaymentRequired({
   pricing,
   onPay,
+  isPaying,
 }: {
   pricing: { priceUsdc: string; network: string } | null;
   onPay: () => void;
+  isPaying: boolean;
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-6 text-center">
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-purple-500/20">
-        <Lock className="h-6 w-6 text-purple-400" />
+        {isPaying ? (
+          <Loader2 className="h-6 w-6 animate-spin text-purple-400" />
+        ) : (
+          <Lock className="h-6 w-6 text-purple-400" />
+        )}
       </div>
-      <h4 className="mb-1 font-semibold text-white">Unlock Full Analysis</h4>
+      <h4 className="mb-1 font-semibold text-white">
+        {isPaying ? "Processing Payment..." : "Unlock Full Analysis"}
+      </h4>
       <p className="mb-4 text-sm text-white/60">
-        Get AI-powered insights with detailed explanation
+        {isPaying
+          ? "Please confirm in your wallet"
+          : "Get AI-powered insights with detailed explanation"}
       </p>
-      {pricing && (
+      {pricing && !isPaying && (
         <button
           onClick={onPay}
-          className="flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 font-medium text-white hover:bg-purple-500 transition-colors"
+          disabled={isPaying}
+          className="flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 font-medium text-white hover:bg-purple-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Sparkles className="h-4 w-4" />
           Pay ${pricing.priceUsdc} USDC
         </button>
       )}
       <p className="mt-2 text-[10px] text-white/40">
-        via x402 • {pricing?.network || "polygon-mainnet"}
+        via x402 + thirdweb
       </p>
     </div>
   );
@@ -228,10 +239,12 @@ function StateRenderer({
   state,
   pricing,
   onPay,
+  isPaying,
 }: {
   state: SignalState;
   pricing: { priceUsdc: string; network: string } | null;
   onPay: () => void;
+  isPaying: boolean;
 }) {
   switch (state.status) {
     case "idle":
@@ -262,9 +275,12 @@ function StateRenderer({
                 {pricing && (
                   <button
                     onClick={onPay}
-                    className="mt-2 text-sm text-purple-400 underline hover:text-purple-300"
+                    disabled={isPaying}
+                    className="mt-2 text-sm text-purple-400 underline hover:text-purple-300 disabled:opacity-50"
                   >
-                    Unlock for ${pricing.priceUsdc} USDC →
+                    {isPaying
+                      ? "Processing..."
+                      : `Unlock for $${pricing.priceUsdc} USDC`}
                   </button>
                 )}
               </div>
@@ -273,8 +289,8 @@ function StateRenderer({
         </div>
       );
 
-    case "payment_required":
-      return <PaymentRequired pricing={pricing} onPay={onPay} />;
+    case "paying":
+      return <PaymentRequired pricing={pricing} onPay={onPay} isPaying={true} />;
 
     case "success":
       return <SignalContent signal={state.data} />;
@@ -294,25 +310,26 @@ export function SignalCard({
   marketTitle,
   className,
 }: SignalCardProps) {
-  const { state, pricing, fetchPreview, fetchSignal } = useSignal();
+  const { state, pricing, isPaying, isConfigured, fetchPreview, fetchSignal } =
+    useSignal();
 
   const handleGetSignal = () => {
-    if (pricing?.enabled) {
-      // x402 enabled - fetch full signal (will get 402 if not paid)
+    if (pricing?.enabled && isConfigured) {
+      // x402 enabled and configured - fetch signal directly (thirdweb handles payment flow)
       fetchSignal(marketId);
     } else {
-      // x402 disabled - get preview first
+      // x402 disabled or not configured - get preview first
       fetchPreview(marketId);
     }
   };
 
   const handlePay = () => {
-    // TODO: Integrate with wallet for x402 payment
-    // For now, just show alert
-    alert(
-      "x402 payment integration coming soon!\n\n" +
-        "This will connect to your wallet to pay for the signal."
-    );
+    // Thirdweb handles the entire payment flow:
+    // - Wallet connection if needed
+    // - Balance check and funding UI
+    // - Payment signing
+    // - Request retry with payment header
+    fetchSignal(marketId);
   };
 
   return (
@@ -331,7 +348,8 @@ export function SignalCard({
         {state.status === "idle" && (
           <button
             onClick={handleGetSignal}
-            className="rounded-md bg-purple-600/20 px-3 py-1.5 text-xs font-medium text-purple-300 hover:bg-purple-600/30 transition-colors"
+            disabled={isPaying}
+            className="rounded-md bg-purple-600/20 px-3 py-1.5 text-xs font-medium text-purple-300 hover:bg-purple-600/30 transition-colors disabled:opacity-50"
           >
             Get Signal
           </button>
@@ -343,7 +361,12 @@ export function SignalCard({
       )}
 
       {/* Content */}
-      <StateRenderer state={state} pricing={pricing} onPay={handlePay} />
+      <StateRenderer
+        state={state}
+        pricing={pricing}
+        onPay={handlePay}
+        isPaying={isPaying}
+      />
     </div>
   );
 }

@@ -107,7 +107,8 @@ app.use(
     },
     credentials: true,
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization", "x-demo-mode"],
+    allowHeaders: ["Content-Type", "Authorization", "x-demo-mode", "x-payment"],
+    exposeHeaders: ["x-payment-response", "x-payment-receipt"],
   })
 );
 
@@ -173,7 +174,6 @@ import { gamificationRoutes } from "./routes/gamification";
 import { gamesRoutes } from "./routes/games";
 import { priceHistoryRoutes } from "./routes/price-history";
 import { signalRoutes } from "./routes/signal";
-import { x402Middleware } from "./middleware/x402";
 
 // Apply rate limiting to all API routes that call Polymarket
 // Rate limiter is applied to each route group
@@ -193,12 +193,7 @@ app.use("/games/*", polymarketRateLimiter);
 app.use("/price-history/*", polymarketRateLimiter);
 app.use("/signal/*", polymarketRateLimiter);
 
-// Apply x402 payment middleware to signal routes (only if enabled)
-// This must be applied BEFORE the route is registered
-if (x402Middleware) {
-  app.use("/signal/*", x402Middleware);
-  console.log("💳 x402 payment middleware enabled for /signal/* routes");
-}
+// Note: x402 payment middleware is now applied at the route level in signal.ts
 
 app.route("/markets", marketsRoutes);
 app.route("/orderbook", orderbookRoutes);

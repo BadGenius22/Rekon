@@ -1,101 +1,144 @@
-import { paymentMiddleware, x402ResourceServer } from "@x402/hono";
-// @ts-expect-error - x402 packages use ESM exports that TypeScript bundler resolution doesn't fully support
-import { ExactEvmScheme } from "@x402/evm/exact/server";
-// @ts-expect-error - x402 packages use ESM exports that TypeScript bundler resolution doesn't fully support
-import { HTTPFacilitatorClient } from "@x402/core/server";
-import { X402_CONFIG } from "@rekon/config";
-
 /**
- * x402 Payment Middleware
+ * x402 Payment Middleware using Thirdweb Facilitator
  *
  * Protects AI signal endpoints with HTTP 402 Payment Required.
- * Uses Coinbase CDP facilitator for payment verification and settlement.
+ * Uses thirdweb facilitator for payment verification and settlement.
  *
  * Flow:
  * 1. Client requests /signal/market/:marketId
  * 2. If no payment header, returns 402 with payment requirements
- * 3. Client pays via wallet, receives payment token
- * 4. Client retries with X-PAYMENT header containing token
- * 5. Middleware verifies payment with facilitator
+ * 3. Client pays via wallet (handled by thirdweb client SDK)
+ * 4. Client retries with x-payment header containing token
+ * 5. Middleware verifies and settles payment with thirdweb facilitator
  * 6. If valid, request proceeds to controller
+ *
+ * @see https://portal.thirdweb.com/x402/server
+ * @see https://portal.thirdweb.com/x402/facilitator
  */
 
-// Network mapping: Rekon config → CAIP-2 format
-// CAIP-2: https://github.com/ChainAgnostic/CAIPs/blob/main/CAIPs/caip-2.md
-const NETWORK_TO_CAIP2: Record<string, string> = {
-  "polygon-mainnet": "eip155:137", // Polygon Mainnet
-  "polygon-amoy": "eip155:80002", // Polygon Amoy Testnet
-  "base-sepolia": "eip155:84532", // Base Sepolia Testnet
-  base: "eip155:8453", // Base Mainnet
-};
+import { createMiddleware } from "hono/factory";
+import type { Context, Next } from "hono";
+import { createThirdwebClient } from "thirdweb";
+import { facilitator, settlePayment } from "thirdweb/x402";
+import { polygon, polygonAmoy, base, baseSepolia } from "thirdweb/chains";
+import { X402_CONFIG } from "@rekon/config";
+
+// Network mapping: Rekon config → thirdweb chain
+// Supports both mainnet and testnet options
+const NETWORK_TO_CHAIN = {
+  "polygon-mainnet": polygon,
+  "polygon-amoy": polygonAmoy,
+  base: base,
+  "base-sepolia": baseSepolia,
+} as const;
+
+type SupportedNetwork = keyof typeof NETWORK_TO_CHAIN;
+
+// Lazy initialization of thirdweb client and facilitator
+let thirdwebClient: ReturnType<typeof createThirdwebClient> | null = null;
+let thirdwebFacilitator: ReturnType<typeof facilitator> | null = null;
+
+function getThirdwebClient() {
+  if (!thirdwebClient && X402_CONFIG.thirdwebSecretKey) {
+    thirdwebClient = createThirdwebClient({
+      secretKey: X402_CONFIG.thirdwebSecretKey,
+    });
+  }
+  return thirdwebClient;
+}
+
+function getThirdwebFacilitator() {
+  if (!thirdwebFacilitator) {
+    const client = getThirdwebClient();
+    if (client && X402_CONFIG.recipientAddress) {
+      thirdwebFacilitator = facilitator({
+        client,
+        serverWalletAddress: X402_CONFIG.recipientAddress,
+        // Use "confirmed" for production, "submitted" for faster demo
+        waitUntil: "submitted",
+      });
+    }
+  }
+  return thirdwebFacilitator;
+}
 
 /**
- * Creates the x402 resource server with registered payment schemes.
- * Lazy initialization to avoid errors when x402 is disabled.
+ * x402 Payment Middleware for Hono
+ *
+ * Wraps thirdweb's settlePayment in a Hono middleware.
+ * Returns 402 Payment Required if no valid payment provided.
  */
-function createResourceServer() {
-  const facilitatorClient = new HTTPFacilitatorClient({
-    url: X402_CONFIG.facilitatorUrl,
+export const x402Middleware = createMiddleware(async (c: Context, next: Next) => {
+  // Skip if x402 is disabled
+  if (!X402_CONFIG.enabled) {
+    return next();
+  }
+
+  const client = getThirdwebClient();
+  const fac = getThirdwebFacilitator();
+
+  if (!client || !fac) {
+    console.warn("[x402] Thirdweb client or facilitator not configured");
+    return next();
+  }
+
+  const networkKey = X402_CONFIG.network as SupportedNetwork;
+  const chain = NETWORK_TO_CHAIN[networkKey];
+  if (!chain) {
+    console.warn(
+      `[x402] Unknown network: ${X402_CONFIG.network}. Supported: ${Object.keys(NETWORK_TO_CHAIN).join(", ")}`
+    );
+    return next();
+  }
+
+  // Get payment data from header
+  const paymentData = c.req.header("x-payment") || null;
+
+  // Build resource URL
+  const url = new URL(c.req.url);
+  const resourceUrl = `${url.origin}${url.pathname}`;
+
+  // Settle payment using thirdweb facilitator
+  const result = await settlePayment({
+    resourceUrl,
+    method: c.req.method,
+    paymentData,
+    payTo: X402_CONFIG.recipientAddress,
+    network: chain,
+    price: `$${X402_CONFIG.priceUsdc}`,
+    facilitator: fac,
+    routeConfig: {
+      description: "AI-powered market signal with bias, confidence, and explanation",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 60 * 60, // 1 hour signature expiration
+    },
   });
 
-  return new x402ResourceServer(facilitatorClient).register(
-    "eip155:*", // All EVM chains
-    new ExactEvmScheme()
-  );
-}
-
-/**
- * Creates payment middleware for protecting signal endpoints.
- * Returns null if x402 is disabled.
- */
-export function createX402Middleware() {
-  if (!X402_CONFIG.enabled) {
-    return null;
+  // Payment successful - continue to handler
+  if (result.status === 200) {
+    // Set payment receipt headers
+    for (const [key, value] of Object.entries(result.responseHeaders)) {
+      c.header(key, value);
+    }
+    return next();
   }
 
-  const network = NETWORK_TO_CAIP2[X402_CONFIG.network];
-  if (!network) {
-    console.warn(
-      `[x402] Unknown network: ${X402_CONFIG.network}. x402 middleware disabled.`
-    );
-    return null;
-  }
-
-  const resourceServer = createResourceServer();
-
-  // Convert price from USDC string to dollar format for x402
-  // x402 accepts "$0.25" format and handles conversion internally
-  const priceFormatted = `$${X402_CONFIG.priceUsdc}`;
-
-  return paymentMiddleware(
-    {
-      "GET /signal/market/:marketId": {
-        accepts: {
-          scheme: "exact",
-          price: priceFormatted,
-          network: network,
-          payTo: X402_CONFIG.recipientAddress,
-        },
-        description:
-          "AI-powered market signal with bias, confidence, and explanation",
-        mimeType: "application/json",
-      },
-    },
-    resourceServer
-  );
-}
-
-/**
- * Export singleton middleware instance.
- * Will be null if x402 is disabled or misconfigured.
- */
-export const x402Middleware = createX402Middleware();
+  // Payment required or failed - return the response
+  return c.json(result.responseBody, {
+    status: result.status,
+    headers: result.responseHeaders,
+  });
+});
 
 /**
  * Helper to check if x402 is enabled and properly configured.
  */
 export function isX402Enabled(): boolean {
-  return X402_CONFIG.enabled && x402Middleware !== null;
+  return (
+    X402_CONFIG.enabled &&
+    !!X402_CONFIG.thirdwebSecretKey &&
+    !!X402_CONFIG.recipientAddress
+  );
 }
 
 /**
@@ -107,7 +150,8 @@ export function getX402PricingInfo() {
     priceUsdc: X402_CONFIG.priceUsdc,
     currency: "USDC",
     network: X402_CONFIG.network,
-    networkCaip2: NETWORK_TO_CAIP2[X402_CONFIG.network] || null,
     recipient: X402_CONFIG.recipientAddress,
+    // Thirdweb client ID for frontend
+    thirdwebClientId: X402_CONFIG.thirdwebClientId,
   };
 }

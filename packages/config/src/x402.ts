@@ -27,16 +27,17 @@ export const X402_CONFIG = {
   priceUsdc: process.env.X402_PRICE_USDC || "0.25",
 
   // Recipient wallet address (where payments are sent)
+  // This is also used as the serverWalletAddress for thirdweb facilitator
   recipientAddress: process.env.X402_RECIPIENT_ADDRESS || "",
 
   // Network configuration
   // Options: "polygon" (mainnet), "polygon-amoy" (testnet), "base" (mainnet), "base-sepolia" (testnet)
   network: process.env.X402_NETWORK || "polygon-mainnet",
 
-  // x402 facilitator URL for payment verification
-  // Coinbase CDP facilitator handles verification and settlement
-  facilitatorUrl:
-    process.env.X402_FACILITATOR_URL || "https://x402.polygon.technology",
+  // Thirdweb configuration (recommended for MVP)
+  // Get your keys from https://thirdweb.com/dashboard
+  thirdwebSecretKey: process.env.THIRDWEB_SECRET_KEY || "",
+  thirdwebClientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID || "",
 
   // LLM configuration for signal explanations
   llmProvider: (process.env.LLM_PROVIDER || "openai") as "openai" | "anthropic",
@@ -57,6 +58,13 @@ if (X402_CONFIG.enabled) {
     throw new Error(
       "LLM_API_KEY is required when X402_ENABLED=true. " +
         "Set this to your OpenAI or Anthropic API key for signal explanations."
+    );
+  }
+  // Thirdweb secret key is required for server-side facilitator
+  if (!X402_CONFIG.thirdwebSecretKey) {
+    throw new Error(
+      "THIRDWEB_SECRET_KEY is required when X402_ENABLED=true. " +
+        "Get your secret key from https://thirdweb.com/dashboard"
     );
   }
 }
