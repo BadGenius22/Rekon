@@ -142,7 +142,7 @@ export async function fetchPolymarketPositions(
     console.error("[Polymarket] Failed to fetch positions:", errorMessage);
 
     // Track API failure
-    trackPolymarketApiFailure("positions", errorMessage);
+    trackPolymarketApiFailure("positions", undefined, new Error(errorMessage));
 
     // Return empty array instead of throwing - portfolio will show 0 values
     return [];
@@ -257,10 +257,10 @@ export async function fetchPolymarketClosedPositions(
 
     // Handle both array response and object with data property
     if (Array.isArray(data)) {
-      return data as PolymarketPosition[];
+      return data as PolymarketClosedPosition[];
     }
     if (data && typeof data === "object" && "data" in data) {
-      return (data.data as PolymarketPosition[]) || [];
+      return (data.data as PolymarketClosedPosition[]) || [];
     }
     return [];
   } catch (error) {
@@ -272,7 +272,7 @@ export async function fetchPolymarketClosedPositions(
     );
 
     // Track API failure
-    trackPolymarketApiFailure("closed-positions", errorMessage);
+    trackPolymarketApiFailure("closed-positions", undefined, new Error(errorMessage));
 
     // Return empty array instead of throwing - portfolio will show 0 values
     return [];

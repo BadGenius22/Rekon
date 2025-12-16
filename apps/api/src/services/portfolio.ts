@@ -1,4 +1,4 @@
-import type { Portfolio, Position } from "@rekon/types";
+import type { Portfolio, Position, GameExposure } from "@rekon/types";
 import type { Fill } from "@rekon/types";
 import { getPositionsBySession } from "./positions";
 import { fetchUserFills } from "../adapters/polymarket/fills";
@@ -454,7 +454,7 @@ export async function getPortfolioBySession(
           }
         }
 
-        const exposureByGame: Portfolio["stats"]["exposureByGame"] = [];
+        const exposureByGame: GameExposure[] = [];
         for (const [game, data] of gameExposureMap) {
           exposureByGame.push({
             game,
@@ -464,7 +464,7 @@ export async function getPortfolioBySession(
           });
         }
         // Sort by exposure descending
-        exposureByGame.sort((a, b) => b.exposure - a.exposure);
+        exposureByGame.sort((a: GameExposure, b: GameExposure) => b.exposure - a.exposure);
 
         // Calculate total volume from activity API
         let totalVolume = 0;

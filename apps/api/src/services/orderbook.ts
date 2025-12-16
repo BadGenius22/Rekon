@@ -38,7 +38,8 @@ export async function getOrderBookForMarket(
     // Fetch from API
     const rawOrderBook = await fetchPolymarketOrderBook(tokenId);
     const orderBook = mapPolymarketOrderBook(
-      rawOrderBook as Parameters<typeof mapPolymarketOrderBook>[0]
+      rawOrderBook as Parameters<typeof mapPolymarketOrderBook>[0],
+      tokenId
     );
 
     // Cache the result
@@ -94,7 +95,8 @@ export async function getOrderBookByTokenId(
     // Fetch from API
     const rawOrderBook = await fetchPolymarketOrderBook(tokenId);
     const orderBook = mapPolymarketOrderBook(
-      rawOrderBook as Parameters<typeof mapPolymarketOrderBook>[0]
+      rawOrderBook as Parameters<typeof mapPolymarketOrderBook>[0],
+      tokenId
     );
 
     // Cache the result

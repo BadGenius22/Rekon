@@ -3,6 +3,8 @@ import type { PolymarketOrderBook } from "./types";
 import { mapPolymarketOrderBook } from "./mapOrderbook";
 
 describe("adapters/polymarket/mapPolymarketOrderBook", () => {
+  const TEST_TOKEN_ID = "test-token-123";
+
   it("maps array-format orderbook sides correctly", () => {
     const pmOrderBook: PolymarketOrderBook = {
       bids: [
@@ -15,16 +17,17 @@ describe("adapters/polymarket/mapPolymarketOrderBook", () => {
       ],
     };
 
-    const book = mapPolymarketOrderBook(pmOrderBook);
+    const book = mapPolymarketOrderBook(pmOrderBook, TEST_TOKEN_ID);
 
+    expect(book.marketId).toBe(TEST_TOKEN_ID);
     expect(book.bids).toEqual([
-      { price: 0.5, amount: 1, total: 1 },
-      { price: 0.4, amount: 2, total: 3 },
+      { price: 0.5, size: 1 },
+      { price: 0.4, size: 2 },
     ]);
 
     expect(book.asks).toEqual([
-      { price: 0.6, amount: 1.5, total: 1.5 },
-      { price: 0.7, amount: 0.5, total: 2 },
+      { price: 0.6, size: 1.5 },
+      { price: 0.7, size: 0.5 },
     ]);
   });
 
@@ -40,16 +43,17 @@ describe("adapters/polymarket/mapPolymarketOrderBook", () => {
       ],
     };
 
-    const book = mapPolymarketOrderBook(pmOrderBook);
+    const book = mapPolymarketOrderBook(pmOrderBook, TEST_TOKEN_ID);
 
+    expect(book.marketId).toBe(TEST_TOKEN_ID);
     expect(book.bids).toEqual([
-      { price: 0.5, amount: 1, total: 1 },
-      { price: 0.4, amount: 2, total: 3 },
+      { price: 0.5, size: 1 },
+      { price: 0.4, size: 2 },
     ]);
 
     expect(book.asks).toEqual([
-      { price: 0.6, amount: 1.5, total: 1.5 },
-      { price: 0.7, amount: 0.5, total: 2 },
+      { price: 0.6, size: 1.5 },
+      { price: 0.7, size: 0.5 },
     ]);
   });
 
@@ -59,7 +63,8 @@ describe("adapters/polymarket/mapPolymarketOrderBook", () => {
       asks: [],
     };
 
-    const book = mapPolymarketOrderBook(pmOrderBook);
+    const book = mapPolymarketOrderBook(pmOrderBook, TEST_TOKEN_ID);
+    expect(book.marketId).toBe(TEST_TOKEN_ID);
     expect(book.bids).toEqual([]);
     expect(book.asks).toEqual([]);
   });

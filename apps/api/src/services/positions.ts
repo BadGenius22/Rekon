@@ -64,9 +64,9 @@ function mapPolymarketPositionToPosition(
   // So unrealizedPnL = cashPnl - realizedPnl
   const cashPnl =
     typeof pmPosition.cashPnl === "number" ? pmPosition.cashPnl : 0;
-  const realizedPnl =
+  const realizedPnL =
     typeof pmPosition.realizedPnl === "number" ? pmPosition.realizedPnl : 0;
-  const unrealizedPnL = cashPnl - realizedPnl;
+  const unrealizedPnL = cashPnl - realizedPnL;
 
   // Parse endDate if available, otherwise use current date
   let createdAt: string;

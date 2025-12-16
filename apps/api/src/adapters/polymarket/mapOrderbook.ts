@@ -7,9 +7,13 @@ import type { PolymarketOrderBook, PolymarketOrderBookEntry } from "./types";
  * Handles different Polymarket response formats:
  * - Array format: [[price, size], ...]
  * - Object format: { price, size, ... }
+ *
+ * @param pmOrderBook - Raw Polymarket order book response
+ * @param tokenId - Token ID for this order book
  */
 export function mapPolymarketOrderBook(
-  pmOrderBook: PolymarketOrderBook
+  pmOrderBook: PolymarketOrderBook,
+  tokenId: string
 ): OrderBook {
   const bids = mapOrderBookSide(pmOrderBook.bids || []);
   const asks = mapOrderBookSide(pmOrderBook.asks || []);
@@ -17,6 +21,7 @@ export function mapPolymarketOrderBook(
   return {
     bids,
     asks,
+    marketId: tokenId,
   };
 }
 
@@ -32,54 +37,25 @@ function mapOrderBookSide(
 
   // Check if it's array format [[price, size], ...]
   if (Array.isArray(side[0]) && side[0].length === 2) {
-    return (side as Array<[string, string]>).map((entry, index) => {
+    return (side as Array<[string, string]>).map((entry) => {
       const price = parseNumericString(entry[0]);
-      const amount = parseNumericString(entry[1]);
+      const size = parseNumericString(entry[1]);
       return {
         price,
-        amount,
-        total: calculateTotal(
-          (side as Array<[string, string]>).slice(0, index + 1)
-        ),
+        size,
       };
     });
   }
 
   // Object format { price, size, ... }
-  return (side as PolymarketOrderBookEntry[]).map((entry, index, array) => {
+  return (side as PolymarketOrderBookEntry[]).map((entry) => {
     const price = parseNumericString(entry.price);
-    const amount = parseNumericString(entry.size);
+    const size = parseNumericString(entry.size);
     return {
       price,
-      amount,
-      total: calculateTotal(array.slice(0, index + 1)),
+      size,
     };
   });
-}
-
-/**
- * Calculates cumulative total for order book entries.
- */
-function calculateTotal(
-  entries: Array<[string, string]> | PolymarketOrderBookEntry[]
-): number {
-  if (entries.length === 0) {
-    return 0;
-  }
-
-  // Array format
-  if (Array.isArray(entries[0]) && entries[0].length === 2) {
-    return (entries as Array<[string, string]>).reduce(
-      (total, entry) => total + (parseNumericString(entry[1]) || 0),
-      0
-    );
-  }
-
-  // Object format
-  return (entries as PolymarketOrderBookEntry[]).reduce(
-    (total, entry) => total + (parseNumericString(entry.size) || 0),
-    0
-  );
 }
 
 /**

@@ -320,3 +320,75 @@ export type {
   MarketSnapshot,
   SignalPricing,
 } from "./signal";
+
+// ============================================================================
+// Session Types
+// ============================================================================
+
+export type {
+  UserSession,
+  TradingPreferences,
+  AttributionContext,
+  CreateSessionRequest,
+  SessionResponse,
+} from "./session";
+
+// ============================================================================
+// Watchlist Types
+// ============================================================================
+
+export type {
+  Watchlist,
+  WatchlistEntry,
+  AddToWatchlistRequest,
+  RemoveFromWatchlistRequest,
+} from "./watchlist";
+
+// ============================================================================
+// Simulation Types
+// ============================================================================
+
+export type {
+  OrderSimulationRequest,
+  OrderSimulationResponse,
+  OrderSimulationFill,
+} from "./simulation";
+
+// ============================================================================
+// Trade Placement Types
+// ============================================================================
+
+export type {
+  TradePlacementRequest,
+  TradePlacementResponse,
+  MarketResolution,
+} from "./trade";
+
+// ============================================================================
+// Alert Types
+// ============================================================================
+
+export type {
+  AlertCondition,
+  AlertDirection,
+  AlertStatus,
+  PriceAlert,
+  CreateAlertRequest,
+  UpdateAlertRequest,
+} from "./alert";
+
+// ============================================================================
+// Chart Types
+// ============================================================================
+
+export type { OHLCV, ChartData } from "./chart";
+
+// ============================================================================
+// Notification Types
+// ============================================================================
+
+export type {
+  NotificationType,
+  NotificationStatus,
+  Notification,
+} from "./notification";

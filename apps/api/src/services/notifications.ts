@@ -198,7 +198,7 @@ export async function markAllNotificationsRead(
         console.error(`Redis set error for notifications ${key}:`, error);
       });
   } else {
-    inMemoryNotificationsStore.set(sessionId, updated);
+    inMemoryNotificationsStore.set(identifier, updated);
   }
 }
 

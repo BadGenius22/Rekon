@@ -106,7 +106,7 @@ export async function fetchPolymarketActivity(
     console.error("[Polymarket] Failed to fetch activity:", errorMessage);
 
     // Track API failure
-    trackPolymarketApiFailure("activity", errorMessage);
+    trackPolymarketApiFailure("activity", undefined, new Error(errorMessage));
 
     // Re-throw to let service layer handle
     throw error;

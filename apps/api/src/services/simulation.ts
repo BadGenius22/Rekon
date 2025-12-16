@@ -88,7 +88,7 @@ function simulateBuyOrder(
   for (const ask of availableAsks) {
     if (remainingSize <= 0) break;
 
-    const fillSize = Math.min(remainingSize, ask.amount);
+    const fillSize = Math.min(remainingSize, ask.size);
     const fillCost = fillSize * ask.price;
 
     fills.push({
@@ -135,7 +135,7 @@ function simulateBuyOrder(
   const slippage = midPrice > 0 ? (averagePrice - midPrice) / midPrice : 0;
 
   // Depth analysis
-  const totalLiquidity = asks.reduce((sum, ask) => sum + ask.amount, 0);
+  const totalLiquidity = asks.reduce((sum, ask) => sum + ask.size, 0);
   const depthUsed = size / totalLiquidity;
 
   return {
@@ -192,7 +192,7 @@ function simulateSellOrder(
   for (const bid of availableBids) {
     if (remainingSize <= 0) break;
 
-    const fillSize = Math.min(remainingSize, bid.amount);
+    const fillSize = Math.min(remainingSize, bid.size);
     const fillCost = fillSize * bid.price; // Proceeds from this fill
 
     fills.push({
@@ -240,7 +240,7 @@ function simulateSellOrder(
   const slippage = midPrice > 0 ? (midPrice - averagePrice) / midPrice : 0;
 
   // Depth analysis
-  const totalLiquidity = bids.reduce((sum, bid) => sum + bid.amount, 0);
+  const totalLiquidity = bids.reduce((sum, bid) => sum + bid.size, 0);
   const depthUsed = size / totalLiquidity;
 
   return {

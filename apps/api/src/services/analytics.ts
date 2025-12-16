@@ -1,7 +1,4 @@
-import {
-  fetchBuilderVolume,
-  fetchMyBuilderStats,
-} from "../adapters/polymarket/builder";
+import { fetchMyBuilderStats } from "../adapters/polymarket/builder";
 import { fetchTotalMarketsTraded } from "../adapters/polymarket";
 
 /**
@@ -36,33 +33,29 @@ export interface BuilderVolumeAnalytics {
  *
  * Net fees and unique user counts are not available directly from the
  * Polymarket Builder API yet, so they are intentionally omitted here.
+ *
+ * Note: The current Polymarket Builder API has limited data available.
+ * Some fields are populated from available data, others use defaults.
  */
-export async function getBuilderVolumeAnalytics(): Promise<BuilderVolumeAnalytics> {
+export async function getBuilderVolumeAnalytics(): Promise<BuilderVolumeAnalytics | null> {
   const stats = await fetchMyBuilderStats();
 
-  // Fetch last 30 days of volume data for this builder
-  const volumeSeries = await fetchBuilderVolume(stats.builderId);
+  if (!stats) {
+    return null;
+  }
 
-  const recentSeries = volumeSeries.slice(-30);
-  const totalTradesLast30d = recentSeries.reduce(
-    (sum, point) => sum + (point.trades || 0),
-    0
-  );
-
+  // BuilderVolumeData has: address, name, volume, tradeCount, period
+  // Map these to our analytics format
   return {
-    builderId: stats.builderId,
-    builderName: stats.builderName,
-    totalVolume: stats.totalVolume,
-    currentRank: stats.currentRank,
-    dailyVolume: stats.dailyVolume,
-    weeklyVolume: stats.weeklyVolume,
-    monthlyVolume: stats.monthlyVolume,
-    totalTradesLast30d,
-    series: recentSeries.map((point) => ({
-      date: point.date,
-      volume: point.volume,
-      trades: point.trades,
-    })),
+    builderId: stats.address,
+    builderName: stats.name || "Unknown Builder",
+    totalVolume: stats.volume,
+    currentRank: 0, // Not available from current API
+    dailyVolume: 0, // Not available from current API
+    weeklyVolume: 0, // Not available from current API
+    monthlyVolume: stats.volume, // Use total as monthly approximation
+    totalTradesLast30d: stats.tradeCount,
+    series: [], // Time series not available from current API
   };
 }
 

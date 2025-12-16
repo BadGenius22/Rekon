@@ -53,10 +53,11 @@ describe("services/simulation - simulateOrder", () => {
 
   it("simulates a buy market order across multiple asks", async () => {
     const orderBook: OrderBook = {
+      marketId: "token-1",
       bids: [],
       asks: [
-        { price: 0.5, amount: 5, total: 5 },
-        { price: 0.6, amount: 10, total: 15 },
+        { price: 0.5, size: 5 },
+        { price: 0.6, size: 10 },
       ],
     };
 
@@ -85,9 +86,10 @@ describe("services/simulation - simulateOrder", () => {
 
   it("simulates a sell market order across multiple bids", async () => {
     const orderBook: OrderBook = {
+      marketId: "token-2",
       bids: [
-        { price: 0.7, amount: 4, total: 4 },
-        { price: 0.6, amount: 6, total: 10 },
+        { price: 0.7, size: 4 },
+        { price: 0.6, size: 6 },
       ],
       asks: [],
     };
@@ -117,10 +119,11 @@ describe("services/simulation - simulateOrder", () => {
 
   it("throws BadRequest when buy limit order has no liquidity at or below limit", async () => {
     const orderBook: OrderBook = {
+      marketId: "token-3",
       bids: [],
       asks: [
-        { price: 0.6, amount: 5, total: 5 },
-        { price: 0.7, amount: 5, total: 10 },
+        { price: 0.6, size: 5 },
+        { price: 0.7, size: 5 },
       ],
     };
 
@@ -141,9 +144,10 @@ describe("services/simulation - simulateOrder", () => {
 
   it("throws BadRequest when sell limit order has no liquidity at or above limit", async () => {
     const orderBook: OrderBook = {
+      marketId: "token-4",
       bids: [
-        { price: 0.4, amount: 5, total: 5 },
-        { price: 0.45, amount: 5, total: 10 },
+        { price: 0.4, size: 5 },
+        { price: 0.45, size: 5 },
       ],
       asks: [],
     };

@@ -37,18 +37,18 @@ export async function publicSearchController(c: Context) {
     limitPerType: limitPerType ? Number(limitPerType) : undefined,
     type,
     cache: cache === "true" ? true : cache === "false" ? false : undefined,
-    eventsStatus,
+    eventsStatus: eventsStatus ?? undefined,
     page: page ? Number(page) : undefined,
     eventsTag: eventsTag.length > 0 ? eventsTag : undefined,
     keepClosedMarkets: keepClosedMarkets
       ? Number(keepClosedMarkets)
       : undefined,
-    sort,
+    sort: sort ?? undefined,
     ascending: ascending === "true" ? true : ascending === "false" ? false : undefined,
     searchTags: searchTags === "true" ? true : searchTags === "false" ? false : undefined,
     searchProfiles:
       searchProfiles === "true" ? true : searchProfiles === "false" ? false : undefined,
-    recurrence,
+    recurrence: recurrence ?? undefined,
     excludeTagId:
       excludeTagId.length > 0
         ? excludeTagId.map((id) => Number(id)).filter((id) => !isNaN(id))

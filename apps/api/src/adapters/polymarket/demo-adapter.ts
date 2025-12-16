@@ -4,6 +4,7 @@ import type {
   PolymarketTag,
   PolymarketOrderBook,
   PolymarketTrade,
+  PolymarketImageOptimized,
 } from "./types";
 import {
   getDemoMarkets,
@@ -13,6 +14,39 @@ import {
   getDemoPrice,
   hasDemoData,
 } from "../demo-data/storage";
+
+// ============================================================================
+// Demo Data Type Helpers
+// ============================================================================
+
+/** Placeholder image optimized object for demo data */
+const DEMO_IMAGE_OPTIMIZED: PolymarketImageOptimized = {
+  id: "demo",
+  imageUrlSource: "",
+  imageUrlOptimized: "",
+  imageSizeKbSource: 0,
+  imageSizeKbOptimized: 0,
+  imageOptimizedComplete: false,
+  imageOptimizedLastUpdated: "",
+  relID: 0,
+  field: "",
+  relname: "",
+};
+
+/** Placeholder esports tag for demo data */
+const DEMO_ESPORTS_TAG: PolymarketTag = {
+  id: "64",
+  slug: "esports",
+  label: "Esports",
+  forceShow: false,
+  publishedAt: "",
+  createdBy: 0,
+  updatedBy: 0,
+  createdAt: "",
+  updatedAt: "",
+  forceHide: false,
+  isCarousel: false,
+};
 
 /**
  * Demo Polymarket Adapter
@@ -130,11 +164,11 @@ const FALLBACK_MARKETS: PolymarketMarket[] = [
     acceptingOrders: true,
     notificationsEnabled: true,
     score: 0,
-    imageOptimized: {} as Record<string, unknown>,
-    iconOptimized: {} as Record<string, unknown>,
+    imageOptimized: DEMO_IMAGE_OPTIMIZED,
+    iconOptimized: DEMO_IMAGE_OPTIMIZED,
     events: [],
     categories: [],
-    tags: [{ id: "64", slug: "esports", label: "Esports" }],
+    tags: [DEMO_ESPORTS_TAG],
     creator: "",
     ready: true,
     funded: true,
@@ -273,11 +307,11 @@ const FALLBACK_MARKETS: PolymarketMarket[] = [
     acceptingOrders: true,
     notificationsEnabled: true,
     score: 0,
-    imageOptimized: {} as Record<string, unknown>,
-    iconOptimized: {} as Record<string, unknown>,
+    imageOptimized: DEMO_IMAGE_OPTIMIZED,
+    iconOptimized: DEMO_IMAGE_OPTIMIZED,
     events: [],
     categories: [],
-    tags: [{ id: "64", slug: "esports", label: "Esports" }],
+    tags: [DEMO_ESPORTS_TAG],
     creator: "",
     ready: true,
     funded: true,
@@ -416,11 +450,11 @@ const FALLBACK_MARKETS: PolymarketMarket[] = [
     acceptingOrders: true,
     notificationsEnabled: true,
     score: 0,
-    imageOptimized: {} as Record<string, unknown>,
-    iconOptimized: {} as Record<string, unknown>,
+    imageOptimized: DEMO_IMAGE_OPTIMIZED,
+    iconOptimized: DEMO_IMAGE_OPTIMIZED,
     events: [],
     categories: [],
-    tags: [{ id: "64", slug: "esports", label: "Esports" }],
+    tags: [DEMO_ESPORTS_TAG],
     creator: "",
     ready: true,
     funded: true,
@@ -556,11 +590,11 @@ const FALLBACK_MARKETS: PolymarketMarket[] = [
     acceptingOrders: true,
     notificationsEnabled: true,
     score: 0,
-    imageOptimized: {} as Record<string, unknown>,
-    iconOptimized: {} as Record<string, unknown>,
+    imageOptimized: DEMO_IMAGE_OPTIMIZED,
+    iconOptimized: DEMO_IMAGE_OPTIMIZED,
     events: [],
     categories: [],
-    tags: [{ id: "64", slug: "esports", label: "Esports" }],
+    tags: [DEMO_ESPORTS_TAG],
     creator: "",
     ready: true,
     funded: true,

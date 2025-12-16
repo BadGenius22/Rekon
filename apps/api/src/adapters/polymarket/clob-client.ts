@@ -13,7 +13,7 @@ import { createBuilderConfig } from "./builder-signing";
  */
 
 let clobClientInstance: ClobClient | null = null;
-let apiKeyCreds: ApiKeyCreds | null = null;
+let apiKeyCreds: ApiKeyCreds | undefined = undefined;
 
 /**
  * Gets or creates a ClobClient instance.
@@ -77,7 +77,7 @@ export async function getClobClient(): Promise<ClobClient> {
       // Continue without API key - ClobClient can still work for read-only operations
       // The client will be created without apiKeyCreds, which limits write functionality
       // but allows read operations to fall back to direct API calls
-      apiKeyCreds = null;
+      apiKeyCreds = undefined;
     }
   }
 
@@ -111,5 +111,5 @@ export async function getClobClient(): Promise<ClobClient> {
  */
 export function resetClobClient(): void {
   clobClientInstance = null;
-  apiKeyCreds = null;
+  apiKeyCreds = undefined;
 }

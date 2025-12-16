@@ -44,7 +44,7 @@ export async function getMarketFull(
 
   // Try to fetch market by slug first (user-friendly), then by ID (backward compatibility)
   let market: Market | null = null;
-  let marketId: string;
+  let marketId: string = "";
 
   // Check if identifier looks like a slug (contains hyphens, lowercase, no hex pattern)
   const looksLikeSlug =

@@ -644,9 +644,24 @@ async function getEsportsMarketsLegacy(
     closed: params.closed ?? false,
   };
 
-  // Fetch markets by tag for games that have tags configured
+  // Fetch markets by tag for games that have configured tags
+  const resultsByTag = await Promise.all(
+    tagIds.map((tagId: string) =>
+      getMarkets({
+        ...baseParams,
+        tagId,
+      })
+    )
+  );
+
+  // Games without tags (use text-based filtering for these)
+  const gamesWithTags = ["cs2", "lol", "dota2", "valorant"];
+  const allGames = ["cs2", "lol", "dota2", "valorant", "cod", "r6", "hok"];
+  const gamesWithoutTags = allGames.filter((g) => !gamesWithTags.includes(g));
+
+  // Fetch markets by text filtering for games without tags
   const resultsByText = await Promise.all(
-    gamesWithoutTags.map((gameSlug) => {
+    gamesWithoutTags.map((gameSlug: string) => {
       // Fetch all esports markets, then filter by game slug using text heuristics
       return getMarkets({
         ...baseParams,
