@@ -59,6 +59,15 @@ importers:
       '@upstash/redis':
         specifier: ^1.35.7
         version: 1.35.7
+      '@x402/core':
+        specifier: ^2.0.0
+        version: 2.0.0
+      '@x402/evm':
+        specifier: ^2.0.0
+        version: 2.0.0(typescript@5.9.3)
+      '@x402/hono':
+        specifier: ^2.0.0
+        version: 2.0.0(hono@4.10.7)
       ethers:
         specifier: ^6.15.0
         version: 6.15.0
@@ -2193,6 +2202,24 @@ packages:
       '@tanstack/query-core':
         optional: true
       typescript:
+        optional: true
+
+  '@x402/core@2.0.0':
+    resolution: {integrity: sha512-tgC8Ujj8Bi9zU1318RAOcagffaHRMPupqj0tlmcOm4j/a/iWGoN58SIpqFV98qkZi7z6BpFAsScCyXnmaDvIyQ==}
+
+  '@x402/evm@2.0.0':
+    resolution: {integrity: sha512-BA8zC1/AWYq99tWRLNoqudJkeZJpkbPdHMEjrsEOjineVoijnz5N/0NO0klxT64oDG9kNbeczwLU/mTj7NneEw==}
+
+  '@x402/extensions@2.0.0':
+    resolution: {integrity: sha512-EcQV4agdTqtiUN+pofGwx9MRI/caiPE0vpN2qas6qwKYuOSGzmmREvLWLfcirXkQt5alOZwecbAck/96+lHiDg==}
+
+  '@x402/hono@2.0.0':
+    resolution: {integrity: sha512-Nh83jypkmQf5UM0S4XbIZRYXrRTSisn7S4EZKlaLlegVOtRA9N6RoI6FujC8BVGXIe7hYTFKJmdbylDKSxVg2Q==}
+    peerDependencies:
+      '@x402/paywall': 2.0.0
+      hono: ^4.0.0
+    peerDependenciesMeta:
+      '@x402/paywall':
         optional: true
 
   abitype@1.1.0:
@@ -7357,6 +7384,33 @@ snapshots:
       - immer
       - react
       - use-sync-external-store
+
+  '@x402/core@2.0.0':
+    dependencies:
+      zod: 3.25.76
+
+  '@x402/evm@2.0.0(typescript@5.9.3)':
+    dependencies:
+      '@x402/core': 2.0.0
+      viem: 2.41.2(typescript@5.9.3)(zod@3.25.76)
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - bufferutil
+      - typescript
+      - utf-8-validate
+
+  '@x402/extensions@2.0.0':
+    dependencies:
+      '@x402/core': 2.0.0
+      ajv: 8.17.1
+      zod: 3.25.76
+
+  '@x402/hono@2.0.0(hono@4.10.7)':
+    dependencies:
+      '@x402/core': 2.0.0
+      '@x402/extensions': 2.0.0
+      hono: 4.10.7
+      zod: 3.25.76
 
   abitype@1.1.0(typescript@5.9.3)(zod@3.25.76):
     optionalDependencies:

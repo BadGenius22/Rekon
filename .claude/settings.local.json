@@ -37,7 +37,10 @@
       "Bash(git -C /home/dewaxindo/Rekon diff --cached tsconfig.json)",
       "Bash(git -C /home/dewaxindo/Rekon diff HEAD tsconfig.json)",
       "Bash(pnpm lint:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "mcp__Ref__ref_search_documentation",
+      "mcp__Ref__ref_read_url",
+      "Bash(xargs:*)"
     ],
     "deny": [],
     "ask": []
