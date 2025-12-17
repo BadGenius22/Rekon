@@ -90,12 +90,9 @@ export function ConnectWalletButton() {
 
   // Disconnected state
   if (!isConnected) {
-    // In demo mode, show demo label instead of "Connect Wallet"
-    const buttonLabel = isDemoMode
-      ? demoLabel || "Demo Wallet"
-      : isConnecting
-      ? "Connecting..."
-      : "Connect Wallet";
+    // Show "Connect Wallet" in both demo mode and production
+    // Demo mode now allows real wallet connection for x402 payments
+    const buttonLabel = isConnecting ? "Connecting..." : "Connect Wallet";
 
     return (
       <button
@@ -249,10 +246,9 @@ export function ConnectWalletButton() {
     );
   }
 
-  // Get display address for demo mode
-  const displayAddress = isDemoMode
-    ? demoWalletAddress
-    : safeAddress || eoaAddress;
+  // Get display address - prioritize real connected wallet even in demo mode
+  // for x402 payments, judges need to see their real wallet address
+  const displayAddress = eoaAddress || safeAddress || (isDemoMode ? demoWalletAddress : null);
 
   // Ready state - show address with dropdown
   return (
@@ -274,8 +270,20 @@ export function ConnectWalletButton() {
 
       {isDropdownOpen && (
         <div className="absolute right-0 top-full mt-2 w-64 rounded-lg border border-white/10 bg-[#0F1629] shadow-xl z-50 overflow-hidden">
-          {/* Demo Wallet Address - In demo mode, show the synced address */}
-          {isDemoMode ? (
+          {/* Connected Wallet Address - Show real wallet in both modes */}
+          {isDemoMode && eoaAddress ? (
+            <div className="p-3 border-b border-white/5">
+              <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1">
+                Connected Wallet (EOA)
+              </p>
+              <p className="text-xs font-mono text-white/80">
+                {truncateAddress(eoaAddress)}
+              </p>
+              <p className="text-[9px] text-orange-400 mt-0.5">
+                Demo Mode - Real wallet for x402 payments
+              </p>
+            </div>
+          ) : isDemoMode ? (
             <div className="p-3 border-b border-white/5">
               <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1">
                 {demoLabel || "Demo Wallet"}
@@ -286,7 +294,7 @@ export function ConnectWalletButton() {
                   : "Loading..."}
               </p>
               <p className="text-[9px] text-orange-400 mt-0.5">
-                Demo Mode - Unique per session
+                Demo Mode - Connect wallet for x402 payments
               </p>
             </div>
           ) : (
@@ -369,7 +377,8 @@ export function ConnectWalletButton() {
                 </button>
               </>
             )}
-            {!isDemoMode && (
+            {/* Show disconnect in production mode, or in demo mode when wallet is connected */}
+            {(!isDemoMode || eoaAddress) && (
               <button
                 onClick={handleDisconnect}
                 className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-red-400/80 hover:bg-red-500/10 hover:text-red-400 transition-colors"

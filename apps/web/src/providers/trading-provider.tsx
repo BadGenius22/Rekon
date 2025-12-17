@@ -20,6 +20,7 @@ import {
   RelayerTransactionState,
 } from "@rekon/types";
 import { useWallet } from "./wallet-provider";
+import { useDemoMode } from "@/contexts/DemoModeContext";
 import {
   POLYGON_CHAIN_ID,
   POLYMARKET_URLS,
@@ -85,6 +86,7 @@ interface TradingProviderProps {
 }
 
 export function TradingProvider({ children }: TradingProviderProps) {
+  const { isDemoMode } = useDemoMode();
   const { eoaAddress, ethersSigner, isConnected, publicClient } = useWallet();
 
   const [safeAddress, setSafeAddress] = useState<string | null>(null);
@@ -652,12 +654,17 @@ export function TradingProvider({ children }: TradingProviderProps) {
     initializeClobClient,
   ]);
 
-  // Auto-initialize when wallet connects
+  // Auto-initialize when wallet connects (skip in demo mode)
   useEffect(() => {
+    // In demo mode, skip Safe wallet initialization (x402 only needs EOA)
+    if (isDemoMode) {
+      return;
+    }
+
     if (isConnected && ethersSigner && currentStep === "disconnected") {
       initializeTrading();
     }
-  }, [isConnected, ethersSigner, currentStep, initializeTrading]);
+  }, [isConnected, ethersSigner, currentStep, initializeTrading, isDemoMode]);
 
   const value: TradingContextValue = {
     safeAddress,

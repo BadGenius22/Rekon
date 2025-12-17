@@ -11,7 +11,7 @@ import React, {
 import { API_CONFIG } from "@rekon/config";
 import { useDemoMode } from "./DemoModeContext";
 import { useWallet } from "@/providers/wallet-provider";
-import type { Portfolio, Activity } from "@rekon/types";
+import type { Portfolio, Activity, GamificationProfile } from "@rekon/types";
 
 /**
  * Dashboard data that's fetched once and shared across all components.
@@ -62,35 +62,6 @@ interface PolymarketPosition {
   realizedPnl: number;
   icon?: string;
   endDate?: string;
-}
-
-interface GamificationProfile {
-  tier: {
-    tier: string;
-    name: string;
-    title: string;
-    icon: string;
-    minVolume: number;
-  };
-  currentVolume: number;
-  nextTierVolume: number | null;
-  tierProgress: number;
-  totalBadges: number;
-  badges: Array<{
-    id: string;
-    name: string;
-    description: string;
-    icon: string;
-    rarity: string;
-    earnedAt: string;
-  }>;
-  stats: {
-    totalTrades: number;
-    winningTrades: number;
-    losingTrades: number;
-    currentWinStreak: number;
-    bestWinStreak: number;
-  };
 }
 
 const DashboardDataContext = createContext<DashboardData | undefined>(

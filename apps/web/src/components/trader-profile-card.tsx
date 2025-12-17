@@ -7,6 +7,7 @@ import { API_CONFIG } from "@rekon/config";
 import type { GamificationProfile, Badge } from "@rekon/types";
 import { Loader2, Trophy, Target, Flame, Zap, Copy, Check } from "lucide-react";
 import { useDemoMode } from "@/contexts/DemoModeContext";
+import { useWallet } from "@/providers/wallet-provider";
 
 interface TraderProfileCardProps {
   userAddress?: string;
@@ -90,8 +91,11 @@ export function TraderProfileCard({
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Get demo mode context - this is the single source of truth for demo wallet
+  // Get demo mode context
   const { isDemoMode, demoWalletAddress: contextDemoWallet } = useDemoMode();
+
+  // Get real connected wallet address (if any)
+  const { eoaAddress } = useWallet();
 
   // Use pre-fetched profile if available, otherwise use fetched data
   const profile = preFetchedProfile ?? fetchedProfile;
@@ -109,9 +113,9 @@ export function TraderProfileCard({
         setError(null);
 
         // Determine wallet address for profile request
-        // Priority: explicit prop > demo wallet from context > fetch from session
+        // Priority: explicit prop > connected wallet > demo wallet from context > fetch from session
         let walletToUse: string | undefined =
-          userAddress || contextDemoWallet || undefined;
+          userAddress || eoaAddress || contextDemoWallet || undefined;
 
         // If no wallet yet, try fetching from session API
         if (!walletToUse) {
@@ -176,11 +180,13 @@ export function TraderProfileCard({
     }
 
     fetchProfile();
-  }, [userAddress, contextDemoWallet, preFetchedProfile]);
+  }, [userAddress, eoaAddress, contextDemoWallet, preFetchedProfile, isDemoMode]);
 
-  // Get the display wallet address - use context's demo wallet as primary source
-  const displayAddress = userAddress || contextDemoWallet;
-  const isUsingDemoWallet = isDemoMode && !userAddress && !!contextDemoWallet;
+  // Get the display wallet address - prioritize real connected wallet (EOA)
+  // When user connects a real wallet (even in demo mode for x402), show that address
+  const displayAddress = eoaAddress || userAddress || contextDemoWallet;
+  // Only show "Demo" badge if using generated demo address (not connected wallet)
+  const isUsingDemoWallet = isDemoMode && !userAddress && !eoaAddress && !!contextDemoWallet;
 
   // Copy wallet address to clipboard
   const copyAddress = async () => {

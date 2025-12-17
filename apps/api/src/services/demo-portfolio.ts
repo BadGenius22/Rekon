@@ -511,6 +511,8 @@ export function generateDemoGamificationProfile(walletAddress: string) {
     title: "Legendary Trader",
     icon: "👑",
     minVolume: 100000,
+    maxVolume: null, // Top tier has no max
+    color: "text-purple-400",
   };
   const nextTierVolume = null; // Already at max tier
   const tierProgress = 100;

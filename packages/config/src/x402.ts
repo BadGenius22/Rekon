@@ -23,8 +23,8 @@ export const X402_CONFIG = {
   // Enable x402 payment system
   enabled: process.env.X402_ENABLED === "true",
 
-  // Payment configuration
-  priceUsdc: process.env.X402_PRICE_USDC || "0.25",
+  // Payment configuration (0.05 USDC for hackathon demo testing)
+  priceUsdc: process.env.X402_PRICE_USDC || "0.05",
 
   // Recipient wallet address (where payments are sent)
   // This is also used as the serverWalletAddress for thirdweb facilitator

@@ -20,7 +20,7 @@ export function DemoModeBanner() {
       <AlertCircle className="h-4 w-4 flex-shrink-0" />
       <span className="text-sm font-semibold">Demo Mode Active</span>
       <span className="hidden md:inline text-sm opacity-90">
-        — No real data or wallet connections
+        — Uses real data snapshot from Polymarket API
       </span>
     </div>
   );

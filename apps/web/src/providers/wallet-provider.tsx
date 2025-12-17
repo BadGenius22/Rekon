@@ -21,10 +21,6 @@ import { injected } from "wagmi/connectors";
 import { deriveSafe } from "@polymarket/builder-relayer-client/dist/builder/derive";
 import { getContractConfig } from "@polymarket/builder-relayer-client/dist/config";
 import { useDemoMode } from "../contexts/DemoModeContext";
-import {
-  generateDemoWalletAddress,
-  generateDemoSafeAddress,
-} from "../utils/demo-wallet-label";
 
 const POLYGON_RPC_URL =
   process.env.NEXT_PUBLIC_POLYGON_RPC_URL || "https://polygon-rpc.com";
@@ -56,7 +52,7 @@ interface WalletProviderProps {
 }
 
 export function WalletProvider({ children }: WalletProviderProps) {
-  const { isDemoMode, demoSessionId, exitDemoMode } = useDemoMode();
+  const { isDemoMode } = useDemoMode();
   const { address, isConnected } = useAccount();
   const { connectAsync, isPending: isConnecting } = useConnect();
   const { disconnectAsync } = useDisconnect();
@@ -187,37 +183,15 @@ export function WalletProvider({ children }: WalletProviderProps) {
   }, [connectAsync, connectors, isConnected, disconnectAsync]);
 
   const disconnect = useCallback(async () => {
-    // If in demo mode, exit demo mode when disconnecting
-    if (isDemoMode) {
-      exitDemoMode();
-    } else {
-      await disconnectAsync();
-      setEthersSigner(null);
-    }
-  }, [disconnectAsync, isDemoMode, exitDemoMode]);
+    // Always disconnect the real wallet if connected
+    // Demo mode persists independently - it's controlled by env var or user toggle
+    await disconnectAsync();
+    setEthersSigner(null);
+  }, [disconnectAsync]);
 
-  // Demo mode: return mock wallet data
-  if (isDemoMode) {
-    const demoEoaAddress = generateDemoWalletAddress(demoSessionId);
-    const demoSafeAddr = generateDemoSafeAddress(demoSessionId);
-
-    const demoValue: WalletContextValue = {
-      eoaAddress: demoEoaAddress,
-      safeAddress: demoSafeAddr,
-      ethersSigner: null,
-      publicClient,
-      isConnected: true,
-      isConnecting: false,
-      connect: async () => {}, // No-op in demo mode
-      disconnect,
-    };
-
-    return (
-      <WalletContext.Provider value={demoValue}>{children}</WalletContext.Provider>
-    );
-  }
-
-  // Real mode: normal wallet connection
+  // Both demo mode and production mode use real wallet connection
+  // Demo mode only affects market data (cached) and profile stats (mocked)
+  // x402 payments require real wallet signatures, so we allow real connection
   const value: WalletContextValue = {
     eoaAddress: address ?? null,
     safeAddress,
