@@ -19,10 +19,13 @@ function createMockTrade(overrides: Partial<Trade> = {}): Trade {
   return {
     id: "trade-1",
     marketId: "market-1",
+    outcome: "YES",
     price: 0.5,
     amount: 100,
     side: "yes",
     timestamp: new Date().toISOString(),
+    taker: "0x0000000000000000000000000000000000000000",
+    maker: "0x0000000000000000000000000000000000000001",
     ...overrides,
   };
 }

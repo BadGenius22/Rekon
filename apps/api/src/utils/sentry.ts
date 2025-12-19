@@ -176,6 +176,78 @@ export function trackPolymarketApiFailure(
 }
 
 /**
+ * Tracks a Pandascore API failure.
+ * Used to monitor esports data API reliability.
+ *
+ * @param endpoint - API endpoint that failed
+ * @param statusCode - HTTP status code (if available)
+ * @param error - Error object
+ * @param context - Additional context
+ */
+export function trackPandascoreApiFailure(
+  endpoint: string,
+  statusCode?: number,
+  error?: unknown,
+  context?: {
+    retryCount?: number;
+    teamId?: number | string;
+    matchId?: number | string;
+  }
+): void {
+  captureError(error || new Error(`Pandascore API failure: ${endpoint}`), {
+    tags: {
+      error_type: "pandascore_api_failure",
+      endpoint,
+      status_code: statusCode?.toString() || "unknown",
+    },
+    extra: {
+      endpoint,
+      statusCode,
+      retryCount: context?.retryCount,
+      teamId: context?.teamId,
+      matchId: context?.matchId,
+    },
+    level: statusCode === 429 ? "warning" : "error", // Rate limits are warnings
+  });
+}
+
+/**
+ * Tracks a GRID API failure.
+ * Used to monitor GRID GraphQL API reliability.
+ *
+ * @param type - Failure type (e.g., 'retry', 'final_failure')
+ * @param errorMessage - Error message
+ * @param context - Additional context (query, variables, attempt, etc.)
+ */
+export function trackGridApiFailure(
+  type: string,
+  errorMessage: string,
+  context?: {
+    query?: string;
+    variables?: Record<string, unknown>;
+    attempt?: number;
+    endpoint?: string;
+  }
+): void {
+  captureError(new Error(`GRID API failure: ${errorMessage}`), {
+    tags: {
+      error_type: "grid_api_failure",
+      failure_type: type,
+      endpoint: context?.endpoint || "unknown",
+    },
+    extra: {
+      type,
+      errorMessage,
+      query: context?.query,
+      variables: context?.variables,
+      attempt: context?.attempt,
+      endpoint: context?.endpoint,
+    },
+    level: type === "retry" ? "warning" : "error",
+  });
+}
+
+/**
  * Tracks a failed request.
  *
  * @param path - Request path

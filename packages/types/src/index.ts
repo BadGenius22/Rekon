@@ -322,6 +322,22 @@ export type {
 } from "./signal";
 
 // ============================================================================
+// AI Recommendation Types (Esports-focused with Pandascore data)
+// ============================================================================
+
+export type {
+  ConfidenceLevel,
+  EsportsTeamStats,
+  MatchHistory,
+  ConfidenceBreakdown,
+  TeamStatsComparison,
+  RecentMatchesComparison,
+  RecommendationResult,
+  RecommendationPricing,
+  RecommendationStatus,
+} from "./recommendation";
+
+// ============================================================================
 // Session Types
 // ============================================================================
 

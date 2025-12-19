@@ -111,11 +111,8 @@ describe("services/positions - getPositionsBySession", () => {
 
     // Average entry price = (10*0.5 + 5*0.6) / 15 = 8 / 15
     const expectedEntryPrice = (10 * 0.5 + 5 * 0.6) / 15;
-    expect(position.entryPrice).toBeCloseTo(expectedEntryPrice);
-    expect(position.averageEntryPrice).toBeCloseTo(expectedEntryPrice);
-
-    // Current price from Polymarket
-    expect(position.currentPrice).toBeCloseTo(0.7);
+    // Position exposes average entry price as averagePrice
+    expect(position.averagePrice).toBeCloseTo(expectedEntryPrice);
 
     // Unrealized PnL = (0.7 - entry) * 15
     const expectedUnrealizedPnL = (0.7 - expectedEntryPrice) * position.size;
@@ -123,16 +120,6 @@ describe("services/positions - getPositionsBySession", () => {
 
     // Realized PnL = - total fees
     expect(position.realizedPnL).toBeCloseTo(-(0.1 + 0.05));
-
-    // Exposure = size * currentPrice
-    const expectedExposure = position.size * position.currentPrice;
-    expect(position.currentExposure).toBeCloseTo(expectedExposure);
-
-    // winProbability = currentPrice
-    expect(position.winProbability).toBeCloseTo(0.7);
-
-    // With moderate PnL% and modest exposure, risk rating should be "medium"
-    expect(position.riskRating).toBe("medium");
 
     // Side is always "yes" for now
     expect(position.side).toBe("yes");

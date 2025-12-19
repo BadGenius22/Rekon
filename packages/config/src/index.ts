@@ -152,3 +152,128 @@ export const REDIS_CONFIG = {
 
 // x402 Payment Protocol Configuration
 export { X402_CONFIG } from "./x402";
+
+// Pandascore Esports API Configuration
+// Used for historical team stats, match history, and head-to-head data
+// Docs: https://developers.pandascore.co/docs/introduction
+export const PANDASCORE_CONFIG = {
+  // API Base URL
+  apiUrl: process.env.PANDASCORE_API_URL || "https://api.pandascore.co",
+  // API Key (Bearer token) - Required for all requests
+  // Get from: https://app.pandascore.co/dashboard
+  // WARNING: This token is private - never expose to client-side code
+  apiKey: process.env.PANDASCORE_API_KEY || "",
+  // Rate limits (free tier: 10 requests/second)
+  // https://developers.pandascore.co/docs/rate-and-connections-limits
+  rateLimit: {
+    windowMs: 1000, // 1 second
+    maxRequests: 10, // 10 requests per second (free tier)
+  },
+  // Cache TTLs for different data types
+  cache: {
+    // Team stats are relatively stable (roster changes are infrequent)
+    teamStatsTtl: 8 * 60 * 60 * 1000, // 8 hours
+    // Match history updates after games complete
+    matchHistoryTtl: 60 * 60 * 1000, // 1 hour
+    // Team search results
+    teamSearchTtl: 24 * 60 * 60 * 1000, // 24 hours
+    // Head-to-head results
+    headToHeadTtl: 2 * 60 * 60 * 1000, // 2 hours
+  },
+  // Game slugs for Pandascore API
+  // Maps Rekon game IDs to Pandascore videogame slugs
+  gameSlugs: {
+    cs2: "cs-2", // Counter-Strike 2 (was "csgo" for CS:GO)
+    lol: "lol", // League of Legends
+    dota2: "dota-2", // Dota 2
+    valorant: "valorant", // Valorant
+  } as const,
+  // Default limits for API requests
+  defaults: {
+    matchesPerPage: 10, // Recent matches to fetch per team
+    headToHeadLimit: 20, // H2H matches to fetch
+  },
+  // Offline mode (development-only): skip live HTTP calls
+  offline: process.env.PANDASCORE_OFFLINE === "true",
+} as const;
+
+// GRID Esports API Configuration
+// Used for aggregated team/player statistics, series data, and live match state
+// Docs: https://portal.grid.gg/documentation
+export const GRID_CONFIG = {
+  // Statistics Feed API - Aggregated team/player stats over time windows
+  // Example: Win rates, K/D averages, streaks, segment performance
+  statisticsFeedUrl:
+    process.env.GRID_STATS_URL ||
+    "https://api-op.grid.gg/statistics-feed/graphql",
+
+  // Central Data Feed API - Teams, series, tournaments, players, rosters
+  // Example: Team search, match schedules, tournament data
+  centralDataUrl:
+    process.env.GRID_CENTRAL_URL ||
+    "https://api-op.grid.gg/central-data/graphql",
+
+  // Live Data Feed API - Real-time match state during live games
+  // Example: Live K/D, networth, player positions, momentum tracking
+  liveDataFeedUrl:
+    process.env.GRID_LIVE_URL ||
+    "https://api-op.grid.gg/live-data-feed/series-state/graphql",
+
+  // API Key (required for all GRID APIs)
+  // Get from: https://grid.gg/open-access/
+  // Apply for free access as a startup/developer
+  apiKey: process.env.GRID_API_KEY || "",
+
+  // Rate limits (GRID typically allows higher limits than most APIs)
+  rateLimit: {
+    windowMs: 1000, // 1 second
+    maxRequests: 50, // 50 requests per second (generous)
+  },
+
+  // Cache TTLs for different data types
+  cache: {
+    // Aggregated statistics (change slowly)
+    statisticsTtl: 4 * 60 * 60 * 1000, // 4 hours
+
+    // Series listings and schedules (moderate frequency)
+    seriesDataTtl: 1 * 60 * 60 * 1000, // 1 hour
+
+    // Team information (rarely changes)
+    teamDataTtl: 24 * 60 * 60 * 1000, // 24 hours
+
+    // Live match state (needs frequent refresh)
+    liveStateTtl: 3 * 1000, // 3 seconds
+  },
+
+  // Offline mode (development-only): skip live HTTP calls
+  offline: process.env.GRID_OFFLINE === "true",
+} as const;
+
+// Recommendation Engine Configuration
+export const RECOMMENDATION_CONFIG = {
+  // Enable live data from GRID (can be disabled if API unavailable)
+  enableLiveData: process.env.ENABLE_GRID_LIVE_DATA !== "false", // ON by default
+
+  // Cache TTL for computed recommendations
+  cacheTtl: 30 * 1000, // 30 seconds
+
+  // Fallback on error (return graceful error if GRID fails)
+  fallbackOnError: true,
+
+  // Confidence score thresholds
+  thresholds: {
+    high: 20, // >= 20 points difference
+    medium: 10, // >= 10 points difference
+    // low: < 10 points difference
+  },
+
+  // Factor weights for recommendation algorithm
+  weights: {
+    recentForm: 0.25, // Historical (GRID Statistics)
+    headToHead: 0.15, // Historical (GRID Central Data)
+    mapAdvantage: 0.15, // Historical (GRID Statistics)
+    rosterStability: 0.05, // Placeholder (future enhancement)
+    marketOdds: 0.15, // Polymarket
+    livePerformance: 0.25, // GRID Live Data (if match ongoing)
+  },
+} as const;
