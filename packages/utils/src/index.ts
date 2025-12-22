@@ -85,3 +85,14 @@ export function groupBy<T, K extends string | number>(
   }, {} as Record<K, T[]>);
 }
 
+// Team name utilities (for Polymarket → GRID matching)
+export {
+  normalizeTeamName,
+  extractTeamAcronym,
+  calculateStringSimilarity,
+  findTeamByAlias,
+  getAllCS2TeamNames,
+  CS2_TEAM_ALIASES,
+  type TeamAliasEntry,
+} from "./team-names";
+

@@ -34,16 +34,18 @@ export function mapGridTeamStatisticsToEsportsStats(
   stats: GridTeamStatistics,
   teamName: string
 ): EsportsTeamStats {
-  // Calculate win rate from game statistics
-  const winRate = stats.game.wins.percentage || 0;
+  // wins is an array: find the entry with value: true for win stats
+  // Note: 'wins' may be undefined, use optional chaining
+  const winStats = stats.game.wins?.find((w) => w.value === true);
+  const winRate = winStats?.percentage || 0;
 
   // Calculate recent form from current win streak
   // GRID provides streak data, we can use it to estimate recent form
-  const recentForm = calculateRecentFormFromStreak(stats);
+  const recentForm = calculateRecentFormFromStreak(stats, winStats);
 
   // Calculate map win rate from segment data
   // For CS2, segments might represent map types (e.g., "de_dust2", "de_mirage")
-  const mapWinRate = calculateMapWinRate(stats);
+  const mapWinRate = calculateMapWinRate(stats, winStats);
 
   // Roster stability - GRID doesn't provide roster data in statistics
   // Default to moderate stability (we'd need Central Data Feed for actual roster)
@@ -65,11 +67,15 @@ export function mapGridTeamStatisticsToEsportsStats(
  * Uses current win streak and overall win rate to estimate form.
  *
  * @param stats - GRID team statistics
+ * @param winStats - Win statistics entry (value: true) from wins array
  * @returns Form score (0-100)
  */
-function calculateRecentFormFromStreak(stats: GridTeamStatistics): number {
-  const winRate = stats.game.wins.percentage || 50;
-  const currentStreak = stats.game.wins.streak.current || 0;
+function calculateRecentFormFromStreak(
+  stats: GridTeamStatistics,
+  winStats?: { percentage: number; streak: { current: number } }
+): number {
+  const winRate = winStats?.percentage || 50;
+  const currentStreak = winStats?.streak.current || 0;
 
   // Base form on win rate
   let form = winRate;
@@ -80,7 +86,7 @@ function calculateRecentFormFromStreak(stats: GridTeamStatistics): number {
     // Winning streak: boost form
     // +1 streak = +2 points, capped at +10
     form += Math.min(currentStreak * 2, 10);
-  } else if (currentStreak < 0 && stats.game.losses) {
+  } else if (currentStreak < 0) {
     // Losing streak: reduce form
     // -1 streak = -2 points, capped at -10
     form += Math.max(currentStreak * 2, -10);
@@ -95,9 +101,13 @@ function calculateRecentFormFromStreak(stats: GridTeamStatistics): number {
  * For CS2, segments represent different maps.
  *
  * @param stats - GRID team statistics
+ * @param winStats - Win statistics entry (value: true) from wins array
  * @returns Map win rate (0-100) or undefined if no segment data
  */
-function calculateMapWinRate(stats: GridTeamStatistics): number | undefined {
+function calculateMapWinRate(
+  stats: GridTeamStatistics,
+  winStats?: { percentage: number }
+): number | undefined {
   if (!stats.segment || stats.segment.length === 0) {
     return undefined;
   }
@@ -106,7 +116,7 @@ function calculateMapWinRate(stats: GridTeamStatistics): number | undefined {
   // In the future, we could filter by specific map types
   // GRID segment data doesn't directly provide win/loss, but we can infer
   // from kills/deaths ratios or use overall game win rate as fallback
-  return stats.game.wins.percentage || undefined;
+  return winStats?.percentage || undefined;
 }
 
 // ============================================================================

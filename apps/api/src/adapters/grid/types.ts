@@ -132,22 +132,289 @@ export enum GridTimeWindow {
 
 /**
  * Filter for statistics queries
+ * Supports both deprecated and recommended filter formats
  */
 export interface GridStatisticsFilter {
+  // Deprecated fields (still supported for backward compatibility)
   timeWindow?: GridTimeWindow;
   tournamentIds?: { in: string[] };
   afterDate?: string; // ISO 8601
   beforeDate?: string; // ISO 8601
+
+  // Recommended fields
+  tournament?: {
+    id: { in: string[] };
+    includeChildren: boolean;
+  };
+  startedAt?: {
+    period?: GridTimeWindow;
+    gte?: string; // ISO 8601
+    lte?: string; // ISO 8601
+  };
 }
 
 /**
- * Aggregated statistic (sum, min, max, avg)
+ * Game selection filter for teamGameStatistics
+ */
+export interface GridGameSelection {
+  filter?: {
+    map?: {
+      name?: {
+        contains?: string;
+        equals?: string;
+      };
+    };
+    teams?: {
+      id?: { in: string[] };
+    };
+    tournament?: {
+      id?: { in: string[] };
+      includeChildren?: boolean;
+    };
+    startedAt?: {
+      period?: GridTimeWindow;
+      gte?: string;
+      lte?: string;
+    };
+  };
+  first?: number;
+  orderBy?: Array<{
+    field: "STARTED_AT";
+    direction: "ASC" | "DESC";
+  }>;
+}
+
+/**
+ * Series statistics filter
+ */
+export interface GridSeriesStatisticsFilter {
+  tournament?: {
+    id: { in: string[] };
+    includeChildren: boolean;
+  };
+  startedAt?: {
+    period?: GridTimeWindow;
+    gte?: string;
+    lte?: string;
+  };
+}
+
+/**
+ * Game statistics filter
+ */
+export interface GridGameStatisticsFilter {
+  tournament?: {
+    id: { in: string[] };
+    includeChildren: boolean;
+  };
+  startedAt?: {
+    period?: GridTimeWindow;
+    gte?: string;
+    lte?: string;
+  };
+  version?: {
+    id: { in: string[] };
+  };
+}
+
+/**
+ * Team game statistics response
+ */
+export interface GridTeamGameStatistics {
+  count: number;
+  wins?: Array<{
+    value: boolean;
+    count: number;
+    percentage: number;
+    streak: {
+      min: number;
+      max: number;
+      current: number;
+    };
+  }>;
+  won?: Array<{
+    value: boolean;
+    count: number;
+    percentage: number;
+    streak: {
+      min: number;
+      max: number;
+      current: number;
+    };
+  }>;
+  kills: GridStatAggregate;
+  deaths: GridStatAggregate;
+  netWorth?: GridStatAggregate;
+  segment?: Array<{
+    type: string;
+    count: number;
+    wins?: Array<{
+      value: boolean;
+      count: number;
+      percentage: number;
+      streak: {
+        min: number;
+        max: number;
+        current: number;
+      };
+    }>;
+    won?: Array<{
+      value: boolean;
+      count: number;
+      percentage: number;
+      streak: {
+        min: number;
+        max: number;
+        current: number;
+      };
+    }>;
+  }>;
+}
+
+/**
+ * Series statistics response
+ */
+export interface GridSeriesStatistics {
+  aggregationSeriesIds: string[];
+  count: number;
+  series: {
+    draftActions?: Array<{
+      draftable: {
+        id: string;
+        type: string;
+        name: string;
+      };
+      type: Array<{
+        value: string;
+        count: number;
+        percentage: number;
+      }>;
+    }>;
+  };
+  games: {
+    count: GridStatAggregate;
+    draftActions?: Array<{
+      draftable: {
+        id: string;
+        type: string;
+        name: string;
+      };
+      type: Array<{
+        value: string;
+        count: number;
+        percentage: number;
+      }>;
+    }>;
+    map?: Array<{
+      map: {
+        id: string;
+        name: string;
+      };
+      count: number;
+      percentage: number;
+    }>;
+    teams: {
+      count: number;
+      wins?: Array<{
+        value: boolean;
+        count: number;
+        percentage: number;
+        streak: {
+          min: number;
+          max: number;
+          current: number;
+        };
+      }>;
+      won?: Array<{
+        value: boolean;
+        count: number;
+        percentage: number;
+        streak: {
+          min: number;
+          max: number;
+          current: number;
+        };
+      }>;
+    };
+    duration: {
+      sum: string; // Duration as ISO 8601 duration string
+      min: string;
+      max: string;
+      avg: string;
+    };
+  };
+  segments: Array<{
+    type: string;
+    count: GridStatAggregate;
+  }>;
+}
+
+/**
+ * Game statistics response
+ */
+export interface GridGameStatistics {
+  aggregationGameIds: string[];
+  count: number;
+  games: {
+    draftActions?: Array<{
+      draftable: {
+        id: string;
+        type: string;
+        name: string;
+      };
+      type: Array<{
+        value: string;
+        count: number;
+        percentage: number;
+      }>;
+    }>;
+    teams: {
+      money: GridStatAggregate;
+      inventoryValue: GridStatAggregate;
+      netWorth: GridStatAggregate;
+      kills: GridStatAggregate;
+      deaths: GridStatAggregate;
+      score: GridStatAggregate;
+    };
+    duration: {
+      sum: string;
+      min: string;
+      max: string;
+      avg: string;
+    };
+    map?: Array<{
+      map: {
+        id: string;
+        name: string;
+      };
+      count: number;
+      percentage: number;
+    }>;
+  };
+  segments: Array<{
+    type: string;
+    count: GridStatAggregate;
+  }>;
+}
+
+/**
+ * Rate statistic (min, max, avg per minute)
+ */
+export interface GridRateStatistic {
+  min: number;
+  max: number;
+  avg: number;
+}
+
+/**
+ * Aggregated statistic (sum, min, max, avg, ratePerMinute)
  */
 export interface GridStatAggregate {
   sum: number;
   min: number;
   max: number;
   avg: number;
+  ratePerMinute?: GridRateStatistic;
 }
 
 /**
@@ -168,26 +435,32 @@ export interface GridTeamStatistics {
   // Game-level stats
   game: {
     count: number;
-    wins: {
+    // Wins is an array of BooleanOccurenceStatistic: one for value: true, one for value: false
+    // Use wins.find(w => w.value === true) for win stats, wins.find(w => w.value === false) for loss stats
+    // Note: 'wins' is deprecated, prefer 'won' field
+    wins?: {
       value: boolean;
       count: number;
       percentage: number; // 0-100
       streak: {
         min: number;
         max: number;
-        current: number; // Current win/loss streak
+        current: number; // Current win/loss streak (positive for wins, negative for losses)
       };
-    };
-    losses?: {
+    }[];
+    // Preferred field over deprecated 'wins'
+    won?: {
       value: boolean;
       count: number;
-      percentage: number;
+      percentage: number; // 0-100
       streak: {
         min: number;
         max: number;
         current: number;
       };
-    };
+    }[];
+    // Optional: netWorth aggregate (for games with economy like Dota 2, CS2)
+    netWorth?: GridStatAggregate;
   };
 
   // Segment-level stats (e.g., T-side/CT-side for CS2)
@@ -210,15 +483,36 @@ export interface GridPlayerStatistics {
     count: number;
     kills: GridStatAggregate;
     deaths: GridStatAggregate;
+    killAssistsGiven?: GridStatAggregate;
+    killAssistsReceived?: GridStatAggregate;
+    // Legacy field - may still be present in some responses
     assists?: GridStatAggregate;
   };
 
   game: {
     count: number;
-    wins: {
+    // Deprecated field
+    wins?: {
+      value: boolean;
       count: number;
       percentage: number;
-    };
+      streak?: {
+        min: number;
+        max: number;
+        current: number;
+      };
+    }[];
+    // Preferred field
+    won?: {
+      value: boolean;
+      count: number;
+      percentage: number;
+      streak: {
+        min: number;
+        max: number;
+        current: number;
+      };
+    }[];
   };
 
   segment?: {
@@ -226,6 +520,9 @@ export interface GridPlayerStatistics {
     count: number;
     kills?: GridStatAggregate;
     deaths?: GridStatAggregate;
+    killAssistsGiven?: GridStatAggregate;
+    killAssistsReceived?: GridStatAggregate;
+    // Legacy field
     assists?: GridStatAggregate;
   }[];
 }

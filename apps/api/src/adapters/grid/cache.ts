@@ -28,14 +28,20 @@ export type CacheType =
   | "team" // Individual team data
   | "team-stats" // Team statistics
   | "team-stats-tournaments" // Team stats for specific tournaments
+  | "team-game-stats" // Team game statistics
   | "team-roster" // Team roster (players)
   | "player-stats" // Player statistics
   | "series-by-teams" // Series search by team names
   | "series" // Individual series data
+  | "series-stats" // Series statistics
   | "series-state" // Live series state
   | "live-state" // Live match state (alias)
+  | "game-stats" // Game statistics
   | "tournament" // Tournament data
-  | "tournaments"; // Tournament list
+  | "tournaments" // Tournament list
+  | "team-index" // Team index for fuzzy search
+  | "team-resolution" // Resolved team mappings
+  | "market-stats"; // Market esports stats
 
 /**
  * Generate cache key from type and parameters

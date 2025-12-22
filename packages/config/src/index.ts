@@ -105,12 +105,16 @@ export const POLYMARKET_CONFIG = {
     maxRequests: 70, // Conservative: 70 requests per 10s (below 80 limit for /prices)
   },
   // DEMO MODE - when enabled, swap real data calls with mock/demo data
-  demoMode: process.env.NEXT_PUBLIC_DEMO_MODE === "true" || process.env.POLYMARKET_DEMO_MODE === "true",
+  demoMode:
+    process.env.NEXT_PUBLIC_DEMO_MODE === "true" ||
+    process.env.POLYMARKET_DEMO_MODE === "true",
 } as const;
 
 // Demo Mode configuration aggregate for runtime gating on the frontend/backend
 export const DEMO_CONFIG = {
-  enabled: process.env.NEXT_PUBLIC_DEMO_MODE === "true" || process.env.POLYMARKET_DEMO_MODE === "true",
+  enabled:
+    process.env.NEXT_PUBLIC_DEMO_MODE === "true" ||
+    process.env.POLYMARKET_DEMO_MODE === "true",
 } as const;
 
 // Trading Configuration
@@ -205,24 +209,35 @@ export const GRID_CONFIG = {
   // Example: Win rates, K/D averages, streaks, segment performance
   statisticsFeedUrl:
     process.env.GRID_STATS_URL ||
+    process.env.GRID_GRAPHQL_URL || // Fallback: use single GraphQL URL if provided
     "https://api-op.grid.gg/statistics-feed/graphql",
 
   // Central Data Feed API - Teams, series, tournaments, players, rosters
   // Example: Team search, match schedules, tournament data
   centralDataUrl:
     process.env.GRID_CENTRAL_URL ||
+    process.env.GRID_GRAPHQL_URL || // Fallback: use single GraphQL URL if provided
     "https://api-op.grid.gg/central-data/graphql",
 
   // Live Data Feed API - Real-time match state during live games
   // Example: Live K/D, networth, player positions, momentum tracking
   liveDataFeedUrl:
     process.env.GRID_LIVE_URL ||
+    process.env.GRID_GRAPHQL_URL || // Fallback: use single GraphQL URL if provided
     "https://api-op.grid.gg/live-data-feed/series-state/graphql",
+
+  // WebSocket URL for real-time subscriptions (future enhancement)
+  // Currently not used, but available for WebSocket implementation
+  websocketUrl:
+    process.env.GRID_WS_URL ||
+    process.env.GRID_WEBSOCKET_URL ||
+    "wss://api-op.grid.gg/live-data-feed",
 
   // API Key (required for all GRID APIs)
   // Get from: https://grid.gg/open-access/
   // Apply for free access as a startup/developer
-  apiKey: process.env.GRID_API_KEY || "",
+  // Trim whitespace to handle trailing spaces in .env files
+  apiKey: (process.env.GRID_API_KEY || "").trim(),
 
   // Rate limits (GRID typically allows higher limits than most APIs)
   rateLimit: {

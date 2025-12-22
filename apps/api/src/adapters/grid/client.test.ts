@@ -5,6 +5,7 @@ import type {
   GridTeamStatistics,
   GridSeriesState,
 } from "./types";
+import { GridTimeWindow } from "./types";
 
 // Mock dependencies
 var mockRequest: Mock;
@@ -119,10 +120,16 @@ describe("GRID Client", () => {
       const result = await fetchGridLiveSeriesState("series-123");
 
       expect(result).toEqual(mockState);
-      expect(mockRequest).toHaveBeenCalledWith(expect.any(String), {
-        id: "series-123",
-        gameFilter: { started: true, finished: false },
-      });
+      expect(mockRequest).toHaveBeenCalledWith(
+        expect.any(String),
+        {
+          id: "series-123",
+          gameFilter: { started: true, finished: false },
+        },
+        expect.objectContaining({
+          "x-api-key": "test-api-key",
+        })
+      );
     });
 
     it("returns null when API call fails", async () => {
@@ -139,14 +146,34 @@ describe("GRID Client", () => {
 
       await fetchGridLiveSeriesState("series-123", false);
 
-      expect(mockRequest).toHaveBeenCalledWith(expect.any(String), {
-        id: "series-123",
-        gameFilter: {},
-      });
+      expect(mockRequest).toHaveBeenCalledWith(
+        expect.any(String),
+        {
+          id: "series-123",
+          gameFilter: {},
+        },
+        expect.objectContaining({
+          "x-api-key": "test-api-key",
+        })
+      );
     });
   });
 
   describe("searchGridTeamsByName", () => {
+    // Helper to create mock response with required pagination fields
+    const createMockTeamsResponse = (teams: GridTeam[]) => ({
+      teams: {
+        totalCount: teams.length,
+        pageInfo: {
+          hasPreviousPage: false,
+          hasNextPage: false,
+          startCursor: "start",
+          endCursor: "end",
+        },
+        edges: teams.map((team) => ({ cursor: "c1", node: team })),
+      },
+    });
+
     it("returns exact match when found", async () => {
       const mockTeams: GridTeam[] = [
         { id: "1", name: "Team Liquid" },
@@ -154,11 +181,7 @@ describe("GRID Client", () => {
         { id: "3", name: "Team Envy" },
       ];
 
-      mockRequest.mockResolvedValueOnce({
-        teams: {
-          edges: mockTeams.map((team) => ({ cursor: "c1", node: team })),
-        },
-      });
+      mockRequest.mockResolvedValueOnce(createMockTeamsResponse(mockTeams));
 
       const result = await searchGridTeamsByName("Team Liquid");
 
@@ -172,11 +195,7 @@ describe("GRID Client", () => {
         { id: "3", name: "Team Envy" },
       ];
 
-      mockRequest.mockResolvedValueOnce({
-        teams: {
-          edges: mockTeams.map((team) => ({ cursor: "c1", node: team })),
-        },
-      });
+      mockRequest.mockResolvedValueOnce(createMockTeamsResponse(mockTeams));
 
       const result = await searchGridTeamsByName("Team");
 
@@ -192,11 +211,7 @@ describe("GRID Client", () => {
         { id: "2", name: "SoloMid Esports" },
       ];
 
-      mockRequest.mockResolvedValueOnce({
-        teams: {
-          edges: mockTeams.map((team) => ({ cursor: "c1", node: team })),
-        },
-      });
+      mockRequest.mockResolvedValueOnce(createMockTeamsResponse(mockTeams));
 
       const result = await searchGridTeamsByName("Liquid");
 
@@ -204,11 +219,7 @@ describe("GRID Client", () => {
     });
 
     it("returns empty array when no matches found", async () => {
-      mockRequest.mockResolvedValueOnce({
-        teams: {
-          edges: [],
-        },
-      });
+      mockRequest.mockResolvedValueOnce(createMockTeamsResponse([]));
 
       const result = await searchGridTeamsByName("NonExistent");
 
@@ -276,6 +287,9 @@ describe("GRID Client", () => {
               lte: expect.any(String),
             }),
           }),
+        }),
+        expect.objectContaining({
+          "x-api-key": "test-api-key",
         })
       );
     });
@@ -305,18 +319,20 @@ describe("GRID Client", () => {
         },
         game: {
           count: 25,
-          wins: {
-            value: true,
-            count: 15,
-            percentage: 60,
-            streak: { min: 0, max: 5, current: 2 },
-          },
-          losses: {
-            value: false,
-            count: 10,
-            percentage: 40,
-            streak: { min: 0, max: 3, current: -1 },
-          },
+          wins: [
+            {
+              value: false,
+              count: 10,
+              percentage: 40,
+              streak: { min: 0, max: 3, current: -1 },
+            },
+            {
+              value: true,
+              count: 15,
+              percentage: 60,
+              streak: { min: 0, max: 5, current: 2 },
+            },
+          ],
         },
         segment: [],
       };
@@ -326,21 +342,60 @@ describe("GRID Client", () => {
       const result = await fetchGridTeamStatistics("team-123");
 
       expect(result).toEqual(mockStats);
-      expect(mockRequest).toHaveBeenCalledWith(expect.any(String), {
-        teamId: "team-123",
-        filter: { timeWindow: "LAST_3_MONTHS" },
-      });
+      expect(mockRequest).toHaveBeenCalledWith(
+        expect.any(String),
+        {
+          teamId: "team-123",
+          filter: { timeWindow: "LAST_3_MONTHS" },
+        },
+        expect.objectContaining({
+          "x-api-key": "test-api-key",
+        })
+      );
     });
 
     it("uses custom time window when provided", async () => {
       mockRequest.mockResolvedValueOnce({ teamStatistics: null });
 
-      await fetchGridTeamStatistics("team-123", "LAST_MONTH" as any);
+      await fetchGridTeamStatistics("team-123", GridTimeWindow.LAST_MONTH);
 
-      expect(mockRequest).toHaveBeenCalledWith(expect.any(String), {
-        teamId: "team-123",
-        filter: { timeWindow: "LAST_MONTH" },
-      });
+      expect(mockRequest).toHaveBeenCalledWith(
+        expect.any(String),
+        {
+          teamId: "team-123",
+          filter: { timeWindow: "LAST_MONTH" },
+        },
+        expect.objectContaining({
+          "x-api-key": "test-api-key",
+        })
+      );
+    });
+
+    it("validates mutually exclusive filters", async () => {
+      await expect(
+        fetchGridTeamStatistics(
+          "team-123",
+          GridTimeWindow.LAST_MONTH,
+          ["tournament-1"]
+        )
+      ).rejects.toThrow("mutually exclusive");
+    });
+
+    it("supports tournamentIds filter", async () => {
+      mockRequest.mockResolvedValueOnce({ teamStatistics: null });
+
+      await fetchGridTeamStatistics("team-123", undefined, ["tournament-1", "tournament-2"]);
+
+      expect(mockRequest).toHaveBeenCalledWith(
+        expect.any(String),
+        {
+          teamId: "team-123",
+          filter: { tournamentIds: { in: ["tournament-1", "tournament-2"] } },
+        },
+        expect.objectContaining({
+          "x-api-key": "test-api-key",
+        })
+      );
     });
 
     it("returns null when API call fails", async () => {

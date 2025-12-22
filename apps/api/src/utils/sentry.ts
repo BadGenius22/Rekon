@@ -227,13 +227,21 @@ export function trackGridApiFailure(
     variables?: Record<string, unknown>;
     attempt?: number;
     endpoint?: string;
+    isAuthError?: boolean;
+    isRateLimitError?: boolean;
+    apiKeyLength?: number;
   }
 ): void {
+  // Rate limits and retries are warnings, not errors
+  const isWarning = type === "retry" || context?.isRateLimitError;
+  
   captureError(new Error(`GRID API failure: ${errorMessage}`), {
     tags: {
       error_type: "grid_api_failure",
       failure_type: type,
       endpoint: context?.endpoint || "unknown",
+      is_rate_limit: context?.isRateLimitError ? "true" : "false",
+      is_auth_error: context?.isAuthError ? "true" : "false",
     },
     extra: {
       type,
@@ -242,8 +250,11 @@ export function trackGridApiFailure(
       variables: context?.variables,
       attempt: context?.attempt,
       endpoint: context?.endpoint,
+      isAuthError: context?.isAuthError,
+      isRateLimitError: context?.isRateLimitError,
+      apiKeyLength: context?.apiKeyLength,
     },
-    level: type === "retry" ? "warning" : "error",
+    level: isWarning ? "warning" : "error",
   });
 }
 

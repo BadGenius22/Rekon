@@ -16,7 +16,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-// Types for x402-powered AI recommendation service using Pandascore esports data
+// Types for x402-powered AI recommendation service using GRID esports data
 
 /**
  * Confidence level for recommendations
@@ -24,10 +24,10 @@
 export type ConfidenceLevel = "high" | "medium" | "low";
 
 /**
- * Esports team statistics normalized from Pandascore
+ * Esports team statistics normalized from GRID
  */
 export interface EsportsTeamStats {
-  /** Pandascore team ID */
+  /** GRID team ID */
   teamId: string;
   /** Team display name */
   teamName: string;
@@ -53,7 +53,7 @@ export interface EsportsTeamStats {
  * Historical match record
  */
 export interface MatchHistory {
-  /** Pandascore match ID */
+  /** GRID series/match ID */
   matchId: string;
   /** Opponent team name */
   opponent: string;
@@ -152,7 +152,7 @@ export interface RecommendationResult {
   /** Note for preview (e.g., "Unlock full analysis...") */
   note?: string;
   /** Data source used */
-  dataSource?: "pandascore" | "polymarket" | "hybrid";
+  dataSource?: "grid" | "polymarket" | "hybrid";
   /** Game type */
   game?: "cs2" | "lol" | "dota2" | "valorant";
 }

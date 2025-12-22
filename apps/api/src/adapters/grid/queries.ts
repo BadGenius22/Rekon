@@ -31,12 +31,22 @@ export const GET_TEAM_STATISTICS = gql`
           min
           max
           avg
+          ratePerMinute {
+            min
+            max
+            avg
+          }
         }
         deaths {
           sum
           min
           max
           avg
+          ratePerMinute {
+            min
+            max
+            avg
+          }
         }
       }
       game {
@@ -51,7 +61,7 @@ export const GET_TEAM_STATISTICS = gql`
             current
           }
         }
-        losses {
+        won {
           value
           count
           percentage
@@ -59,6 +69,17 @@ export const GET_TEAM_STATISTICS = gql`
             min
             max
             current
+          }
+        }
+        netWorth {
+          sum
+          min
+          max
+          avg
+          ratePerMinute {
+            min
+            max
+            avg
           }
         }
       }
@@ -70,12 +91,22 @@ export const GET_TEAM_STATISTICS = gql`
           min
           max
           avg
+          ratePerMinute {
+            min
+            max
+            avg
+          }
         }
         deaths {
           sum
           min
           max
           avg
+          ratePerMinute {
+            min
+            max
+            avg
+          }
         }
       }
     }
@@ -97,25 +128,67 @@ export const GET_PLAYER_STATISTICS = gql`
           min
           max
           avg
+          ratePerMinute {
+            min
+            max
+            avg
+          }
         }
         deaths {
           sum
           min
           max
           avg
+          ratePerMinute {
+            min
+            max
+            avg
+          }
         }
-        assists {
+        killAssistsGiven {
           sum
           min
           max
           avg
+          ratePerMinute {
+            min
+            max
+            avg
+          }
+        }
+        killAssistsReceived {
+          sum
+          min
+          max
+          avg
+          ratePerMinute {
+            min
+            max
+            avg
+          }
         }
       }
       game {
         count
         wins {
+          value
           count
           percentage
+          streak {
+            min
+            max
+            current
+          }
+        }
+        won {
+          value
+          count
+          percentage
+          streak {
+            min
+            max
+            current
+          }
         }
       }
       segment {
@@ -126,14 +199,337 @@ export const GET_PLAYER_STATISTICS = gql`
           min
           max
           avg
+          ratePerMinute {
+            min
+            max
+            avg
+          }
         }
         deaths {
           sum
           min
           max
           avg
+          ratePerMinute {
+            min
+            max
+            avg
+          }
         }
-        assists {
+        killAssistsGiven {
+          sum
+          min
+          max
+          avg
+          ratePerMinute {
+            min
+            max
+            avg
+          }
+        }
+        killAssistsReceived {
+          sum
+          min
+          max
+          avg
+          ratePerMinute {
+            min
+            max
+            avg
+          }
+        }
+      }
+    }
+  }
+`;
+
+/**
+ * Get team game statistics filtered by game selection
+ */
+export const GET_TEAM_GAME_STATISTICS = gql`
+  query GetTeamGameStatistics($teamId: ID!, $selection: GameSelection) {
+    teamGameStatistics(teamId: $teamId, selection: $selection) {
+      count
+      wins {
+        value
+        count
+        percentage
+        streak {
+          min
+          max
+          current
+        }
+      }
+      won {
+        value
+        count
+        percentage
+        streak {
+          min
+          max
+          current
+        }
+      }
+      kills {
+        sum
+        min
+        max
+        avg
+        ratePerMinute {
+          min
+          max
+          avg
+        }
+      }
+      deaths {
+        sum
+        min
+        max
+        avg
+        ratePerMinute {
+          min
+          max
+          avg
+        }
+      }
+      netWorth {
+        sum
+        min
+        max
+        avg
+        ratePerMinute {
+          min
+          max
+          avg
+        }
+      }
+      segment {
+        type
+        count
+        wins {
+          value
+          count
+          percentage
+          streak {
+            min
+            max
+            current
+          }
+        }
+        won {
+          value
+          count
+          percentage
+          streak {
+            min
+            max
+            current
+          }
+        }
+      }
+    }
+  }
+`;
+
+/**
+ * Get aggregated series statistics for a title
+ */
+export const GET_SERIES_STATISTICS = gql`
+  query GetSeriesStatistics($titleId: ID!, $filter: SeriesStatisticsFilter!) {
+    seriesStatistics(titleId: $titleId, filter: $filter) {
+      aggregationSeriesIds
+      count
+      series {
+        draftActions {
+          draftable {
+            id
+            type
+            name
+          }
+          type {
+            value
+            count
+            percentage
+          }
+        }
+      }
+      games {
+        count {
+          sum
+          min
+          max
+          avg
+        }
+        draftActions {
+          draftable {
+            id
+            type
+            name
+          }
+          type {
+            value
+            count
+            percentage
+          }
+        }
+        map {
+          map {
+            id
+            name
+          }
+          count
+          percentage
+        }
+        teams {
+          count
+          wins {
+            value
+            count
+            percentage
+            streak {
+              min
+              max
+              current
+            }
+          }
+          won {
+            value
+            count
+            percentage
+            streak {
+              min
+              max
+              current
+            }
+          }
+        }
+        duration {
+          sum
+          min
+          max
+          avg
+        }
+      }
+      segments {
+        type
+        count {
+          sum
+          min
+          max
+          avg
+        }
+      }
+    }
+  }
+`;
+
+/**
+ * Get aggregated game statistics for a title
+ */
+export const GET_GAME_STATISTICS = gql`
+  query GetGameStatistics($titleId: ID!, $filter: GameStatisticsFilter!) {
+    gameStatistics(titleId: $titleId, filter: $filter) {
+      aggregationGameIds
+      count
+      games {
+        draftActions {
+          draftable {
+            id
+            type
+            name
+          }
+          type {
+            value
+            count
+            percentage
+          }
+        }
+        teams {
+          money {
+            sum
+            min
+            max
+            avg
+            ratePerMinute {
+              min
+              max
+              avg
+            }
+          }
+          inventoryValue {
+            sum
+            min
+            max
+            avg
+            ratePerMinute {
+              min
+              max
+              avg
+            }
+          }
+          netWorth {
+            sum
+            min
+            max
+            avg
+            ratePerMinute {
+              min
+              max
+              avg
+            }
+          }
+          kills {
+            sum
+            min
+            max
+            avg
+            ratePerMinute {
+              min
+              max
+              avg
+            }
+          }
+          deaths {
+            sum
+            min
+            max
+            avg
+            ratePerMinute {
+              min
+              max
+              avg
+            }
+          }
+          score {
+            sum
+            min
+            max
+            avg
+            ratePerMinute {
+              min
+              max
+              avg
+            }
+          }
+        }
+        duration {
+          sum
+          min
+          max
+          avg
+        }
+        map {
+          map {
+            id
+            name
+          }
+          count
+          percentage
+        }
+      }
+      segments {
+        type
+        count {
           sum
           min
           max
@@ -158,7 +554,7 @@ export const GET_PLAYER_STATISTICS = gql`
  * }
  */
 export const GET_TEAMS = gql`
-  query GetTeams($first: Int = 100, $after: String) {
+  query GetTeams($first: Int = 100, $after: Cursor) {
     teams(first: $first, after: $after) {
       totalCount
       pageInfo {
@@ -230,9 +626,14 @@ export const GET_ALL_SERIES = gql`
     $filter: SeriesFilterInput
     $orderBy: SeriesOrderByInput
     $first: Int = 50
-    $after: String
+    $after: Cursor
   ) {
-    allSeries(filter: $filter, orderBy: $orderBy, first: $first, after: $after) {
+    allSeries(
+      filter: $filter
+      orderBy: $orderBy
+      first: $first
+      after: $after
+    ) {
       totalCount
       pageInfo {
         hasPreviousPage
@@ -329,7 +730,7 @@ export const GET_TEAM_ROSTER = gql`
  * Get tournaments
  */
 export const GET_TOURNAMENTS = gql`
-  query GetTournaments($first: Int = 50, $after: String) {
+  query GetTournaments($first: Int = 50, $after: Cursor) {
     tournaments(first: $first, after: $after) {
       pageInfo {
         hasPreviousPage
