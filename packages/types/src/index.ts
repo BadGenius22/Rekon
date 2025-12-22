@@ -322,19 +322,48 @@ export type {
 } from "./signal";
 
 // ============================================================================
-// AI Recommendation Types (Esports-focused with Pandascore data)
+// AI Recommendation Types (Esports-focused with GRID data)
 // ============================================================================
 
 export type {
+  // Core types
   ConfidenceLevel,
-  EsportsTeamStats,
-  MatchHistory,
-  ConfidenceBreakdown,
-  TeamStatsComparison,
-  RecentMatchesComparison,
   RecommendationResult,
   RecommendationPricing,
   RecommendationStatus,
+
+  // GRID aggregate statistics types
+  AggregateStats,
+  StreakStats,
+  WinRateStats,
+  DurationStats,
+
+  // Team statistics types
+  TeamCombatStats,
+  TeamEconomyStats,
+  TeamObjectiveStats,
+  TeamSeriesStats,
+  TeamGameStats,
+  TeamSegmentStats,
+  EsportsTeamStats,
+
+  // Player statistics types
+  PlayerStats,
+  TeamRosterStats,
+
+  // Match history types
+  MatchHistory,
+
+  // Comparison types
+  ConfidenceBreakdown,
+  TeamStatsComparison,
+  RecentMatchesComparison,
+  RosterComparison,
+
+  // Live match types
+  LiveMatchState,
+  LiveGameState,
+  LiveTeamStats,
 } from "./recommendation";
 
 // ============================================================================

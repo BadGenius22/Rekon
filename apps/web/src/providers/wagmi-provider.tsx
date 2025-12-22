@@ -9,6 +9,7 @@ import { injected } from "wagmi/connectors";
 const POLYGON_RPC_URL =
   process.env.NEXT_PUBLIC_POLYGON_RPC_URL || "https://polygon-rpc.com";
 
+// Create config with multiInjectedProviderDiscovery to handle multiple wallet extensions gracefully
 const config = createConfig({
   chains: [polygon],
   connectors: [injected({ shimDisconnect: true })],
@@ -16,6 +17,9 @@ const config = createConfig({
     [polygon.id]: http(POLYGON_RPC_URL),
   },
   ssr: true,
+  // Enable discovery of multiple injected providers (EIP-6963)
+  // This prevents conflicts when multiple wallet extensions fight over window.ethereum
+  multiInjectedProviderDiscovery: true,
 });
 
 interface WagmiProviderProps {

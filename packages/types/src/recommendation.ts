@@ -23,8 +23,181 @@
  */
 export type ConfidenceLevel = "high" | "medium" | "low";
 
+// =============================================================================
+// GRID Aggregate Statistics Types (from Stats Feed)
+// =============================================================================
+
+/**
+ * Aggregate numerical statistic from GRID
+ * Represents sum/min/max/avg for metrics like kills, deaths, netWorth
+ */
+export interface AggregateStats {
+  /** Sum of all values */
+  sum: number;
+  /** Minimum value */
+  min: number;
+  /** Maximum value */
+  max: number;
+  /** Average value */
+  avg: number;
+  /** Rate per minute (if available) */
+  ratePerMinute?: {
+    min: number;
+    max: number;
+    avg: number;
+  };
+}
+
+/**
+ * Win/loss streak information from GRID
+ */
+export interface StreakStats {
+  /** Shortest streak */
+  min: number;
+  /** Longest streak */
+  max: number;
+  /** Current streak (positive = winning, negative = losing) */
+  current: number;
+}
+
+/**
+ * Win rate statistics with streak info from GRID
+ */
+export interface WinRateStats {
+  /** Number of wins */
+  wins: number;
+  /** Number of losses */
+  losses: number;
+  /** Win percentage (0-100) */
+  percentage: number;
+  /** Win streak information */
+  winStreak: StreakStats;
+  /** Loss streak information */
+  lossStreak: StreakStats;
+}
+
+/**
+ * Duration statistics from GRID
+ */
+export interface DurationStats {
+  /** Total duration (milliseconds) */
+  total: number;
+  /** Minimum game duration */
+  min: number;
+  /** Maximum game duration */
+  max: number;
+  /** Average game duration */
+  avg: number;
+}
+
+// =============================================================================
+// Team Statistics Types
+// =============================================================================
+
+/**
+ * Detailed team combat statistics from GRID
+ * Available at series, game, and segment (round) levels
+ */
+export interface TeamCombatStats {
+  /** Kill statistics */
+  kills: AggregateStats;
+  /** Death statistics */
+  deaths: AggregateStats;
+  /** Kill/Death ratio (calculated) */
+  kdRatio: number;
+  /** Kill assists given to teammates */
+  killAssistsGiven?: AggregateStats;
+  /** Kill assists received from teammates */
+  killAssistsReceived?: AggregateStats;
+  /** Headshot statistics (CS2) */
+  headshots?: AggregateStats;
+  /** First kill statistics */
+  firstKill?: {
+    count: number;
+    percentage: number;
+  };
+}
+
+/**
+ * Team economy statistics from GRID (Dota2, LoL, CS2)
+ */
+export interface TeamEconomyStats {
+  /** Net worth statistics */
+  netWorth?: AggregateStats;
+  /** Money/gold statistics */
+  money?: AggregateStats;
+  /** Inventory value statistics */
+  inventoryValue?: AggregateStats;
+}
+
+/**
+ * Team objective statistics from GRID
+ */
+export interface TeamObjectiveStats {
+  /** Structures destroyed */
+  structuresDestroyed?: AggregateStats;
+  /** Structures captured */
+  structuresCaptured?: AggregateStats;
+  /** Game-specific objectives (towers, barons, dragons, etc.) */
+  objectives?: Array<{
+    type: string;
+    completionCount: AggregateStats;
+    completedFirst?: { count: number; percentage: number };
+  }>;
+}
+
+/**
+ * Series-level team statistics from GRID
+ * Aggregated across all games in a series
+ */
+export interface TeamSeriesStats {
+  /** Number of series played */
+  count: number;
+  /** Combat statistics at series level */
+  combat: TeamCombatStats;
+  /** Win/loss statistics for series */
+  winRate: WinRateStats;
+  /** Average series duration */
+  duration?: DurationStats;
+}
+
+/**
+ * Game-level team statistics from GRID
+ * Aggregated across all games (individual maps/rounds)
+ */
+export interface TeamGameStats {
+  /** Number of games played */
+  count: number;
+  /** Combat statistics at game level */
+  combat: TeamCombatStats;
+  /** Economy statistics */
+  economy: TeamEconomyStats;
+  /** Win/loss statistics for games */
+  winRate: WinRateStats;
+  /** Game duration statistics */
+  duration?: DurationStats;
+}
+
+/**
+ * Segment-level (round) team statistics from GRID
+ * For CS2: round statistics; For MOBAs: objective phases
+ */
+export interface TeamSegmentStats {
+  /** Segment type (e.g., "round" for CS2) */
+  type: string;
+  /** Number of segments */
+  count: number;
+  /** Combat statistics at segment level */
+  combat: TeamCombatStats;
+  /** Win/loss statistics for segments */
+  winRate: WinRateStats;
+  /** First segment wins (pistol rounds in CS2) */
+  wonFirst?: { count: number; percentage: number };
+}
+
 /**
  * Esports team statistics normalized from GRID
+ * Enhanced with full historical data for premium content
  */
 export interface EsportsTeamStats {
   /** GRID team ID */
@@ -35,7 +208,7 @@ export interface EsportsTeamStats {
   acronym?: string;
   /** Team logo URL */
   imageUrl?: string;
-  /** Overall win rate (0-100) */
+  /** Overall win rate (0-100) - simplified for free tier */
   winRate: number;
   /** Recent form score based on last 5-10 matches (0-100) */
   recentForm: number;
@@ -47,7 +220,73 @@ export interface EsportsTeamStats {
   totalMatches?: number;
   /** Last match date (ISO timestamp) */
   lastMatchDate?: string;
+
+  // ==========================================================================
+  // Premium: Detailed GRID Statistics (x402 gated)
+  // ==========================================================================
+
+  /** Series-level statistics from GRID */
+  seriesStats?: TeamSeriesStats;
+  /** Game-level statistics from GRID */
+  gameStats?: TeamGameStats;
+  /** Segment-level (round) statistics from GRID */
+  segmentStats?: TeamSegmentStats[];
+  /** Time window used for these statistics */
+  timeWindow?: "LAST_WEEK" | "LAST_MONTH" | "LAST_3_MONTHS" | "LAST_6_MONTHS" | "LAST_YEAR";
+  /** Series IDs used to calculate these stats */
+  aggregationSeriesIds?: string[];
 }
+
+// =============================================================================
+// Player Statistics Types (Premium Content)
+// =============================================================================
+
+/**
+ * Individual player statistics from GRID
+ * For premium content showing star player performance
+ */
+export interface PlayerStats {
+  /** GRID player ID */
+  playerId: string;
+  /** Player display name */
+  playerName: string;
+  /** Player's current team */
+  teamName?: string;
+  /** Combat statistics */
+  combat: TeamCombatStats;
+  /** Win rate at game level */
+  winRate: WinRateStats;
+  /** Number of games played */
+  gamesPlayed: number;
+  /** Number of series played */
+  seriesPlayed: number;
+  /** Character/agent picks (for MOBAs/Valorant) */
+  characterPicks?: Array<{
+    characterId: string;
+    characterName: string;
+    count: number;
+    percentage: number;
+  }>;
+}
+
+/**
+ * Team roster with player statistics
+ * For premium head-to-head player comparisons
+ */
+export interface TeamRosterStats {
+  /** Team ID */
+  teamId: string;
+  /** Team name */
+  teamName: string;
+  /** Players with stats */
+  players: PlayerStats[];
+  /** Star player (highest KD or most impactful) */
+  starPlayer?: PlayerStats;
+}
+
+// =============================================================================
+// Match History Types
+// =============================================================================
 
 /**
  * Historical match record
@@ -67,22 +306,45 @@ export interface MatchHistory {
   tournament?: string;
   /** Map name (for individual games) */
   map?: string;
+
+  // ==========================================================================
+  // Premium: Detailed match data (x402 gated)
+  // ==========================================================================
+
+  /** Match duration in minutes */
+  durationMinutes?: number;
+  /** Team's total kills in this match */
+  teamKills?: number;
+  /** Team's total deaths in this match */
+  teamDeaths?: number;
+  /** Economy differential (for CS2/MOBAs) */
+  economyDiff?: number;
+  /** Round/game breakdown (for series) */
+  games?: Array<{
+    gameNumber: number;
+    result: "win" | "loss";
+    score?: string;
+    map?: string;
+  }>;
 }
 
 /**
  * Confidence breakdown by factor
+ * All factors are scored 0-100, weighted per RECOMMENDATION_CONFIG.weights
  */
 export interface ConfidenceBreakdown {
-  /** Recent form factor (0-100) */
+  /** Recent form factor (0-100) - GRID Historical */
   recentForm: number;
-  /** Head-to-head factor (0-100) */
+  /** Head-to-head factor (0-100) - GRID Historical */
   headToHead: number;
-  /** Map advantage factor (0-100) */
+  /** Map advantage factor (0-100) - GRID Historical */
   mapAdvantage: number;
-  /** Roster stability factor (0-100) */
+  /** Roster stability factor (0-100) - Default/Future enhancement */
   rosterStability: number;
-  /** Market odds factor (0-100) */
+  /** Market odds factor (0-100) - Polymarket */
   marketOdds: number;
+  /** Live performance factor (0-100) - GRID Live Data (only if match ongoing) */
+  livePerformance?: number;
 }
 
 /**
@@ -93,6 +355,29 @@ export interface TeamStatsComparison {
   recommended: EsportsTeamStats;
   /** Opponent team stats */
   opponent: EsportsTeamStats;
+
+  // ==========================================================================
+  // Premium: Detailed comparison metrics (x402 gated)
+  // ==========================================================================
+
+  /** Kill differential (recommended - opponent avg) */
+  killDifferential?: number;
+  /** Death differential */
+  deathDifferential?: number;
+  /** Win rate differential */
+  winRateDifferential?: number;
+  /** Current form comparison */
+  formComparison?: {
+    recommended: "hot" | "neutral" | "cold";
+    opponent: "hot" | "neutral" | "cold";
+    advantage: "recommended" | "opponent" | "even";
+  };
+  /** Streak comparison */
+  streakComparison?: {
+    recommendedStreak: number;
+    opponentStreak: number;
+    advantage: "recommended" | "opponent" | "even";
+  };
 }
 
 /**
@@ -105,6 +390,118 @@ export interface RecentMatchesComparison {
   opponent: MatchHistory[];
   /** Head-to-head matches between the two teams */
   headToHead: MatchHistory[];
+
+  // ==========================================================================
+  // Premium: H2H analysis (x402 gated)
+  // ==========================================================================
+
+  /** H2H summary statistics */
+  h2hSummary?: {
+    totalMatches: number;
+    recommendedWins: number;
+    opponentWins: number;
+    lastMeetingDate?: string;
+    lastMeetingWinner?: string;
+  };
+}
+
+/**
+ * Player roster comparison for premium content
+ */
+export interface RosterComparison {
+  /** Recommended team roster */
+  recommended: TeamRosterStats;
+  /** Opponent team roster */
+  opponent: TeamRosterStats;
+  /** Key matchup analysis */
+  keyMatchups?: Array<{
+    recommendedPlayer: string;
+    opponentPlayer: string;
+    advantage: "recommended" | "opponent" | "even";
+    reason: string;
+  }>;
+}
+
+// =============================================================================
+// Live Match Types (GRID Live Data Feed)
+// =============================================================================
+
+/**
+ * Live team statistics during an ongoing game
+ * Aggregated from player-level data
+ */
+export interface LiveTeamStats {
+  /** Team ID from GRID */
+  teamId?: string;
+  /** Team display name */
+  teamName: string;
+  /** Total team kills */
+  kills: number;
+  /** Total team deaths */
+  deaths: number;
+  /** Kill/Death ratio (calculated) */
+  killDeathRatio?: number;
+  /** Total team net worth (Dota 2, CS2 economy) */
+  netWorth?: number;
+  /** Game-specific objectives (e.g., towers, barons, dragons) */
+  objectives?: Record<string, number>;
+  /** Top performing players by KDA */
+  topPlayers?: Array<{
+    name: string;
+    kills: number;
+    deaths: number;
+    kda: number;
+  }>;
+}
+
+/**
+ * State snapshot for a single game within a series
+ * Provides real-time game state from GRID Live Data Feed
+ */
+export interface LiveGameState {
+  /** Game number in the series (1, 2, 3, etc.) */
+  gameNumber: number;
+  /** Current game state */
+  state: "not_started" | "ongoing" | "finished";
+  /** Winner team ID (if finished) */
+  winnerTeamId?: string;
+  /** Winner team name (if finished) */
+  winnerTeamName?: string;
+  /** Game duration in seconds (if ongoing/finished) */
+  durationSeconds?: number;
+  /** Map name (for CS2, Valorant) */
+  map?: string;
+  /** Live team statistics (if ongoing) */
+  stats?: {
+    team1: LiveTeamStats;
+    team2: LiveTeamStats;
+  };
+}
+
+/**
+ * Live match/series state from GRID Live Data Feed
+ * Used for real-time recommendation updates during ongoing matches
+ */
+export interface LiveMatchState {
+  /** GRID series ID */
+  seriesId: string;
+  /** Current series state */
+  state: "not_started" | "ongoing" | "finished";
+  /** Series format (e.g., "bo3", "bo5") */
+  format?: string;
+  /** Current game number being played */
+  currentGame?: number;
+  /** Series score */
+  score: {
+    team1: number;
+    team2: number;
+  };
+  /** Individual game states */
+  games: LiveGameState[];
+  /** Last update timestamp (ISO 8601) */
+  lastUpdated: string;
+  /** Data validity flag from GRID */
+  valid?: boolean;
 }
 
 /**
@@ -129,21 +526,39 @@ export interface RecommendationResult {
   shortReasoning: string[];
 
   // ============================================================================
-  // Premium Content (x402 gated)
+  // Premium Content (x402 gated) - GRID Historical Data
   // ============================================================================
 
   /** Full LLM-generated explanation */
   fullExplanation?: string;
   /** Detailed confidence breakdown by factor */
   confidenceBreakdown?: ConfidenceBreakdown;
-  /** Team stats comparison */
+  /** Team stats comparison with detailed GRID data */
   teamStats?: TeamStatsComparison;
-  /** Recent matches comparison */
+  /** Recent matches comparison with H2H analysis */
   recentMatches?: RecentMatchesComparison;
+  /** Player roster comparison (star player matchups) */
+  rosterComparison?: RosterComparison;
+  /** Key statistical insights from GRID data */
+  keyInsights?: string[];
+  /** Risk factors identified from historical data */
+  riskFactors?: string[];
+
+  // ============================================================================
+  // Premium Content (x402 gated) - GRID Live Data
+  // ============================================================================
+
+  /** Live match state if match is ongoing (GRID Live Data Feed) */
+  liveState?: LiveMatchState;
+  /** Live performance score (0-100, from GRID live stats) */
+  livePerformanceScore?: number;
 
   // ============================================================================
   // Metadata
   // ============================================================================
+
+  /** Whether this match is currently live (free tier indicator) */
+  isLive?: boolean;
 
   /** When the recommendation was computed (ISO timestamp) */
   computedAt: string;

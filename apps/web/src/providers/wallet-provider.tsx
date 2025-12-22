@@ -90,10 +90,18 @@ export function WalletProvider({ children }: WalletProviderProps) {
       return;
     }
 
-    // Use the injected provider (window.ethereum) directly
-    const ethereum = typeof window !== "undefined"
-      ? (window as unknown as { ethereum?: providers.ExternalProvider }).ethereum
-      : undefined;
+    // Safely access window.ethereum - some wallet extensions may cause errors
+    // when multiple extensions fight over the ethereum property
+    let ethereum: providers.ExternalProvider | undefined;
+    try {
+      ethereum = typeof window !== "undefined"
+        ? (window as unknown as { ethereum?: providers.ExternalProvider }).ethereum
+        : undefined;
+    } catch {
+      // Browser extension conflict - window.ethereum access failed
+      setEthersSigner(null);
+      return;
+    }
 
     if (!ethereum) {
       setEthersSigner(null);
@@ -104,7 +112,7 @@ export function WalletProvider({ children }: WalletProviderProps) {
       const provider = new providers.Web3Provider(ethereum, "any");
       const signer = provider.getSigner(address);
       setEthersSigner(signer);
-    } catch (err) {
+    } catch {
       setEthersSigner(null);
     }
   }, [isConnected, address]);
@@ -124,7 +132,13 @@ export function WalletProvider({ children }: WalletProviderProps) {
       }
 
       // After connecting, ensure we're on Polygon network
-      const ethereum = (window as unknown as { ethereum?: providers.ExternalProvider & { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> } }).ethereum;
+      // Safely access window.ethereum to avoid extension conflicts
+      let ethereum: (providers.ExternalProvider & { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> }) | undefined;
+      try {
+        ethereum = (window as unknown as { ethereum?: typeof ethereum }).ethereum;
+      } catch {
+        // Extension conflict - skip network switch
+      }
       if (typeof window !== "undefined" && ethereum) {
         try {
           // Check current chain
