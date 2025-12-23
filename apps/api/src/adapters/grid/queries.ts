@@ -554,7 +554,7 @@ export const GET_GAME_STATISTICS = gql`
  * }
  */
 export const GET_TEAMS = gql`
-  query GetTeams($first: Int = 100, $after: Cursor) {
+  query GetTeams($first: Int = 100, $after: String) {
     teams(first: $first, after: $after) {
       totalCount
       pageInfo {
@@ -626,7 +626,7 @@ export const GET_ALL_SERIES = gql`
     $filter: SeriesFilterInput
     $orderBy: SeriesOrderByInput
     $first: Int = 50
-    $after: Cursor
+    $after: String
   ) {
     allSeries(
       filter: $filter
@@ -730,7 +730,7 @@ export const GET_TEAM_ROSTER = gql`
  * Get tournaments
  */
 export const GET_TOURNAMENTS = gql`
-  query GetTournaments($first: Int = 50, $after: Cursor) {
+  query GetTournaments($first: Int = 50, $after: String) {
     tournaments(first: $first, after: $after) {
       pageInfo {
         hasPreviousPage

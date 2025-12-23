@@ -12,6 +12,7 @@ import { MarketSubevents } from "./market-subevents";
 import { RecentTrades } from "./recent-trades";
 import { MarketInfo } from "./market-info";
 import { WatchlistButton } from "@/components/watchlist-button";
+import { RecommendationCard } from "./recommendation-card";
 
 interface MarketDetailClientProps {
   market: Market;
@@ -39,6 +40,7 @@ interface MarketDetailClientProps {
   allMarkets: Market[];
   shouldShowSubevents: boolean;
   isTotalsMarket?: boolean;
+  isEsportsMarket?: boolean;
 }
 
 export function MarketDetailClient({
@@ -60,6 +62,7 @@ export function MarketDetailClient({
   allMarkets,
   shouldShowSubevents,
   isTotalsMarket = false,
+  isEsportsMarket = false,
 }: MarketDetailClientProps) {
   const [showBetModal, setShowBetModal] = useState(false);
   const [selectedBetData, setSelectedBetData] = useState<{
@@ -197,17 +200,33 @@ export function MarketDetailClient({
         />
         <StatCard
           label="24h Change"
-          value={`${team1PriceChange24h >= 0 ? "+" : ""}${(team1PriceChange24h * 100).toFixed(2)}%`}
+          value={`${team1PriceChange24h >= 0 ? "+" : ""}${team1PriceChange24h.toFixed(2)}%`}
           icon="trending"
           color={team1PriceChange24h >= 0 ? "emerald" : "red"}
         />
         <StatCard
           label="Spread"
-          value={spread ? `${(spread.spreadPercent * 100).toFixed(2)}%` : "N/A"}
+          value={spread ? `${spread.spreadPercent.toFixed(2)}%` : "N/A"}
           icon="split"
           color="purple"
         />
       </motion.div>
+
+      {/* AI Recommendation Card (esports only) */}
+      {isEsportsMarket && !isTotalsMarket && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.22 }}
+          className="mb-6"
+        >
+          <RecommendationCard
+            marketId={market.id}
+            team1Name={team1Name}
+            team2Name={team2Name}
+          />
+        </motion.div>
+      )}
 
       {/* Subevents (if available) */}
       {shouldShowSubevents && allMarkets.length > 1 && (

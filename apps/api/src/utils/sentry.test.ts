@@ -1,118 +1,75 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@sentry/node", () => {
-  const init = vi.fn();
-  const captureException = vi.fn();
-  const captureMessage = vi.fn();
-  const addBreadcrumb = vi.fn();
+// NOTE: Sentry is now disabled in the codebase
+// These tests verify that the functions still work (as console.log no-ops)
+// without breaking existing code that calls them
 
-  interface MockScope {
-    setTag: (key: string, value: unknown) => void;
-    setExtra: (key: string, value: unknown) => void;
-    setLevel: (level: string) => void;
-    setUser: (user: unknown) => void;
-  }
-
-  const withScope = vi.fn((fn: (scope: MockScope) => void) => {
-    const scope: MockScope = {
-      setTag: vi.fn(),
-      setExtra: vi.fn(),
-      setLevel: vi.fn(),
-      setUser: vi.fn(),
-    };
-    fn(scope);
-  });
-  return {
-    init,
-    captureException,
-    captureMessage,
-    addBreadcrumb,
-    withScope,
-  };
-});
-
-import * as SentryLib from "@sentry/node";
 import {
   initSentry,
   captureError,
   captureMessage,
   trackPolymarketApiFailure,
+  trackPandascoreApiFailure,
+  trackGridApiFailure,
   trackFailedRequest,
   addBreadcrumb,
 } from "./sentry";
-
-const sentryMock = SentryLib as unknown as {
-  init: ReturnType<typeof vi.fn>;
-  captureException: ReturnType<typeof vi.fn>;
-  captureMessage: ReturnType<typeof vi.fn>;
-  addBreadcrumb: ReturnType<typeof vi.fn>;
-  withScope: ReturnType<typeof vi.fn>;
-};
 
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
 describe("utils/sentry - initSentry", () => {
-  it("does nothing when SENTRY_DSN is not set", () => {
-    const originalDsn = process.env.SENTRY_DSN;
-    delete process.env.SENTRY_DSN;
+  it("logs a warning that Sentry is disabled", () => {
+    const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
     initSentry();
 
-    expect(sentryMock.init).not.toHaveBeenCalled();
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      "⚠️ Sentry is disabled. Error tracking will only log to console."
+    );
 
-    process.env.SENTRY_DSN = originalDsn;
+    consoleLogSpy.mockRestore();
   });
 });
 
 describe("utils/sentry - captureError & captureMessage", () => {
-  it("logs to console when SENTRY_DSN is missing", () => {
-    const originalDsn = process.env.SENTRY_DSN;
-    delete process.env.SENTRY_DSN;
-
+  it("logs errors to console (Sentry disabled)", () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    captureError(new Error("test error"));
-    captureMessage("test message");
-
-    expect(consoleErrorSpy).toHaveBeenCalled();
-    expect(consoleLogSpy).toHaveBeenCalledWith("[INFO] test message");
-
-    consoleErrorSpy.mockRestore();
-    consoleLogSpy.mockRestore();
-    process.env.SENTRY_DSN = originalDsn;
-  });
-
-  it("forwards error and message to Sentry when DSN is set", () => {
-    const originalDsn = process.env.SENTRY_DSN;
-    process.env.SENTRY_DSN = "https://example.com/123";
-
-    captureError(new Error("boom"), {
+    const testError = new Error("test error");
+    captureError(testError, {
       tags: { a: "b" },
       extra: { x: 1 },
       level: "error",
-      user: { sessionId: "sess-1", id: "user-1" },
     });
 
-    expect(sentryMock.captureException).toHaveBeenCalledTimes(1);
+    expect(consoleErrorSpy).toHaveBeenCalledWith("[ERROR]", testError);
+    expect(consoleErrorSpy).toHaveBeenCalledWith("  Tags:", { a: "b" });
+    expect(consoleErrorSpy).toHaveBeenCalledWith("  Extra:", { x: 1 });
 
-    captureMessage("hello", "warning", {
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("logs messages to console (Sentry disabled)", () => {
+    const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    captureMessage("test message", "warning", {
       tags: { c: "d" },
       extra: { y: 2 },
     });
 
-    expect(sentryMock.captureMessage).toHaveBeenCalledWith("hello", "warning");
+    expect(consoleLogSpy).toHaveBeenCalledWith("[WARNING] test message");
+    expect(consoleLogSpy).toHaveBeenCalledWith("  Tags:", { c: "d" });
+    expect(consoleLogSpy).toHaveBeenCalledWith("  Extra:", { y: 2 });
 
-    process.env.SENTRY_DSN = originalDsn;
+    consoleLogSpy.mockRestore();
   });
 });
 
 describe("utils/sentry - tracking helpers", () => {
-  it("trackPolymarketApiFailure uses captureError with expected tags", () => {
-    const originalDsn = process.env.SENTRY_DSN;
-    process.env.SENTRY_DSN = "https://example.com/123";
+  it("trackPolymarketApiFailure logs to console (Sentry disabled)", () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const error = new Error("API error");
     trackPolymarketApiFailure("/fills", 429, error, {
@@ -120,44 +77,97 @@ describe("utils/sentry - tracking helpers", () => {
       requestId: "req-1",
     });
 
-    expect(sentryMock.captureException).toHaveBeenCalledTimes(1);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "[WARNING] Polymarket API failure:",
+      expect.objectContaining({
+        endpoint: "/fills",
+        statusCode: 429,
+        error,
+        retryCount: 2,
+        requestId: "req-1",
+      })
+    );
 
-    process.env.SENTRY_DSN = originalDsn;
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("trackPandascoreApiFailure logs to console (Sentry disabled)", () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const error = new Error("Pandascore API error");
+    trackPandascoreApiFailure("/teams/123", 500, error, {
+      retryCount: 1,
+      teamId: 123,
+    });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "[ERROR] Pandascore API failure:",
+      expect.objectContaining({
+        endpoint: "/teams/123",
+        statusCode: 500,
+        error,
+        retryCount: 1,
+        teamId: 123,
+      })
+    );
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("trackGridApiFailure logs to console (Sentry disabled)", () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    trackGridApiFailure("retry", "Rate limit exceeded", {
+      endpoint: "https://api.grid.gg/graphql",
+      attempt: 2,
+      isRateLimitError: true,
+    });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "[WARNING] GRID API failure:",
+      expect.objectContaining({
+        type: "retry",
+        errorMessage: "Rate limit exceeded",
+        endpoint: "https://api.grid.gg/graphql",
+        attempt: 2,
+        isRateLimitError: true,
+      })
+    );
+
+    consoleErrorSpy.mockRestore();
   });
 
   it("trackFailedRequest only tracks selected status codes", () => {
-    const originalDsn = process.env.SENTRY_DSN;
-    process.env.SENTRY_DSN = "https://example.com/123";
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     // 200 should be ignored
     trackFailedRequest("/ok", "GET", 200);
-    // 400 should be ignored per filter
-    trackFailedRequest("/bad", "GET", 400);
-    // 500 should be captured
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+
+    // 500 should be logged
     trackFailedRequest("/err", "GET", 500, new Error("failed"), {
       sessionId: "sess-1",
       userId: "user-1",
       duration: 123,
     });
 
-    // 500 and 400 both currently result in captureError() calls
-    expect(sentryMock.captureException).toHaveBeenCalledTimes(2);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "[ERROR] Request failed:",
+      expect.objectContaining({
+        method: "GET",
+        path: "/err",
+        statusCode: 500,
+      })
+    );
 
-    process.env.SENTRY_DSN = originalDsn;
+    consoleErrorSpy.mockRestore();
   });
 
-  it("addBreadcrumb is a no-op when DSN is missing and calls Sentry.addBreadcrumb when set", () => {
-    const originalDsn = process.env.SENTRY_DSN;
-    delete process.env.SENTRY_DSN;
-
-    addBreadcrumb("msg", "category", { foo: "bar" });
-    expect(sentryMock.addBreadcrumb).not.toHaveBeenCalled();
-
-    process.env.SENTRY_DSN = "https://example.com/123";
-    addBreadcrumb("msg", "category", { foo: "bar" });
-    expect(sentryMock.addBreadcrumb).toHaveBeenCalledTimes(1);
-
-    process.env.SENTRY_DSN = originalDsn;
+  it("addBreadcrumb is a no-op (Sentry disabled)", () => {
+    // Should not throw or log anything
+    expect(() => {
+      addBreadcrumb("msg", "category", { foo: "bar" });
+    }).not.toThrow();
   });
 });
 

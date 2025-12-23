@@ -1,5 +1,10 @@
 import { API_CONFIG } from "@rekon/config";
-import type { SignalResult, SignalPricing } from "@rekon/types";
+import type {
+  SignalResult,
+  SignalPricing,
+  RecommendationResult,
+  RecommendationPricing,
+} from "@rekon/types";
 
 /**
  * API Client for Rekon Frontend
@@ -251,6 +256,126 @@ export async function getSignal(
   if (!response.ok) {
     throw new Error(
       `Signal API failed: ${response.status} ${response.statusText}`
+    );
+  }
+
+  return response.json();
+}
+
+// ============================================================================
+// Recommendation API (x402 Payment)
+// ============================================================================
+
+export interface RecommendationStatusResponse {
+  enabled: boolean;
+  message: string;
+  supportedGames: string[];
+  features: {
+    historicalAnalysis: boolean;
+    liveMatchData: boolean;
+    llmExplanation: boolean;
+    headToHead: boolean;
+    teamComparison: boolean;
+  };
+  dataSource: string;
+}
+
+export interface RecommendationPricingResponse extends RecommendationPricing {
+  enabled: boolean;
+  networkCaip2: string | null;
+  description: string;
+  features: string[];
+}
+
+export interface RecommendationPreviewResponse extends RecommendationResult {
+  isPreview: true;
+}
+
+export interface RecommendationAvailabilityResponse {
+  available: boolean;
+  reason?: string;
+  game?: string;
+}
+
+/**
+ * Get recommendation system status (free endpoint)
+ */
+export async function getRecommendationStatus(): Promise<RecommendationStatusResponse> {
+  return apiGet<RecommendationStatusResponse>("/recommendation/status");
+}
+
+/**
+ * Get recommendation pricing info (free endpoint)
+ */
+export async function getRecommendationPricing(): Promise<RecommendationPricingResponse> {
+  return apiGet<RecommendationPricingResponse>("/recommendation/pricing");
+}
+
+/**
+ * Check if recommendation is available for a market (free endpoint)
+ */
+export async function getRecommendationAvailability(
+  marketId: string
+): Promise<RecommendationAvailabilityResponse> {
+  return apiGet<RecommendationAvailabilityResponse>(
+    `/recommendation/market/${marketId}/available`
+  );
+}
+
+/**
+ * Get recommendation preview without LLM explanation (free endpoint)
+ */
+export async function getRecommendationPreview(
+  marketId: string
+): Promise<RecommendationPreviewResponse> {
+  return apiGet<RecommendationPreviewResponse>(
+    `/recommendation/market/${marketId}/preview`
+  );
+}
+
+/**
+ * Get full recommendation with LLM explanation (paid endpoint)
+ *
+ * When x402 is enabled, this will return 402 Payment Required on first request.
+ * The response includes payment requirements in the X-PAYMENT-REQUIRED header.
+ *
+ * @param marketId - Market ID to get recommendation for
+ * @param paymentToken - Optional x402 payment token from wallet
+ * @returns Recommendation result or payment requirements
+ */
+export async function getRecommendation(
+  marketId: string,
+  paymentToken?: string
+): Promise<
+  | RecommendationResult
+  | { paymentRequired: true; requirements: X402PaymentRequired }
+> {
+  const headers: Record<string, string> = {};
+
+  if (paymentToken) {
+    headers["X-PAYMENT"] = paymentToken;
+  }
+
+  const response = await apiFetch(`/recommendation/market/${marketId}`, {
+    method: "GET",
+    headers,
+  });
+
+  // Handle 402 Payment Required
+  if (response.status === 402) {
+    const paymentRequiredHeader = response.headers.get("X-PAYMENT-REQUIRED");
+    if (paymentRequiredHeader) {
+      const requirements = JSON.parse(
+        atob(paymentRequiredHeader)
+      ) as X402PaymentRequired;
+      return { paymentRequired: true, requirements };
+    }
+    throw new Error("Payment required but no requirements provided");
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `Recommendation API failed: ${response.status} ${response.statusText}`
     );
   }
 

@@ -76,11 +76,17 @@ type SupportedGame = "cs2" | "lol" | "dota2" | "valorant";
 // Configuration
 // ============================================================================
 
-/** Cache TTL for recommendations (30 seconds - balance freshness vs API cost) */
-const RECOMMENDATION_CACHE_TTL = RECOMMENDATION_CONFIG.cacheTtl;
+/** Cache TTL for recommendations */
+const RECOMMENDATION_CACHE_TTL = RECOMMENDATION_CONFIG.cacheTtl; // 30 seconds for live matches
+const RECOMMENDATION_CACHE_TTL_NON_LIVE = 5 * 60 * 1000; // 5 minutes for non-live matches
 
 /** Days to look ahead for series matching */
 const SERIES_LOOKUP_DAYS_AHEAD = 7;
+
+/** Check if demo mode is enabled (static snapshot data) */
+const isDemoMode =
+  process.env.POLYMARKET_DEMO_MODE === "true" ||
+  process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
 // ============================================================================
 // Helper Functions
@@ -492,7 +498,36 @@ export async function generateRecommendationPreview(
 
   const game = extractGameFromMarket(market);
 
-  // 4. Check cache for preview
+  // 4. Fetch esports stats first (needed for recommendation)
+  const esportsStats = await getMarketEsportsStats(market);
+
+  // 5. Check if match is live (for isLive indicator and dynamic TTL)
+  // Skip live check in demo mode (data is static snapshot)
+  let isLive = false;
+  if (!isDemoMode && RECOMMENDATION_CONFIG.enableLiveData) {
+    try {
+      const liveState = await fetchLiveStateIfOngoing(
+        teamNames.team1,
+        teamNames.team2,
+        game
+      );
+      isLive = liveState?.state === "ongoing";
+    } catch {
+      // Ignore errors for preview
+    }
+  }
+
+  // 6. Use dynamic cache TTL based on live state
+  // Live matches: 30 seconds (needs frequent refresh)
+  // Non-live matches: 5 minutes (reduce API calls)
+  // Demo mode: always use long TTL (data is static)
+  const cacheTtl = isDemoMode
+    ? RECOMMENDATION_CACHE_TTL_NON_LIVE // Demo mode: 5 minutes
+    : isLive
+    ? RECOMMENDATION_CACHE_TTL // Live: 30 seconds
+    : RECOMMENDATION_CACHE_TTL_NON_LIVE; // Non-live: 5 minutes
+
+  // 7. Check cache for preview
   const cacheKey = getCacheKey("market-stats", {
     marketId,
     type: "recommendation-preview",
@@ -500,27 +535,9 @@ export async function generateRecommendationPreview(
 
   return withCache<RecommendationResult>(
     cacheKey,
-    RECOMMENDATION_CACHE_TTL,
+    cacheTtl,
     async () => {
-      // 5. Fetch esports stats (without live state for preview - reduce API calls)
-      const esportsStats = await getMarketEsportsStats(market);
-
-      // 6. Check if match might be live (for isLive indicator)
-      let isLive = false;
-      if (RECOMMENDATION_CONFIG.enableLiveData) {
-        try {
-          const liveState = await fetchLiveStateIfOngoing(
-            teamNames.team1,
-            teamNames.team2,
-            game
-          );
-          isLive = liveState?.state === "ongoing";
-        } catch {
-          // Ignore errors for preview
-        }
-      }
-
-      // 7. Build input for recommendation engine
+      // 8. Build input for recommendation engine
       const team1Data: TeamData = {
         name: teamNames.team1,
         stats: esportsStats.team1.stats,
@@ -541,10 +558,10 @@ export async function generateRecommendationPreview(
         h2hMatches: [],
       };
 
-      // 8. Compute recommendation (pure function)
+      // 9. Compute recommendation (pure function)
       const computed = computeRecommendation(input);
 
-      // 9. Return preview result (free tier - no premium content)
+      // 10. Return preview result (free tier - no premium content)
       return {
         marketId: market.id,
         marketTitle: market.question,

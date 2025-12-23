@@ -39,6 +39,10 @@ export const X402_CONFIG = {
   thirdwebSecretKey: process.env.THIRDWEB_SECRET_KEY || "",
   thirdwebClientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID || "",
 
+  // Vault access token for server wallet authentication
+  // Required when using self-managed vault
+  thirdwebVaultAccessToken: process.env.THIRDWEB_VAULT_ACCESS_TOKEN || "",
+
   // LLM configuration for signal explanations
   llmProvider: (process.env.LLM_PROVIDER || "openai") as "openai" | "anthropic",
   llmApiKey: process.env.LLM_API_KEY || "",

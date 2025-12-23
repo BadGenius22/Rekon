@@ -1,9 +1,11 @@
 import { initSentry, captureError, captureMessage } from "../utils/sentry";
 
 /**
- * Sentry Smoke Test
+ * Sentry Smoke Test (DISABLED)
  *
- * Sends a test error and message to Sentry using the configured SENTRY_DSN.
+ * NOTE: Sentry is currently disabled in the codebase.
+ * This script now just verifies that the error tracking functions
+ * still work (as console.log no-ops) without breaking.
  *
  * Usage (from repo root):
  *   cd apps/api
@@ -11,11 +13,13 @@ import { initSentry, captureError, captureMessage } from "../utils/sentry";
  */
 
 async function main(): Promise<void> {
-  // Initialize Sentry (no-op if SENTRY_DSN is not set)
+  console.log("🧪 Running Sentry smoke test (Sentry is DISABLED)...\n");
+
+  // Initialize Sentry (now just logs a warning)
   initSentry();
 
-  // Send a test error
-  captureError(new Error("Rekon Sentry smoke test error"), {
+  // Test captureError (logs to console)
+  captureError(new Error("Test error for smoke test"), {
     tags: {
       smoke_test: "true",
       service: "rekon-api",
@@ -23,14 +27,15 @@ async function main(): Promise<void> {
     level: "error",
   });
 
-  // Send a test message
-  captureMessage("Rekon Sentry smoke test message", "info", {
+  // Test captureMessage (logs to console)
+  captureMessage("Test message for smoke test", "info", {
     tags: {
       smoke_test: "true",
       service: "rekon-api",
     },
   });
 
+  console.log("\n✅ Smoke test completed. All error tracking functions work (as console.log no-ops).");
 }
 
 void main();

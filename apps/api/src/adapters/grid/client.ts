@@ -450,6 +450,18 @@ export async function findSeriesByTeamNames(
   daysAhead = 7,
   daysBehind = 30
 ): Promise<GridSeries[]> {
+  // TODO: Grid API Central Data Feed doesn't support allSeries query with
+  // SeriesFilterInput, SeriesOrderByInput, or Cursor types.
+  // The query structure needs to be updated to match the actual Grid API schema.
+  // For now, return empty array to prevent breaking the recommendation flow.
+  // H2H matches are optional and not critical for recommendations.
+  console.warn(
+    `[GRID API] findSeriesByTeamNames is temporarily disabled - Grid API schema doesn't support allSeries query with filters`
+  );
+  return [];
+
+  // Original implementation (disabled until query is fixed):
+  /*
   const cacheKey = getCacheKey("series-by-teams", {
     team1: team1Name,
     team2: team2Name,
@@ -476,7 +488,7 @@ export async function findSeriesByTeamNames(
       GRID_CONFIG.centralDataUrl
     );
 
-    if (!data?.allSeries.edges) return [];
+    if (!data?.allSeries?.edges) return [];
 
     const normalizedTeam1 = team1Name.toLowerCase().trim();
     const normalizedTeam2 = team2Name.toLowerCase().trim();
@@ -493,6 +505,7 @@ export async function findSeriesByTeamNames(
         );
       });
   });
+  */
 }
 
 // ===== STATISTICS FEED FUNCTIONS =====

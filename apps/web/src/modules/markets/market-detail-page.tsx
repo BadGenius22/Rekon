@@ -457,6 +457,7 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
           allMarkets={allMarkets}
           shouldShowSubevents={shouldShowSubevents}
           isTotalsMarket={isTotalsMarket}
+          isEsportsMarket={isEsportsMarket}
         />
       </WatchlistProviderWrapper>
     </div>

@@ -30,8 +30,10 @@ const DEMO_TTL = 60 * 60 * 24 * 7; // 7 days (long TTL for demo data)
 // This dramatically improves performance by avoiding Redis round-trips on every lookup
 let marketsCache: PolymarketMarket[] | null = null;
 let eventsCache: PolymarketEvent[] | null = null;
+let metadataCache: DemoMetadata | null = null;
 let marketsCacheTimestamp = 0;
 let eventsCacheTimestamp = 0;
+let metadataCacheTimestamp = 0;
 const MEMORY_CACHE_TTL = 60 * 1000; // 1 minute in-memory cache TTL
 
 // Redis keys
@@ -69,16 +71,36 @@ export async function hasDemoData(): Promise<boolean> {
 
 /**
  * Get demo data metadata
+ *
+ * PERFORMANCE: Uses in-memory cache to avoid hitting Redis on every request.
+ * This is critical for time-shifting to work reliably even if Redis has issues.
  */
 export async function getDemoMetadata(): Promise<DemoMetadata | null> {
+  // Check in-memory cache first
+  const now = Date.now();
+  if (metadataCache && now - metadataCacheTimestamp < MEMORY_CACHE_TTL) {
+    return metadataCache;
+  }
+
   const redis = getRedisClient();
-  if (!redis) return null;
+  if (!redis) return metadataCache || null;
 
   try {
-    return await redis.get<DemoMetadata>(KEYS.metadata);
+    const metadata = await redis.get<DemoMetadata>(KEYS.metadata);
+
+    // Update in-memory cache
+    if (metadata) {
+      metadataCache = metadata;
+      metadataCacheTimestamp = now;
+      console.log(
+        `[Demo Storage] Cached metadata (snapshot: ${new Date(metadata.snapshotTimestamp).toISOString()})`
+      );
+    }
+
+    return metadata || metadataCache;
   } catch (error) {
     console.error("[Demo Storage] Error getting metadata:", error);
-    return null;
+    return metadataCache || null;
   }
 }
 
@@ -398,6 +420,10 @@ export async function saveDemoMetadata(
   if (!redis) return false;
 
   try {
+    // Invalidate in-memory cache so next read fetches fresh data
+    metadataCache = null;
+    metadataCacheTimestamp = 0;
+
     await redis.set(KEYS.metadata, metadata, { ex: DEMO_TTL });
     console.log("[Demo Storage] Saved metadata:", metadata);
     return true;
@@ -413,8 +439,10 @@ export async function saveDemoMetadata(
 export function invalidateDemoCache(): void {
   marketsCache = null;
   eventsCache = null;
+  metadataCache = null;
   marketsCacheTimestamp = 0;
   eventsCacheTimestamp = 0;
+  metadataCacheTimestamp = 0;
   console.log("[Demo Storage] Invalidated in-memory cache");
 }
 

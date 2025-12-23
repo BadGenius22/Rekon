@@ -1,55 +1,22 @@
-import * as Sentry from "@sentry/node";
+// import * as Sentry from "@sentry/node";
 
 /**
- * Sentry Error Logging
+ * Sentry Error Logging (DISABLED)
  *
- * Configures and initializes Sentry for error tracking.
- * Captures:
- * - All backend errors
- * - Failed requests
- * - Polymarket API failures
+ * Sentry has been disabled. All functions now just log to console.
+ * To re-enable: uncomment Sentry import and restore original implementations.
  */
+
+type SeverityLevel = "fatal" | "error" | "warning" | "log" | "info" | "debug";
 
 /**
  * Initializes Sentry if DSN is configured.
  * Should be called at application startup.
+ * 
+ * NOTE: Sentry is currently DISABLED.
  */
 export function initSentry(): void {
-  const dsn = process.env.SENTRY_DSN;
-  const environment = process.env.NODE_ENV || "development";
-
-  if (!dsn) {
-    console.warn("Sentry DSN not configured. Error tracking disabled.");
-    return;
-  }
-
-  Sentry.init({
-    dsn,
-    environment,
-    tracesSampleRate: environment === "production" ? 0.1 : 1.0, // 10% in prod, 100% in dev
-    profilesSampleRate: environment === "production" ? 0.1 : 1.0,
-
-    // Filter out health check endpoints
-    ignoreErrors: ["Request aborted", "Request timeout"],
-
-    // Filter out certain status codes
-    beforeSend(event, hint) {
-      // Don't send 404s for health checks
-      if (event.request?.url?.includes("/health")) {
-        return null;
-      }
-      return event;
-    },
-
-    // Add custom tags
-    initialScope: {
-      tags: {
-        service: "rekon-api",
-      },
-    },
-  });
-
-  console.log("✅ Sentry initialized for error tracking");
+  console.log("⚠️ Sentry is disabled. Error tracking will only log to console.");
 }
 
 /**
@@ -57,50 +24,27 @@ export function initSentry(): void {
  *
  * @param error - Error to capture
  * @param context - Additional context (tags, extra data, etc.)
+ * 
+ * NOTE: Sentry is currently DISABLED. Only logs to console.
  */
 export function captureError(
   error: unknown,
   context?: {
     tags?: Record<string, string>;
     extra?: Record<string, unknown>;
-    level?: Sentry.SeverityLevel;
+    level?: SeverityLevel;
     user?: { id?: string; sessionId?: string };
   }
 ): void {
-  if (!process.env.SENTRY_DSN) {
-    // Sentry not configured, just log to console
-    console.error("Error (Sentry not configured):", error);
-    return;
+  // Sentry disabled, just log to console
+  const level = context?.level || "error";
+  console.error(`[${level.toUpperCase()}]`, error);
+  if (context?.tags) {
+    console.error("  Tags:", context.tags);
   }
-
-  Sentry.withScope((scope) => {
-    // Add tags
-    if (context?.tags) {
-      Object.entries(context.tags).forEach(([key, value]) => {
-        scope.setTag(key, value);
-      });
-    }
-
-    // Add extra data
-    if (context?.extra) {
-      Object.entries(context.extra).forEach(([key, value]) => {
-        scope.setExtra(key, value);
-      });
-    }
-
-    // Set severity level
-    if (context?.level) {
-      scope.setLevel(context.level);
-    }
-
-    // Set user context
-    if (context?.user) {
-      scope.setUser(context.user);
-    }
-
-    // Capture error
-    Sentry.captureException(error);
-  });
+  if (context?.extra) {
+    console.error("  Extra:", context.extra);
+  }
 }
 
 /**
@@ -109,36 +53,25 @@ export function captureError(
  * @param message - Message to capture
  * @param level - Severity level (default: "info")
  * @param context - Additional context
+ * 
+ * NOTE: Sentry is currently DISABLED. Only logs to console.
  */
 export function captureMessage(
   message: string,
-  level: Sentry.SeverityLevel = "info",
+  level: SeverityLevel = "info",
   context?: {
     tags?: Record<string, string>;
     extra?: Record<string, unknown>;
   }
 ): void {
-  if (!process.env.SENTRY_DSN) {
-    console.log(`[${level.toUpperCase()}] ${message}`);
-    return;
+  // Sentry disabled, just log to console
+  console.log(`[${level.toUpperCase()}] ${message}`);
+  if (context?.tags) {
+    console.log("  Tags:", context.tags);
   }
-
-  Sentry.withScope((scope) => {
-    if (context?.tags) {
-      Object.entries(context.tags).forEach(([key, value]) => {
-        scope.setTag(key, value);
-      });
-    }
-
-    if (context?.extra) {
-      Object.entries(context.extra).forEach(([key, value]) => {
-        scope.setExtra(key, value);
-      });
-    }
-
-    scope.setLevel(level);
-    Sentry.captureMessage(message, level);
-  });
+  if (context?.extra) {
+    console.log("  Extra:", context.extra);
+  }
 }
 
 /**
@@ -149,6 +82,8 @@ export function captureMessage(
  * @param statusCode - HTTP status code (if available)
  * @param error - Error object
  * @param context - Additional context
+ * 
+ * NOTE: Sentry is currently DISABLED. Only logs to console.
  */
 export function trackPolymarketApiFailure(
   endpoint: string,
@@ -159,19 +94,14 @@ export function trackPolymarketApiFailure(
     requestId?: string;
   }
 ): void {
-  captureError(error || new Error(`Polymarket API failure: ${endpoint}`), {
-    tags: {
-      error_type: "polymarket_api_failure",
-      endpoint,
-      status_code: statusCode?.toString() || "unknown",
-    },
-    extra: {
-      endpoint,
-      statusCode,
-      retryCount: context?.retryCount,
-      requestId: context?.requestId,
-    },
-    level: statusCode === 429 ? "warning" : "error", // Rate limits are warnings
+  // Sentry disabled, just log to console
+  const level = statusCode === 429 ? "warning" : "error";
+  console.error(`[${level.toUpperCase()}] Polymarket API failure:`, {
+    endpoint,
+    statusCode,
+    error,
+    retryCount: context?.retryCount,
+    requestId: context?.requestId,
   });
 }
 
@@ -183,6 +113,8 @@ export function trackPolymarketApiFailure(
  * @param statusCode - HTTP status code (if available)
  * @param error - Error object
  * @param context - Additional context
+ * 
+ * NOTE: Sentry is currently DISABLED. Only logs to console.
  */
 export function trackPandascoreApiFailure(
   endpoint: string,
@@ -194,20 +126,15 @@ export function trackPandascoreApiFailure(
     matchId?: number | string;
   }
 ): void {
-  captureError(error || new Error(`Pandascore API failure: ${endpoint}`), {
-    tags: {
-      error_type: "pandascore_api_failure",
-      endpoint,
-      status_code: statusCode?.toString() || "unknown",
-    },
-    extra: {
-      endpoint,
-      statusCode,
-      retryCount: context?.retryCount,
-      teamId: context?.teamId,
-      matchId: context?.matchId,
-    },
-    level: statusCode === 429 ? "warning" : "error", // Rate limits are warnings
+  // Sentry disabled, just log to console
+  const level = statusCode === 429 ? "warning" : "error";
+  console.error(`[${level.toUpperCase()}] Pandascore API failure:`, {
+    endpoint,
+    statusCode,
+    error,
+    retryCount: context?.retryCount,
+    teamId: context?.teamId,
+    matchId: context?.matchId,
   });
 }
 
@@ -218,6 +145,8 @@ export function trackPandascoreApiFailure(
  * @param type - Failure type (e.g., 'retry', 'final_failure')
  * @param errorMessage - Error message
  * @param context - Additional context (query, variables, attempt, etc.)
+ * 
+ * NOTE: Sentry is currently DISABLED. Only logs to console.
  */
 export function trackGridApiFailure(
   type: string,
@@ -232,29 +161,18 @@ export function trackGridApiFailure(
     apiKeyLength?: number;
   }
 ): void {
-  // Rate limits and retries are warnings, not errors
+  // Sentry disabled, just log to console
   const isWarning = type === "retry" || context?.isRateLimitError;
-  
-  captureError(new Error(`GRID API failure: ${errorMessage}`), {
-    tags: {
-      error_type: "grid_api_failure",
-      failure_type: type,
-      endpoint: context?.endpoint || "unknown",
-      is_rate_limit: context?.isRateLimitError ? "true" : "false",
-      is_auth_error: context?.isAuthError ? "true" : "false",
-    },
-    extra: {
-      type,
-      errorMessage,
-      query: context?.query,
-      variables: context?.variables,
-      attempt: context?.attempt,
-      endpoint: context?.endpoint,
-      isAuthError: context?.isAuthError,
-      isRateLimitError: context?.isRateLimitError,
-      apiKeyLength: context?.apiKeyLength,
-    },
-    level: isWarning ? "warning" : "error",
+  const level = isWarning ? "warning" : "error";
+  console.error(`[${level.toUpperCase()}] GRID API failure:`, {
+    type,
+    errorMessage,
+    endpoint: context?.endpoint,
+    attempt: context?.attempt,
+    isAuthError: context?.isAuthError,
+    isRateLimitError: context?.isRateLimitError,
+    query: context?.query?.substring(0, 200), // Truncate query for readability
+    variables: context?.variables,
   });
 }
 
@@ -266,6 +184,8 @@ export function trackGridApiFailure(
  * @param statusCode - HTTP status code
  * @param error - Error object (if any)
  * @param context - Additional context
+ * 
+ * NOTE: Sentry is currently DISABLED. Only logs to console.
  */
 export function trackFailedRequest(
   path: string,
@@ -289,25 +209,16 @@ export function trackFailedRequest(
     return; // Skip client errors (400, 422) and successful requests
   }
 
-  captureError(error || new Error(`Request failed: ${method} ${path}`), {
-    tags: {
-      error_type: "failed_request",
-      http_method: method,
-      http_status: statusCode.toString(),
-      path,
-    },
-    extra: {
-      path,
-      method,
-      statusCode,
-      sessionId: context?.sessionId,
-      userId: context?.userId,
-      duration: context?.duration,
-    },
-    level: statusCode >= 500 ? "error" : "warning",
-    user: context?.sessionId
-      ? { sessionId: context.sessionId, id: context.userId }
-      : undefined,
+  // Sentry disabled, just log to console
+  const level = statusCode >= 500 ? "error" : "warning";
+  console.error(`[${level.toUpperCase()}] Request failed:`, {
+    method,
+    path,
+    statusCode,
+    error,
+    sessionId: context?.sessionId,
+    userId: context?.userId,
+    duration: context?.duration,
   });
 }
 
@@ -317,20 +228,15 @@ export function trackFailedRequest(
  * @param message - Breadcrumb message
  * @param category - Breadcrumb category
  * @param data - Additional data
+ * 
+ * NOTE: Sentry is currently DISABLED. This is a no-op.
  */
 export function addBreadcrumb(
   message: string,
   category: string,
   data?: Record<string, unknown>
 ): void {
-  if (!process.env.SENTRY_DSN) {
-    return;
-  }
-
-  Sentry.addBreadcrumb({
-    message,
-    category,
-    data,
-    level: "info",
-  });
+  // Sentry disabled, no-op
+  // Optionally log for debugging:
+  // console.log(`[BREADCRUMB] ${category}: ${message}`, data);
 }
