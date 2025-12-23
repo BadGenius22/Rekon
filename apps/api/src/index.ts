@@ -146,6 +146,7 @@ app.use("/gamification/*", sessionMiddleware);
 app.use("/games/*", sessionMiddleware);
 app.use("/price-history/*", sessionMiddleware);
 app.use("/signal/*", sessionMiddleware);
+app.use("/recommendation/*", sessionMiddleware);
 // Webhooks don't use session middleware (called by external services)
 
 // API routes (with rate limiting to protect Polymarket API)
@@ -174,6 +175,7 @@ import { gamificationRoutes } from "./routes/gamification";
 import { gamesRoutes } from "./routes/games";
 import { priceHistoryRoutes } from "./routes/price-history";
 import { signalRoutes } from "./routes/signal";
+import { recommendationRoutes } from "./routes/recommendation";
 
 // Apply rate limiting to all API routes that call Polymarket
 // Rate limiter is applied to each route group
@@ -192,8 +194,9 @@ app.use("/gamification/*", polymarketRateLimiter);
 app.use("/games/*", polymarketRateLimiter);
 app.use("/price-history/*", polymarketRateLimiter);
 app.use("/signal/*", polymarketRateLimiter);
+app.use("/recommendation/*", polymarketRateLimiter);
 
-// Note: x402 payment middleware is now applied at the route level in signal.ts
+// Note: x402 payment middleware is now applied at the route level in signal.ts and recommendation.ts
 
 app.route("/markets", marketsRoutes);
 app.route("/orderbook", orderbookRoutes);
@@ -220,6 +223,7 @@ app.route("/gamification", gamificationRoutes);
 app.route("/games", gamesRoutes);
 app.route("/price-history", priceHistoryRoutes);
 app.route("/signal", signalRoutes);
+app.route("/recommendation", recommendationRoutes);
 
 const port = Number(process.env.PORT) || 3001;
 
