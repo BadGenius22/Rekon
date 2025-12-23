@@ -14,6 +14,7 @@ Demo Mode allows you to test Rekon's full functionality without connecting real 
 When Demo Mode is active:
 
 - ✅ **Real Data Snapshots**: Fresh data from Polymarket API (run `pnpm demo:refresh`)
+- ✅ **Automatic Time-Shifting**: Old snapshots appear fresh by shifting dates forward
 - ✅ **Mock Wallet**: Deterministic demo wallet addresses (no MetaMask needed)
 - ✅ **No Live API Calls**: All Polymarket calls return cached demo data
 - ✅ **Deterministic**: Same session = same demo wallet address
@@ -172,6 +173,33 @@ pnpm dev
 - **No API dependencies**: Works even if Polymarket is slow or rate-limited
 - **Deterministic**: Same data every time = consistent demo
 - **Fast**: No network latency for market data
+- **Always Fresh**: Time-shifting keeps old snapshots appearing "live"
+
+## How Time-Shifting Works
+
+Demo mode automatically time-shifts all market/event dates to keep old snapshots appearing fresh:
+
+**The Problem (Before Time-Shifting):**
+- Day 1: Run `pnpm demo:refresh`, capture market ending Dec 25
+- Day 3: Judges test on Dec 26 → market filtered out as "ended"
+- Result: Empty markets page ❌
+
+**The Solution (With Time-Shifting):**
+- Day 1: Run `pnpm demo:refresh`, capture market ending Dec 25 (5 days from snapshot)
+- Day 3: Judges test on Dec 26 (6 days after snapshot)
+- Time-shifted endDate: Dec 26 + 5 days = **Dec 31** (still "live" ✅)
+
+**How It Works:**
+1. When demo mode loads markets from Redis, it calculates snapshot age
+2. All date fields are shifted forward by the snapshot age
+3. Markets that were "live" when captured remain "live" when displayed
+
+**Benefits for Hackathons:**
+- ✅ Run `pnpm demo:refresh` once before the event
+- ✅ No daily manual intervention needed
+- ✅ Works offline (no API calls during demo)
+- ✅ Judges always see markets as "live"
+- ✅ Optional: Refresh periodically for variety
 
 ## Environment Variables
 

@@ -13,6 +13,7 @@ import {
   getDemoTrades,
   getDemoPrice,
   hasDemoData,
+  getDemoMetadata,
 } from "../demo-data/storage";
 
 // ============================================================================
@@ -47,6 +48,72 @@ const DEMO_ESPORTS_TAG: PolymarketTag = {
   forceHide: false,
   isCarousel: false,
 };
+
+// ============================================================================
+// Time-Shifting Logic
+// ============================================================================
+
+/**
+ * Time-shift demo data to make old snapshots appear fresh.
+ *
+ * Problem: Demo snapshots capture markets with real timestamps (endDate, gameStartTime, etc.).
+ * When judges test the app days later, these markets are filtered out as "ended".
+ *
+ * Solution: Shift all date fields forward by the snapshot age, so markets that were
+ * "live" when captured remain "live" when displayed.
+ *
+ * Example:
+ * - Snapshot captured Dec 20, market ends Dec 25 (5 days from snapshot)
+ * - Judge tests on Dec 26 (6 days after snapshot)
+ * - Time-shifted endDate: Dec 26 + 5 days = Dec 31 (still "live")
+ */
+function timeShiftDemoData<T extends PolymarketMarket | PolymarketEvent>(
+  data: T[],
+  snapshotTimestamp: number
+): T[] {
+  const age = Date.now() - snapshotTimestamp;
+  return data.map((item) => timeShiftItem(item, age));
+}
+
+/**
+ * Shift all date fields in an item by the given age.
+ */
+function timeShiftItem<T>(item: T, ageMs: number): T {
+  // Date fields to shift
+  const DATE_FIELDS = [
+    "endDate",
+    "endDateIso",
+    "startDate",
+    "startDateIso",
+    "gameStartTime",
+    "createdAt",
+    "updatedAt",
+    "readyTimestamp",
+    "fundedTimestamp",
+    "acceptingOrdersTimestamp",
+    "closedTime",
+    "umaEndDate",
+    "umaEndDateIso",
+    "eventStartTime",
+    "deployingTimestamp",
+    "scheduledDeploymentTimestamp",
+  ];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const shifted = { ...item } as any;
+
+  for (const field of DATE_FIELDS) {
+    const value = shifted[field];
+    if (value && typeof value === "string") {
+      const original = new Date(value);
+      if (!isNaN(original.getTime())) {
+        shifted[field] = new Date(original.getTime() + ageMs).toISOString();
+      }
+    }
+  }
+
+  return shifted as T;
+}
 
 /**
  * Demo Polymarket Adapter
@@ -699,6 +766,15 @@ export async function fetchDemoMarkets(params?: {
       "[Demo] Using fallback markets (run pnpm demo:refresh for real data)"
     );
     markets = [...FALLBACK_MARKETS];
+  } else {
+    // Time-shift loaded markets to keep them appearing fresh
+    const metadata = await getDemoMetadata();
+    if (metadata) {
+      markets = timeShiftDemoData(markets, metadata.snapshotTimestamp);
+      console.log(
+        `[Demo] Time-shifted ${markets.length} markets (snapshot age: ${Math.round((Date.now() - metadata.snapshotTimestamp) / (1000 * 60 * 60))}h)`
+      );
+    }
   }
 
   // Apply filters
@@ -725,9 +801,19 @@ export async function fetchDemoMarkets(params?: {
 export async function fetchDemoMarketById(
   marketId: string
 ): Promise<PolymarketMarket | null> {
-  const markets = await getDemoMarkets();
-  const allMarkets = markets.length > 0 ? markets : FALLBACK_MARKETS;
-  return allMarkets.find((m) => m.id === marketId) || null;
+  let markets = await getDemoMarkets();
+
+  // Apply time-shifting if using Redis data
+  if (markets.length > 0) {
+    const metadata = await getDemoMetadata();
+    if (metadata) {
+      markets = timeShiftDemoData(markets, metadata.snapshotTimestamp);
+    }
+  } else {
+    markets = FALLBACK_MARKETS;
+  }
+
+  return markets.find((m) => m.id === marketId) || null;
 }
 
 /**
@@ -736,17 +822,35 @@ export async function fetchDemoMarketById(
 export async function fetchDemoMarketBySlug(
   slug: string
 ): Promise<PolymarketMarket | null> {
-  const markets = await getDemoMarkets();
-  const allMarkets = markets.length > 0 ? markets : FALLBACK_MARKETS;
-  return allMarkets.find((m) => m.slug === slug) || null;
+  let markets = await getDemoMarkets();
+
+  // Apply time-shifting if using Redis data
+  if (markets.length > 0) {
+    const metadata = await getDemoMetadata();
+    if (metadata) {
+      markets = timeShiftDemoData(markets, metadata.snapshotTimestamp);
+    }
+  } else {
+    markets = FALLBACK_MARKETS;
+  }
+
+  return markets.find((m) => m.slug === slug) || null;
 }
 
 /**
  * Get events - tries Redis first, falls back to hardcoded
  */
 export async function fetchDemoEvents(): Promise<PolymarketEvent[]> {
-  const events = await getDemoEvents();
+  let events = await getDemoEvents();
   if (events.length > 0) {
+    // Time-shift loaded events to keep them appearing fresh
+    const metadata = await getDemoMetadata();
+    if (metadata) {
+      events = timeShiftDemoData(events, metadata.snapshotTimestamp);
+      console.log(
+        `[Demo] Time-shifted ${events.length} events (snapshot age: ${Math.round((Date.now() - metadata.snapshotTimestamp) / (1000 * 60 * 60))}h)`
+      );
+    }
     return events;
   }
   console.log(
