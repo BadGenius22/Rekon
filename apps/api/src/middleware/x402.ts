@@ -23,6 +23,10 @@ import {
   checkPremiumAccess,
   recordPremiumAccessForMarket,
 } from "../services/premium-access";
+import {
+  verifyWalletSignature,
+  extractSignatureHeaders,
+} from "../utils/wallet-auth";
 
 // Network mapping: Rekon config → EIP-155 chain ID
 const NETWORK_TO_CHAIN_ID: Record<string, number> = {
@@ -323,22 +327,59 @@ export const x402Middleware = createMiddleware(
     // Check for existing premium access via wallet address header
     const walletAddress = c.req.header("x-wallet-address");
     if (walletAddress && marketId) {
-      try {
-        const accessInfo = await checkPremiumAccess(walletAddress, marketId);
-        if (accessInfo.hasAccess) {
-          console.log("[x402] User has existing premium access:", {
-            walletAddress: walletAddress.slice(0, 10) + "...",
-            marketId,
-            expiresAt: accessInfo.expiresAt,
-          });
-          // Skip payment, user already paid for this market
-          c.header("x-premium-access", "existing");
-          c.header("x-premium-expires", accessInfo.expiresAt || "");
-          return next();
+      // Production mode: require signature verification to prevent header spoofing
+      // Demo/MVP mode: trust header only (signature not required)
+      if (X402_CONFIG.requireSignatureForAccess) {
+        const signatureParams = extractSignatureHeaders({
+          get: (name: string) => c.req.header(name),
+        });
+
+        if (!signatureParams) {
+          console.log("[x402] Signature required but not provided");
+          // Continue with normal payment flow
+        } else {
+          const signatureResult = await verifyWalletSignature(signatureParams);
+          if (!signatureResult.valid) {
+            console.log("[x402] Signature verification failed:", signatureResult.error);
+            // Continue with normal payment flow
+          } else {
+            // Signature valid - check premium access
+            try {
+              const accessInfo = await checkPremiumAccess(walletAddress, marketId);
+              if (accessInfo.hasAccess) {
+                console.log("[x402] Premium access verified with signature:", {
+                  walletAddress: walletAddress.slice(0, 10) + "...",
+                  marketId,
+                  expiresAt: accessInfo.expiresAt,
+                });
+                c.header("x-premium-access", "existing");
+                c.header("x-premium-expires", accessInfo.expiresAt || "");
+                return next();
+              }
+            } catch (error) {
+              console.warn("[x402] Error checking premium access:", error);
+            }
+          }
         }
-      } catch (error) {
-        console.warn("[x402] Error checking premium access:", error);
-        // Continue with normal payment flow
+      } else {
+        // Demo/MVP mode: no signature verification required
+        try {
+          const accessInfo = await checkPremiumAccess(walletAddress, marketId);
+          if (accessInfo.hasAccess) {
+            console.log("[x402] User has existing premium access:", {
+              walletAddress: walletAddress.slice(0, 10) + "...",
+              marketId,
+              expiresAt: accessInfo.expiresAt,
+            });
+            // Skip payment, user already paid for this market
+            c.header("x-premium-access", "existing");
+            c.header("x-premium-expires", accessInfo.expiresAt || "");
+            return next();
+          }
+        } catch (error) {
+          console.warn("[x402] Error checking premium access:", error);
+          // Continue with normal payment flow
+        }
       }
     }
 

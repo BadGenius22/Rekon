@@ -15,6 +15,11 @@ import {
   type RecommendationAvailabilityResponse,
   type RecommendationAccessResponse,
 } from "../lib/api-client";
+import { signAccessRequest, type SignedAccessHeaders } from "../lib/wallet-signature";
+
+// Production mode: require wallet signature for access check
+// Set to true when X402_REQUIRE_SIGNATURE_FOR_ACCESS=true on backend
+const REQUIRE_SIGNATURE_FOR_ACCESS = false;
 
 export type RecommendationState =
   | { status: "idle" }
@@ -22,7 +27,8 @@ export type RecommendationState =
   | { status: "checking" } // Checking availability
   | { status: "unavailable"; reason: string }
   | { status: "preview"; data: RecommendationPreviewResponse; warning?: string }
-  | { status: "paying" }
+  | { status: "loading-premium" } // Loading premium content (user already paid)
+  | { status: "paying" } // Processing payment (user needs to pay)
   | { status: "success"; data: RecommendationResult }
   | { status: "error"; error: string };
 
@@ -41,6 +47,7 @@ export interface UseRecommendationReturn {
   fetchAvailability: (marketId: string) => Promise<void>;
   fetchPreview: (marketId: string) => Promise<void>;
   fetchRecommendation: (marketId: string) => Promise<void>;
+  fetchPremiumContent: (marketId: string) => Promise<void>; // Fetch for users with existing access
   checkPremiumAccess: (marketId: string) => Promise<boolean>;
   clearWarning: () => void;
   reset: () => void;
@@ -227,6 +234,9 @@ export function useRecommendation(): UseRecommendationReturn {
   /**
    * Check if user has existing premium access for a market.
    * Premium access persists until market ends, allowing page refreshes.
+   *
+   * In production mode (REQUIRE_SIGNATURE_FOR_ACCESS=true), this will sign
+   * the request to prove wallet ownership and prevent header spoofing.
    */
   const checkPremiumAccess = useCallback(
     async (marketId: string): Promise<boolean> => {
@@ -236,7 +246,23 @@ export function useRecommendation(): UseRecommendationReturn {
       }
 
       try {
-        const accessInfo = await getRecommendationAccess(marketId, address);
+        // Production mode: sign the access request to prove wallet ownership
+        let signatureHeaders: SignedAccessHeaders | undefined;
+        if (REQUIRE_SIGNATURE_FOR_ACCESS && walletClient) {
+          try {
+            signatureHeaders = await signAccessRequest(walletClient, marketId);
+            console.log("[useRecommendation] Signed access request for production mode");
+          } catch (signErr) {
+            console.warn("[useRecommendation] Failed to sign access request:", signErr);
+            // Continue without signature - backend will require payment
+          }
+        }
+
+        const accessInfo = await getRecommendationAccess(
+          marketId,
+          address,
+          signatureHeaders
+        );
         setPremiumAccess(accessInfo);
         return accessInfo.hasAccess;
       } catch (err) {
@@ -245,7 +271,7 @@ export function useRecommendation(): UseRecommendationReturn {
         return false;
       }
     },
-    [isConnected, address]
+    [isConnected, address, walletClient]
   );
 
   const fetchRecommendation = useCallback(
@@ -521,6 +547,76 @@ export function useRecommendation(): UseRecommendationReturn {
     [isConnected, address, walletClient, state, checkPremiumAccess]
   );
 
+  /**
+   * Fetch premium content for users who already have access.
+   * This function does NOT show payment UI - it's for users who already paid.
+   * Shows "Loading premium content..." instead of "Processing payment..."
+   */
+  const fetchPremiumContent = useCallback(
+    async (marketId: string) => {
+      if (!isConnected || !address) {
+        // Silently fail - user needs to connect wallet
+        console.log("[useRecommendation] fetchPremiumContent: wallet not connected");
+        return;
+      }
+
+      setState({ status: "loading-premium" });
+      currentMarketIdRef.current = marketId;
+
+      try {
+        const recommendationUrl = `${API_CONFIG.baseUrl}/recommendation/market/${marketId}`;
+
+        console.log("[useRecommendation] Fetching premium content for existing access");
+        console.log("[useRecommendation] Wallet address:", address);
+
+        const response = await fetch(recommendationUrl, {
+          headers: {
+            "Content-Type": "application/json",
+            "x-wallet-address": address,
+          },
+        });
+
+        if (!response.ok) {
+          // Retry once on failure
+          console.log("[useRecommendation] First attempt failed, retrying...");
+          const retryResponse = await fetch(recommendationUrl, {
+            headers: {
+              "Content-Type": "application/json",
+              "x-wallet-address": address,
+            },
+          });
+
+          if (!retryResponse.ok) {
+            throw new Error(`Failed to load premium content: ${retryResponse.status}`);
+          }
+
+          const retryResult = await retryResponse.json();
+          if (retryResult && typeof retryResult === "object" && "recommendedPick" in retryResult) {
+            setState({ status: "success", data: retryResult as RecommendationResult });
+            return;
+          }
+          throw new Error("Invalid response format");
+        }
+
+        const result = await response.json();
+
+        if (result && typeof result === "object" && "recommendedPick" in result) {
+          console.log("[useRecommendation] Premium content loaded successfully");
+          setState({ status: "success", data: result as RecommendationResult });
+        } else {
+          throw new Error("Invalid recommendation response format");
+        }
+      } catch (err) {
+        console.error("[useRecommendation] Error fetching premium content:", err);
+        setState({
+          status: "error",
+          error: "Unable to load premium content. Please refresh the page. Your access is still valid.",
+        });
+      }
+    },
+    [isConnected, address]
+  );
+
   const clearWarning = useCallback(() => {
     setWarning(null);
   }, []);
@@ -548,6 +644,7 @@ export function useRecommendation(): UseRecommendationReturn {
     fetchAvailability,
     fetchPreview,
     fetchRecommendation,
+    fetchPremiumContent, // For users with existing access (no payment UI)
     checkPremiumAccess,
     clearWarning,
     reset,

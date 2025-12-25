@@ -1206,6 +1206,23 @@ function StateRenderer({
         </div>
       );
 
+    case "loading-premium":
+      // User already paid - show friendly loading state (no payment UI)
+      return (
+        <div className="flex flex-col items-center justify-center py-10">
+          <div className="relative">
+            <div className="h-10 w-10 rounded-full border-2 border-emerald-500/30 border-t-emerald-500 animate-spin" />
+            <Sparkles className="absolute inset-0 m-auto h-5 w-5 text-emerald-400" />
+          </div>
+          <p className="mt-4 text-sm text-white/70">
+            Loading your premium content...
+          </p>
+          <p className="mt-1 text-xs text-white/40">
+            Access verified
+          </p>
+        </div>
+      );
+
     case "unavailable":
       return (
         <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -1347,6 +1364,7 @@ export function RecommendationCard({
     warning,
     fetchPreview,
     fetchRecommendation,
+    fetchPremiumContent, // For users with existing access (no payment UI)
     checkPremiumAccess,
     clearWarning,
   } = useRecommendation();
@@ -1365,14 +1383,15 @@ export function RecommendationCard({
 
   // Check for existing premium access when wallet connects
   // If user has access and is in preview state, auto-fetch full recommendation
+  // Uses fetchPremiumContent to avoid showing payment UI for users who already paid
   useEffect(() => {
     const checkAndFetchIfAccess = async () => {
       if (isWalletConnected && isWalletReady && state.status === "preview" && !hasCheckedAccess) {
         setHasCheckedAccess(true);
         const hasAccess = await checkPremiumAccess(marketId);
         if (hasAccess) {
-          // User has existing access, fetch full recommendation without payment
-          fetchRecommendation(marketId);
+          // User has existing access - use fetchPremiumContent (no payment UI)
+          fetchPremiumContent(marketId);
         }
       }
     };
@@ -1385,7 +1404,7 @@ export function RecommendationCard({
     marketId,
     hasCheckedAccess,
     checkPremiumAccess,
-    fetchRecommendation,
+    fetchPremiumContent,
   ]);
 
   // Reset access check when market changes

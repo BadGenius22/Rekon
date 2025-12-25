@@ -23,6 +23,12 @@ export const X402_CONFIG = {
   // Enable x402 payment system
   enabled: process.env.X402_ENABLED === "true",
 
+  // Require wallet signature for premium access verification
+  // When false (demo/MVP): Only wallet address header is checked
+  // When true (production): Signature verification prevents header spoofing
+  requireSignatureForAccess:
+    process.env.X402_REQUIRE_SIGNATURE_FOR_ACCESS === "true",
+
   // Payment configuration (0.05 USDC for hackathon demo testing)
   priceUsdc: process.env.X402_PRICE_USDC || "0.05",
 

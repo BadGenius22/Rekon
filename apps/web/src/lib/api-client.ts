@@ -331,6 +331,17 @@ export async function getRecommendationAvailability(
 }
 
 /**
+ * Signature headers for production mode access verification.
+ * When X402_REQUIRE_SIGNATURE_FOR_ACCESS=true, these headers prove wallet ownership.
+ */
+export interface SignatureHeaders {
+  "x-wallet-address": string;
+  "x-market-id": string;
+  "x-signature-timestamp": string;
+  "x-wallet-signature": string;
+}
+
+/**
  * Check if user has premium access for a market (free endpoint)
  *
  * Premium access is granted after payment and persists until market ends.
@@ -338,15 +349,33 @@ export async function getRecommendationAvailability(
  *
  * @param marketId - Market ID to check access for
  * @param walletAddress - User's wallet address
+ * @param signatureHeaders - Optional signature headers for production mode verification
  * @returns Access status with expiry info
  */
 export async function getRecommendationAccess(
   marketId: string,
-  walletAddress: string
+  walletAddress: string,
+  signatureHeaders?: SignatureHeaders
 ): Promise<RecommendationAccessResponse> {
-  return apiGet<RecommendationAccessResponse>(
-    `/recommendation/market/${marketId}/access?wallet=${encodeURIComponent(walletAddress)}`
+  const headers: Record<string, string> = {};
+
+  // Add signature headers for production mode (when backend requires signature)
+  if (signatureHeaders) {
+    Object.assign(headers, signatureHeaders);
+  }
+
+  const response = await apiFetch(
+    `/recommendation/market/${marketId}/access?wallet=${encodeURIComponent(walletAddress)}`,
+    { headers }
   );
+
+  if (!response.ok) {
+    throw new Error(
+      `API GET /recommendation/market/${marketId}/access failed: ${response.status} ${response.statusText}`
+    );
+  }
+
+  return response.json();
 }
 
 /**
