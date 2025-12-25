@@ -8,19 +8,15 @@ export const API_CONFIG = {
 // Polymarket Configuration
 export const POLYMARKET_CONFIG = {
   // CLOB REST API - Used for all CLOB REST endpoints
-  clobApiUrl:
-    process.env.POLYMARKET_CLOB_API_URL || "https://clob.polymarket.com",
+  clobApiUrl: "https://clob.polymarket.com",
   // Legacy alias (for backward compatibility)
-  apiUrl: process.env.POLYMARKET_API_URL || "https://clob.polymarket.com",
+  apiUrl: "https://clob.polymarket.com",
   // Gamma API - Primary source for markets & events data
   // Docs: https://gamma-api.polymarket.com
-  gammaApiUrl:
-    process.env.POLYMARKET_GAMMA_API_URL || "https://gamma-api.polymarket.com",
+  gammaApiUrl: "https://gamma-api.polymarket.com",
   // Builder API - Used for builder analytics (leaderboard, volume) and
   // legacy integrations. Should NOT be used for core market/trade data.
-  builderApiUrl:
-    process.env.POLYMARKET_BUILDER_API_URL ||
-    "https://api.builder.polymarket.com",
+  builderApiUrl: "https://api.builder.polymarket.com",
   // Builder API Key (optional, but recommended for higher rate limits)
   builderApiKey: process.env.POLYMARKET_BUILDER_API_KEY || undefined,
   // Builder API Credentials (for order attribution signing)
@@ -66,15 +62,11 @@ export const POLYMARKET_CONFIG = {
   // - https://data-api.polymarket.com/v1/builders/volume
   // - https://data-api.polymarket.com/v1/builders/leaderboard
   // - https://data-api.polymarket.com/traded
-  dataApiUrl:
-    process.env.POLYMARKET_DATA_API_URL || "https://data-api.polymarket.com",
+  dataApiUrl: "https://data-api.polymarket.com",
   // WebSocket CLOB - Real-time CLOB subscriptions
-  wssClobUrl:
-    process.env.POLYMARKET_WSS_CLOB_URL ||
-    "wss://ws-subscriptions-clob.polymarket.com/ws",
+  wssClobUrl: "wss://ws-subscriptions-clob.polymarket.com/ws",
   // Real Time Data Socket (RTDS) - Crypto prices, comments, real-time data
-  rtdsUrl:
-    process.env.POLYMARKET_RTDS_URL || "wss://ws-live-data.polymarket.com",
+  rtdsUrl: "wss://ws-live-data.polymarket.com",
   chainId: process.env.POLYMARKET_CHAIN_ID || "137", // Polygon
   // Offline mode (development-only): skip live HTTP calls and use safe fallbacks
   // Set POLYMARKET_OFFLINE=true to allow the API to boot without external access.
@@ -162,7 +154,7 @@ export { X402_CONFIG } from "./x402";
 // Docs: https://developers.pandascore.co/docs/introduction
 export const PANDASCORE_CONFIG = {
   // API Base URL
-  apiUrl: process.env.PANDASCORE_API_URL || "https://api.pandascore.co",
+  apiUrl: "https://api.pandascore.co",
   // API Key (Bearer token) - Required for all requests
   // Get from: https://app.pandascore.co/dashboard
   // WARNING: This token is private - never expose to client-side code
@@ -204,34 +196,28 @@ export const PANDASCORE_CONFIG = {
 // GRID Esports API Configuration
 // Used for aggregated team/player statistics, series data, and live match state
 // Docs: https://portal.grid.gg/documentation
+//
+// IMPORTANT: GRID has THREE separate GraphQL APIs with DIFFERENT schemas.
+// Each endpoint has unique query types - they are NOT interchangeable:
+// - Statistics Feed: teamStatistics, playerStatistics, seriesStatistics
+// - Central Data: teams, allSeries, tournaments, players (team search)
+// - Live Data: seriesState only (real-time match data)
 export const GRID_CONFIG = {
   // Statistics Feed API - Aggregated team/player stats over time windows
   // Example: Win rates, K/D averages, streaks, segment performance
-  statisticsFeedUrl:
-    process.env.GRID_STATS_URL ||
-    process.env.GRID_GRAPHQL_URL || // Fallback: use single GraphQL URL if provided
-    "https://api-op.grid.gg/statistics-feed/graphql",
+  statisticsFeedUrl: "https://api-op.grid.gg/statistics-feed/graphql",
 
   // Central Data Feed API - Teams, series, tournaments, players, rosters
   // Example: Team search, match schedules, tournament data
-  centralDataUrl:
-    process.env.GRID_CENTRAL_URL ||
-    process.env.GRID_GRAPHQL_URL || // Fallback: use single GraphQL URL if provided
-    "https://api-op.grid.gg/central-data/graphql",
+  centralDataUrl: "https://api-op.grid.gg/central-data/graphql",
 
   // Live Data Feed API - Real-time match state during live games
   // Example: Live K/D, networth, player positions, momentum tracking
-  liveDataFeedUrl:
-    process.env.GRID_LIVE_URL ||
-    process.env.GRID_GRAPHQL_URL || // Fallback: use single GraphQL URL if provided
-    "https://api-op.grid.gg/live-data-feed/series-state/graphql",
+  liveDataFeedUrl: "https://api-op.grid.gg/live-data-feed/series-state/graphql",
 
   // WebSocket URL for real-time subscriptions (future enhancement)
   // Currently not used, but available for WebSocket implementation
-  websocketUrl:
-    process.env.GRID_WS_URL ||
-    process.env.GRID_WEBSOCKET_URL ||
-    "wss://api-op.grid.gg/live-data-feed",
+  websocketUrl: "wss://api-op.grid.gg/live-data-feed",
 
   // API Key (required for all GRID APIs)
   // Get from: https://grid.gg/open-access/

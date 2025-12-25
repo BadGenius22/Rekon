@@ -14,6 +14,18 @@ import { GRID_CONFIG } from "@rekon/config";
 import { trackGridApiFailure } from "../../utils/sentry";
 import { withCache, getCacheKey } from "./cache";
 import {
+  lookupKnownTeamId,
+  lookupCachedTeam,
+  cacheTeams,
+  normalizeTeamName,
+} from "./team-cache";
+import {
+  searchTeamsByName as searchTeamsInDb,
+  searchTeamsByNameBasic,
+  getTeamCount,
+  upsertTeamRecord,
+} from "../../db/teams";
+import {
   GET_LIVE_SERIES_STATE,
   GET_TEAMS,
   GET_ALL_SERIES,
@@ -256,7 +268,11 @@ export async function fetchGridLiveSeriesState(
 // ===== CENTRAL DATA FEED FUNCTIONS =====
 
 /**
- * Search for teams by name with fuzzy matching
+ * Search for teams by name with fuzzy matching.
+ *
+ * Uses a multi-tier lookup strategy:
+ * 1. Check Neon DB team registry (instant, no API call)
+ * 2. Fall back to GRID API only if DB is empty or team not found
  *
  * @param teamName - Team name to search for
  * @returns Array of matching teams (exact match first, then startsWith, then contains)
@@ -268,51 +284,79 @@ export async function searchGridTeamsByName(
   const cacheKey = getCacheKey("team-search", { name: normalizedQuery });
 
   return withCache(cacheKey, GRID_CONFIG.cache.teamDataTtl, async () => {
+    // =========================================================================
+    // TIER 1: Check Neon DB Team Registry (instant)
+    // =========================================================================
+    try {
+      const dbTeamCount = await getTeamCount();
+
+      if (dbTeamCount > 0) {
+        console.log(
+          `[GRID] Searching DB registry for: "${teamName}" (${dbTeamCount} teams in registry)`
+        );
+
+        // Try trigram search first, fall back to basic if not available
+        let dbResults;
+        try {
+          dbResults = await searchTeamsInDb(normalizedQuery, 5);
+        } catch {
+          // pg_trgm not available, use basic search
+          dbResults = await searchTeamsByNameBasic(normalizedQuery, 5);
+        }
+
+        if (dbResults.length > 0) {
+          console.log(
+            `[GRID] ✅ Found ${dbResults.length} match(es) in DB registry:`,
+            dbResults.map((r) => ({ id: r.gridId, name: r.name, score: r.similarity }))
+          );
+
+          // Convert DB results to GridTeam format
+          return dbResults.map((r) => ({
+            id: r.gridId,
+            name: r.name,
+            colorPrimary: undefined,
+            colorSecondary: undefined,
+            logoUrl: undefined,
+          }));
+        }
+
+        console.log(
+          `[GRID] No match found in DB registry for "${teamName}"`
+        );
+      } else {
+        console.log(
+          `[GRID] DB registry is empty. Run 'pnpm --filter @rekon/api grid:sync' to populate.`
+        );
+      }
+    } catch (error) {
+      console.warn("[GRID] DB registry lookup failed:", error);
+      console.warn(
+        "[GRID] Falling back to API. Run 'pnpm --filter @rekon/api grid:init' to create table."
+      );
+    }
+
+    // =========================================================================
+    // TIER 2: Fall back to GRID API (slow, rate-limited)
+    // =========================================================================
+    console.log(
+      `[GRID API] Falling back to API search for: "${teamName}"`
+    );
+
     // GRID API has a maximum page size of 50
     const MAX_PAGE_SIZE = 50;
     const allTeams: GridTeam[] = [];
     let hasNextPage = true;
     let cursor: string | null = null;
 
-    // Strategy: Since teams are sorted alphabetically, estimate search range
-    // GRID API doesn't support name filtering, so we must paginate and search client-side
-    // For teams starting with later letters (F, T, etc.), we need to search more pages
-    const firstLetter = normalizedQuery[0] || "";
-    const letterPosition = firstLetter.charCodeAt(0) - 97; // a=0, b=1, ..., z=25
+    // Limit API fallback to 2 pages (100 teams) to avoid rate limiting
+    // The DB registry should handle most lookups
+    const MAX_FALLBACK_PAGES = 2;
 
-    // Estimate pages needed based on letter position
-    // Teams starting with A-E: ~10 pages (500 teams)
-    // Teams starting with F-M: ~30 pages (1500 teams)
-    // Teams starting with N-Z: ~50 pages (2500 teams)
-    let estimatedPagesNeeded = 10;
-    if (letterPosition >= 5 && letterPosition <= 12) {
-      estimatedPagesNeeded = 30; // F-M
-    } else if (letterPosition > 12) {
-      estimatedPagesNeeded = 50; // N-Z
-    }
-
-    const maxTeamsToSearch = estimatedPagesNeeded * MAX_PAGE_SIZE;
-
-    // Paginate through teams and check for matches as we go (optimize for exact matches)
     let pageNumber = 0;
-    let totalTeamCount: number | undefined;
-    console.log(
-      `[GRID API] Starting search for: "${teamName}" (normalized: "${normalizedQuery}")`
-    );
-    console.log(
-      `[GRID API] Search strategy: First letter "${firstLetter.toUpperCase()}", estimated pages needed: ${estimatedPagesNeeded} (max teams: ${maxTeamsToSearch})`
-    );
-
-    // Note: GRID API doesn't support filtering teams by name
-    // We must paginate through teams and search client-side
-    // Strategy: Search more pages for teams starting with later letters (F-Z)
-
-    while (hasNextPage && allTeams.length < maxTeamsToSearch) {
+    while (hasNextPage && pageNumber < MAX_FALLBACK_PAGES) {
       pageNumber++;
       console.log(
-        `[GRID API] Fetching teams page ${pageNumber}... (cursor: ${
-          cursor || "null"
-        }, total so far: ${allTeams.length})`
+        `[GRID API] Fetching teams page ${pageNumber}/${MAX_FALLBACK_PAGES}...`
       );
 
       const data: { teams: GridConnection<GridTeam> } | null =
@@ -332,19 +376,21 @@ export async function searchGridTeamsByName(
         (edge: { cursor: string; node: GridTeam }) => edge.node
       );
       allTeams.push(...pageTeams);
-      totalTeamCount = data.teams.totalCount; // Store for later use
 
-      console.log(`[GRID API] Page ${pageNumber} response:`, {
-        totalCount: data.teams.totalCount,
-        pageSize: pageTeams.length,
-        accumulatedTeams: allTeams.length,
-        hasNextPage: data.teams.pageInfo.hasNextPage,
-        endCursor: data.teams.pageInfo.endCursor,
-        sampleTeams: pageTeams.slice(0, 3).map((t: GridTeam) => ({
-          id: t.id,
-          name: t.name,
-        })),
-      });
+      // Cache teams in DB for future lookups
+      try {
+        for (const team of pageTeams) {
+          await upsertTeamRecord({
+            gridId: team.id,
+            name: team.name,
+            colorPrimary: team.colorPrimary,
+            colorSecondary: team.colorSecondary,
+            logoUrl: team.logoUrl,
+          });
+        }
+      } catch {
+        // Ignore DB write errors during fallback
+      }
 
       // Check for exact match early (optimization)
       const exactMatch = allTeams.filter(
@@ -352,11 +398,8 @@ export async function searchGridTeamsByName(
       );
       if (exactMatch.length > 0) {
         console.log(
-          `[GRID API] ✅ Found ${exactMatch.length} exact match(es) on page ${pageNumber}!`,
+          `[GRID API] ✅ Found exact match on page ${pageNumber}:`,
           exactMatch.map((t) => ({ id: t.id, name: t.name }))
-        );
-        console.log(
-          `[GRID API] Stopping early - exact match found. Total pages fetched: ${pageNumber}`
         );
         return exactMatch;
       }
@@ -365,71 +408,26 @@ export async function searchGridTeamsByName(
       cursor = data.teams.pageInfo.endCursor;
     }
 
-    console.log(
-      `[GRID API] Total teams fetched: ${allTeams.length} (from ${pageNumber} pages)`
-    );
-    console.log(
-      `[GRID API] No exact match found in first ${allTeams.length} teams, trying fuzzy matching...`
-    );
-
-    // Show any teams with search term in name (for debugging)
-    const teamsWithTerm = allTeams.filter((team) =>
-      team.name
-        .toLowerCase()
-        .includes(normalizedQuery.split(" ")[0] || normalizedQuery)
-    );
-    if (teamsWithTerm.length > 0) {
-      console.log(
-        `[GRID API] Found ${teamsWithTerm.length} team(s) containing "${
-          normalizedQuery.split(" ")[0] || normalizedQuery
-        }":`,
-        teamsWithTerm.slice(0, 10).map((t) => ({ id: t.id, name: t.name }))
-      );
-    }
-
-    // Fuzzy matching: exact > startsWith > contains
-    const exactMatch = allTeams.filter(
-      (team) => team.name.toLowerCase() === normalizedQuery
-    );
-    if (exactMatch.length > 0) {
-      console.log(
-        `[GRID API] Found ${exactMatch.length} exact match(es):`,
-        exactMatch.map((t) => ({ id: t.id, name: t.name }))
-      );
-      return exactMatch;
-    }
-
+    // Fuzzy matching on fetched teams
     const startsWithMatch = allTeams.filter((team) =>
       team.name.toLowerCase().startsWith(normalizedQuery)
     );
     if (startsWithMatch.length > 0) {
-      const results = startsWithMatch.slice(0, 5);
-      console.log(
-        `[GRID API] Found ${startsWithMatch.length} startsWith match(es), returning first 5:`,
-        results.map((t) => ({ id: t.id, name: t.name }))
-      );
-      return results;
+      return startsWithMatch.slice(0, 5);
     }
 
     const containsMatch = allTeams.filter((team) =>
       team.name.toLowerCase().includes(normalizedQuery)
     );
     if (containsMatch.length > 0) {
-      const results = containsMatch.slice(0, 5);
-      console.log(
-        `[GRID API] Found ${containsMatch.length} contains match(es), returning first 5:`,
-        results.map((t) => ({ id: t.id, name: t.name }))
-      );
-      return results;
+      return containsMatch.slice(0, 5);
     }
 
     console.log(
-      `[GRID API] ❌ No matches found for "${teamName}" in first ${
-        allTeams.length
-      } teams (out of ${totalTeamCount || "unknown"} total)`
+      `[GRID API] ❌ No matches found for "${teamName}" in first ${allTeams.length} teams`
     );
     console.log(
-      `[GRID API] Note: Team might be later in the list. Consider searching with a more specific name or checking if the team exists in GRID.`
+      `[GRID API] Run 'pnpm --filter @rekon/api grid:sync' to populate the team registry`
     );
     return [];
   });

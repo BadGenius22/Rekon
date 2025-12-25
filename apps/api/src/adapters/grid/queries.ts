@@ -12,16 +12,22 @@ import { gql } from "graphql-request";
 /**
  * Get team statistics for a time window
  *
+ * Filter options (inline, not typed input):
+ * - timeWindow: LAST_3_MONTHS, LAST_6_MONTHS, LAST_12_MONTHS, ALL_TIME
+ * - tournamentIds: { in: ["1", "2"] }
+ *
  * @example
  * query GetTeamStatistics {
  *   teamStatistics(teamId: "83", filter: { timeWindow: LAST_3_MONTHS }) {
  *     game { wins { percentage } }
  *   }
  * }
+ *
+ * Note: wins field returns an array with {value: true} for wins and {value: false} for losses
  */
 export const GET_TEAM_STATISTICS = gql`
-  query GetTeamStatistics($teamId: ID!, $filter: StatisticsFilterInput) {
-    teamStatistics(teamId: $teamId, filter: $filter) {
+  query GetTeamStatistics($teamId: ID!) {
+    teamStatistics(teamId: $teamId, filter: { timeWindow: LAST_3_MONTHS }) {
       id
       aggregationSeriesIds
       series {
@@ -52,16 +58,6 @@ export const GET_TEAM_STATISTICS = gql`
       game {
         count
         wins {
-          value
-          count
-          percentage
-          streak {
-            min
-            max
-            current
-          }
-        }
-        won {
           value
           count
           percentage
@@ -115,10 +111,14 @@ export const GET_TEAM_STATISTICS = gql`
 
 /**
  * Get player statistics for a time window
+ *
+ * Filter options (inline, not typed input):
+ * - timeWindow: LAST_3_MONTHS, LAST_6_MONTHS, LAST_12_MONTHS, ALL_TIME
+ * - tournamentIds: { in: ["1", "2"] }
  */
 export const GET_PLAYER_STATISTICS = gql`
-  query GetPlayerStatistics($playerId: ID!, $filter: StatisticsFilterInput) {
-    playerStatistics(playerId: $playerId, filter: $filter) {
+  query GetPlayerStatistics($playerId: ID!) {
+    playerStatistics(playerId: $playerId, filter: { timeWindow: LAST_3_MONTHS }) {
       id
       aggregationSeriesIds
       series {
@@ -171,16 +171,6 @@ export const GET_PLAYER_STATISTICS = gql`
       game {
         count
         wins {
-          value
-          count
-          percentage
-          streak {
-            min
-            max
-            current
-          }
-        }
-        won {
           value
           count
           percentage
@@ -260,16 +250,6 @@ export const GET_TEAM_GAME_STATISTICS = gql`
           current
         }
       }
-      won {
-        value
-        count
-        percentage
-        streak {
-          min
-          max
-          current
-        }
-      }
       kills {
         sum
         min
@@ -307,16 +287,6 @@ export const GET_TEAM_GAME_STATISTICS = gql`
         type
         count
         wins {
-          value
-          count
-          percentage
-          streak {
-            min
-            max
-            current
-          }
-        }
-        won {
           value
           count
           percentage
@@ -383,16 +353,6 @@ export const GET_SERIES_STATISTICS = gql`
         teams {
           count
           wins {
-            value
-            count
-            percentage
-            streak {
-              min
-              max
-              current
-            }
-          }
-          won {
             value
             count
             percentage
@@ -554,7 +514,7 @@ export const GET_GAME_STATISTICS = gql`
  * }
  */
 export const GET_TEAMS = gql`
-  query GetTeams($first: Int = 100, $after: String) {
+  query GetTeams($first: Int = 100, $after: Cursor) {
     teams(first: $first, after: $after) {
       totalCount
       pageInfo {
@@ -626,7 +586,7 @@ export const GET_ALL_SERIES = gql`
     $filter: SeriesFilterInput
     $orderBy: SeriesOrderByInput
     $first: Int = 50
-    $after: String
+    $after: Cursor
   ) {
     allSeries(
       filter: $filter
@@ -730,7 +690,7 @@ export const GET_TEAM_ROSTER = gql`
  * Get tournaments
  */
 export const GET_TOURNAMENTS = gql`
-  query GetTournaments($first: Int = 50, $after: String) {
+  query GetTournaments($first: Int = 50, $after: Cursor) {
     tournaments(first: $first, after: $after) {
       pageInfo {
         hasPreviousPage
