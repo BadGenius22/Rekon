@@ -29,6 +29,7 @@ import {
   GET_LIVE_SERIES_STATE,
   GET_TEAMS,
   GET_ALL_SERIES,
+  GET_TEAM_ROSTER,
   GET_TEAM_STATISTICS,
   GET_PLAYER_STATISTICS,
   GET_TEAM_GAME_STATISTICS,
@@ -41,6 +42,7 @@ import type {
   GridTeam,
   GridSeries,
   GridConnection,
+  GridPlayer,
   GridTeamStatistics,
   GridPlayerStatistics,
   GridStatisticsFilter,
@@ -51,6 +53,7 @@ import type {
   GridSeriesStatisticsFilter,
   GridGameStatistics,
   GridGameStatisticsFilter,
+  GridPageInfo,
 } from "./types";
 import { GridTimeWindow } from "./types";
 
@@ -715,5 +718,57 @@ export async function fetchGridGameStatistics(
     );
 
     return data?.gameStatistics || null;
+  });
+}
+
+// ===== ROSTER FUNCTIONS =====
+
+/**
+ * Team roster response from Central Data Feed
+ */
+export interface GridTeamRosterResponse {
+  players: {
+    edges: Array<{
+      node: GridPlayer;
+    }>;
+    pageInfo: GridPageInfo;
+  };
+}
+
+/**
+ * Fetch team roster (players) from Central Data Feed
+ *
+ * @param teamId - GRID team ID
+ * @param limit - Maximum number of players to return (default: 20)
+ * @returns Array of players or empty array if not found/error
+ */
+export async function fetchGridTeamRoster(
+  teamId: string,
+  limit = 20
+): Promise<GridPlayer[]> {
+  const cacheKey = getCacheKey("team-roster", { teamId });
+
+  return withCache(cacheKey, GRID_CONFIG.cache.teamDataTtl, async () => {
+    console.log(`[GRID API] Fetching roster for teamId: ${teamId}`);
+
+    const data = await executeQuery<GridTeamRosterResponse>(
+      centralDataClient,
+      GET_TEAM_ROSTER,
+      { teamId, first: limit },
+      GRID_CONFIG.centralDataUrl
+    );
+
+    if (!data?.players?.edges) {
+      console.log(`[GRID API] No roster found for teamId: ${teamId}`);
+      return [];
+    }
+
+    const players = data.players.edges.map((edge) => edge.node);
+    console.log(
+      `[GRID API] Found ${players.length} player(s) for teamId: ${teamId}`,
+      players.map((p) => p.nickname)
+    );
+
+    return players;
   });
 }

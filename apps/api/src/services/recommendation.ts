@@ -561,7 +561,11 @@ export async function generateRecommendationPreview(
       // 9. Compute recommendation (pure function)
       const computed = computeRecommendation(input);
 
-      // 10. Return preview result (free tier - no premium content)
+      // 10. Build team stats for free tier (includes series stats from GRID)
+      // This allows users to see historical data before paying for full analysis
+      const teamStats = buildTeamStatsComparison(esportsStats);
+
+      // 11. Return preview result (free tier with team series stats)
       return {
         marketId: market.id,
         marketTitle: market.question,
@@ -571,11 +575,15 @@ export async function generateRecommendationPreview(
         confidenceScore: computed.confidenceScore,
         shortReasoning: computed.shortReasoning,
 
+        // Free tier: Include team stats with series data (kills, deaths, win rate)
+        // This gives users value before paying for premium features
+        teamStats,
+
         // Metadata
         isLive,
         computedAt: new Date().toISOString(),
         isPreview: true,
-        note: "Unlock full analysis with x402 payment to see detailed breakdown, team stats, and live match insights.",
+        note: "Unlock full analysis with x402 payment to see detailed AI explanation, confidence breakdown, and live match insights.",
         dataSource: "grid",
         game,
       };

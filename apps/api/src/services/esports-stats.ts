@@ -11,7 +11,7 @@
  * 4. Return enriched stats for premium content (x402)
  */
 
-import type { Market, EsportsTeamStats } from "@rekon/types";
+import type { Market, EsportsTeamStats, TeamRosterPlayer } from "@rekon/types";
 import {
   resolveMarketTeams,
   resolveTeamName,
@@ -20,6 +20,7 @@ import {
 } from "./team-resolution";
 import {
   fetchGridTeamStatistics,
+  fetchGridTeamRoster,
   mapGridTeamStatisticsToEsportsStats,
 } from "../adapters/grid";
 import { GridTimeWindow } from "../adapters/grid/types";
@@ -283,7 +284,7 @@ export async function getMarketEsportsStatsBatch(
 // =============================================================================
 
 /**
- * Fetches GRID stats for a resolved team.
+ * Fetches GRID stats and roster for a resolved team.
  */
 async function fetchTeamStats(
   resolved: ResolvedTeam | null,
@@ -301,7 +302,11 @@ async function fetchTeamStats(
   }
 
   try {
-    const gridStats = await fetchGridTeamStatistics(resolved.gridId, timeWindow);
+    // Fetch stats and roster in parallel for better performance
+    const [gridStats, gridRoster] = await Promise.all([
+      fetchGridTeamStatistics(resolved.gridId, timeWindow),
+      fetchGridTeamRoster(resolved.gridId, 10), // Limit to 10 players (active roster)
+    ]);
 
     if (!gridStats) {
       return {
@@ -317,6 +322,22 @@ async function fetchTeamStats(
       gridStats,
       resolved.gridName
     );
+
+    // Map GRID players to TeamRosterPlayer format
+    // Filter out test players and limit to active roster (typically 5-7 players)
+    const roster: TeamRosterPlayer[] = gridRoster
+      .filter((player) => !player.nickname.toLowerCase().includes("test"))
+      .slice(0, 7) // Active roster is typically 5-7 players
+      .map((player) => ({
+        id: player.id,
+        nickname: player.nickname,
+        game: player.title?.name,
+      }));
+
+    // Add roster to stats
+    if (roster.length > 0) {
+      stats.roster = roster;
+    }
 
     return {
       polymarketName,

@@ -15,6 +15,7 @@ export {
   fetchGridTeamGameStatistics,
   fetchGridSeriesStatistics,
   fetchGridGameStatistics,
+  fetchGridTeamRoster,
 } from "./client";
 
 // Mapper functions

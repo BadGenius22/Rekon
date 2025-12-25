@@ -84,7 +84,8 @@ const DEFAULT_SCORES = {
   recentForm: 50,
   headToHead: 50,
   mapAdvantage: 50,
-  rosterStability: 70, // Assume moderate stability
+  kdRatio: 50, // K/D ratio factor (new)
+  rosterStability: 50, // Now calculated from actual roster
   marketOdds: 50,
   livePerformance: 50,
 } as const;
@@ -95,6 +96,14 @@ const MIN_MATCHES_FOR_FORM = 3;
 /** Recent matches window for form calculation */
 const RECENT_MATCHES_WINDOW = 10;
 
+/** Expected roster size for esports games */
+const EXPECTED_ROSTER_SIZE = {
+  cs2: 5,
+  valorant: 5,
+  lol: 5,
+  dota2: 5,
+} as const;
+
 // ============================================================================
 // Factor Computation Functions (Pure)
 // ============================================================================
@@ -102,6 +111,11 @@ const RECENT_MATCHES_WINDOW = 10;
 /**
  * Computes recent form score from team statistics and matches.
  * Higher score = better recent performance.
+ *
+ * NOW USES ACTUAL GRID DATA:
+ * - seriesStats.winRate.percentage (actual win rate from GRID)
+ * - seriesStats.winRate.winStreak.current (current streak)
+ * - seriesStats.count (number of series played - data reliability)
  *
  * @param stats - Team statistics from GRID
  * @param matches - Recent match history
@@ -111,16 +125,43 @@ export function computeRecentFormScore(
   stats: EsportsTeamStats | null,
   matches: MatchHistory[]
 ): number {
-  if (!stats && matches.length < MIN_MATCHES_FOR_FORM) {
-    return DEFAULT_SCORES.recentForm;
+  // Priority 1: Use seriesStats if available (most accurate from GRID)
+  if (stats?.seriesStats) {
+    const { winRate: winRateStats, count: seriesCount } = stats.seriesStats;
+
+    // Base score from actual GRID win percentage
+    let score = winRateStats.percentage;
+
+    // Streak bonus/penalty (current win/loss streak)
+    const currentStreak = winRateStats.winStreak?.current ?? 0;
+    if (currentStreak > 0) {
+      // Win streak: +3 points per win, max +15
+      score += Math.min(15, currentStreak * 3);
+    } else if (currentStreak < 0) {
+      // Loss streak: -3 points per loss, max -15
+      score += Math.max(-15, currentStreak * 3);
+    }
+
+    // Data reliability adjustment
+    // More series = more reliable, less adjustment needed
+    if (seriesCount < 5) {
+      // Few matches: pull score towards 50 (uncertain)
+      score = 50 + (score - 50) * 0.6;
+    } else if (seriesCount < 10) {
+      // Moderate data: slight adjustment
+      score = 50 + (score - 50) * 0.8;
+    }
+    // 10+ matches: use full score
+
+    return Math.max(0, Math.min(100, score));
   }
 
-  // Use stats.recentForm if available (already calculated by GRID mapper)
+  // Priority 2: Use stats.recentForm (calculated by GRID mapper)
   if (stats?.recentForm !== undefined) {
     return Math.max(0, Math.min(100, stats.recentForm));
   }
 
-  // Calculate from match history
+  // Priority 3: Calculate from match history
   const recentMatches = matches.slice(0, RECENT_MATCHES_WINDOW);
   if (recentMatches.length < MIN_MATCHES_FOR_FORM) {
     return stats?.winRate ?? DEFAULT_SCORES.recentForm;
@@ -139,15 +180,7 @@ export function computeRecentFormScore(
   });
 
   const weightedWinRate = totalWeight > 0 ? (weightedWins / totalWeight) * 100 : 50;
-
-  // Bonus for current streak (if we have stats)
-  let streakBonus = 0;
-  if (stats?.seriesStats?.winRate) {
-    const currentStreak = stats.seriesStats.winRate.winStreak?.current ?? 0;
-    streakBonus = Math.min(10, currentStreak * 2);
-  }
-
-  return Math.max(0, Math.min(100, weightedWinRate + streakBonus));
+  return Math.max(0, Math.min(100, weightedWinRate));
 }
 
 /**
@@ -218,8 +251,63 @@ export function computeMapAdvantageScore(
 }
 
 /**
+ * Computes K/D ratio score from team statistics.
+ * Higher score = better K/D performance.
+ *
+ * NOW USES ACTUAL GRID DATA:
+ * - seriesStats.combat.kdRatio (actual K/D from GRID)
+ * - seriesStats.combat.kills.avg (average kills per series)
+ *
+ * @param stats - Team statistics from GRID
+ * @returns Score 0-100
+ */
+export function computeKDRatioScore(
+  stats: EsportsTeamStats | null
+): number {
+  if (!stats?.seriesStats?.combat) {
+    return DEFAULT_SCORES.kdRatio;
+  }
+
+  const { kdRatio, kills } = stats.seriesStats.combat;
+
+  // K/D ratio scoring:
+  // < 0.8: Poor (30-40)
+  // 0.8-1.0: Below average (40-50)
+  // 1.0-1.2: Average (50-60)
+  // 1.2-1.5: Good (60-75)
+  // > 1.5: Excellent (75-90)
+  let score: number;
+
+  if (kdRatio < 0.8) {
+    score = 30 + (kdRatio / 0.8) * 10;
+  } else if (kdRatio < 1.0) {
+    score = 40 + ((kdRatio - 0.8) / 0.2) * 10;
+  } else if (kdRatio < 1.2) {
+    score = 50 + ((kdRatio - 1.0) / 0.2) * 10;
+  } else if (kdRatio < 1.5) {
+    score = 60 + ((kdRatio - 1.2) / 0.3) * 15;
+  } else {
+    // Cap at 90 for very high K/D
+    score = 75 + Math.min(15, (kdRatio - 1.5) * 10);
+  }
+
+  // Bonus for high average kills (indicates aggressive/dominant play)
+  if (kills.avg > 150) {
+    score += 5;
+  } else if (kills.avg > 120) {
+    score += 3;
+  }
+
+  return Math.max(0, Math.min(100, score));
+}
+
+/**
  * Computes roster stability score.
  * Higher score = more stable roster.
+ *
+ * NOW USES ACTUAL GRID DATA:
+ * - roster array (actual players from GRID Central Data)
+ * - Expected roster size per game (5 for most esports)
  *
  * @param stats - Team statistics from GRID
  * @returns Score 0-100
@@ -231,7 +319,35 @@ export function computeRosterStabilityScore(
     return DEFAULT_SCORES.rosterStability;
   }
 
-  // Use rosterStability from stats if available
+  // Priority 1: Use actual roster data if available
+  if (stats.roster && stats.roster.length > 0) {
+    const rosterSize = stats.roster.length;
+    const expectedSize = 5; // Most esports have 5-player rosters
+
+    // Score based on roster completeness
+    // 5 players: 80 (full roster, stable)
+    // 6-7 players: 75 (has subs, slightly less stable)
+    // 4 players: 60 (missing player, concerning)
+    // < 4 players: 40 (incomplete roster, unstable)
+
+    if (rosterSize === expectedSize) {
+      return 80;
+    } else if (rosterSize > expectedSize && rosterSize <= 7) {
+      // Has substitutes - slightly less stable but still good
+      return 75;
+    } else if (rosterSize === expectedSize - 1) {
+      // Missing one player
+      return 60;
+    } else if (rosterSize < expectedSize - 1) {
+      // Missing multiple players
+      return 40;
+    } else {
+      // Too many players (>7) - might indicate roster instability
+      return 65;
+    }
+  }
+
+  // Priority 2: Use pre-calculated rosterStability from stats
   if (stats.rosterStability !== undefined) {
     return Math.max(0, Math.min(100, stats.rosterStability));
   }
@@ -342,6 +458,7 @@ export function computeRecommendation(
     recentForm: computeRecentFormScore(team1.stats, team1.matches),
     headToHead: computeHeadToHeadScore(h2hMatches, team1.name),
     mapAdvantage: computeMapAdvantageScore(team1.stats),
+    kdRatio: computeKDRatioScore(team1.stats), // NEW: K/D ratio from GRID
     rosterStability: computeRosterStabilityScore(team1.stats),
     marketOdds: computeMarketOddsScore(team1.price),
     livePerformance: isLive
@@ -354,6 +471,7 @@ export function computeRecommendation(
     recentForm: computeRecentFormScore(team2.stats, team2.matches),
     headToHead: 100 - team1Scores.headToHead, // Inverse of team1's H2H
     mapAdvantage: computeMapAdvantageScore(team2.stats),
+    kdRatio: computeKDRatioScore(team2.stats), // NEW: K/D ratio from GRID
     rosterStability: computeRosterStabilityScore(team2.stats),
     marketOdds: computeMarketOddsScore(team2.price),
     livePerformance: isLive
@@ -409,12 +527,14 @@ export function computeRecommendation(
 
 /**
  * Calculates weighted score from factor scores.
+ * Uses weights from RECOMMENDATION_CONFIG.
  */
 function calculateWeightedScore(
   scores: {
     recentForm: number;
     headToHead: number;
     mapAdvantage: number;
+    kdRatio: number; // NEW: K/D ratio factor
     rosterStability: number;
     marketOdds: number;
     livePerformance?: number;
@@ -424,7 +544,7 @@ function calculateWeightedScore(
   let totalWeight = 0;
   let weightedSum = 0;
 
-  // Standard factors
+  // Standard factors (always included)
   weightedSum += scores.recentForm * WEIGHTS.recentForm;
   totalWeight += WEIGHTS.recentForm;
 
@@ -433,6 +553,10 @@ function calculateWeightedScore(
 
   weightedSum += scores.mapAdvantage * WEIGHTS.mapAdvantage;
   totalWeight += WEIGHTS.mapAdvantage;
+
+  // NEW: K/D ratio factor
+  weightedSum += scores.kdRatio * WEIGHTS.kdRatio;
+  totalWeight += WEIGHTS.kdRatio;
 
   weightedSum += scores.rosterStability * WEIGHTS.rosterStability;
   totalWeight += WEIGHTS.rosterStability;

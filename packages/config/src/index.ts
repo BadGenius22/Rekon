@@ -269,12 +269,15 @@ export const RECOMMENDATION_CONFIG = {
   },
 
   // Factor weights for recommendation algorithm
+  // Non-live total: 0.20 + 0.10 + 0.10 + 0.15 + 0.05 + 0.15 = 0.75 (normalized)
+  // With live: + 0.25 = 1.0
   weights: {
-    recentForm: 0.25, // Historical (GRID Statistics)
-    headToHead: 0.15, // Historical (GRID Central Data)
-    mapAdvantage: 0.15, // Historical (GRID Statistics)
-    rosterStability: 0.05, // Placeholder (future enhancement)
-    marketOdds: 0.15, // Polymarket
-    livePerformance: 0.25, // GRID Live Data (if match ongoing)
+    recentForm: 0.20, // Win rate + streak (GRID Statistics)
+    headToHead: 0.10, // Historical matchup (GRID Central Data)
+    mapAdvantage: 0.10, // Map-specific stats (GRID Statistics)
+    kdRatio: 0.15, // K/D ratio from combat (GRID Statistics) - NEW
+    rosterStability: 0.05, // Roster completeness (GRID Central Data) - REAL DATA
+    marketOdds: 0.15, // Implied probability (Polymarket)
+    livePerformance: 0.25, // Real-time match (GRID Live Data)
   },
 } as const;

@@ -347,7 +347,8 @@ export type {
   TeamSegmentStats,
   EsportsTeamStats,
 
-  // Player statistics types
+  // Player/Roster types
+  TeamRosterPlayer,
   PlayerStats,
   TeamRosterStats,
 

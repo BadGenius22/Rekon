@@ -10,7 +10,14 @@
  * All mapping logic is isolated here to keep the client layer thin.
  */
 
-import type { EsportsTeamStats, MatchHistory } from "@rekon/types";
+import type {
+  EsportsTeamStats,
+  MatchHistory,
+  TeamSeriesStats,
+  TeamCombatStats,
+  WinRateStats,
+  AggregateStats,
+} from "@rekon/types";
 import type {
   GridTeamStatistics,
   GridTeam,
@@ -37,6 +44,7 @@ export function mapGridTeamStatisticsToEsportsStats(
   // wins is an array: find the entry with value: true for win stats
   // Note: 'wins' may be undefined, use optional chaining
   const winStats = stats.game.wins?.find((w) => w.value === true);
+  const lossStats = stats.game.wins?.find((w) => w.value === false);
   const winRate = winStats?.percentage || 0;
 
   // Calculate recent form from current win streak
@@ -51,6 +59,9 @@ export function mapGridTeamStatisticsToEsportsStats(
   // Default to moderate stability (we'd need Central Data Feed for actual roster)
   const rosterStability = 70;
 
+  // Map GRID series stats to TeamSeriesStats for free tier display
+  const seriesStats = mapGridSeriesToTeamSeriesStats(stats, winStats, lossStats);
+
   return {
     teamId: stats.id,
     teamName,
@@ -59,6 +70,85 @@ export function mapGridTeamStatisticsToEsportsStats(
     mapWinRate: mapWinRate ? Math.round(mapWinRate * 10) / 10 : undefined,
     rosterStability: Math.round(rosterStability),
     totalMatches: stats.game.count,
+    // Include series stats for free tier display
+    seriesStats,
+    aggregationSeriesIds: stats.aggregationSeriesIds,
+  };
+}
+
+/**
+ * Maps GRID series statistics to TeamSeriesStats for free tier display.
+ * Extracts the raw historical data (count, kills, deaths, etc.)
+ *
+ * @param stats - GRID team statistics
+ * @param winStats - Win statistics entry (value: true) from wins array
+ * @param lossStats - Loss statistics entry (value: false) from wins array
+ * @returns TeamSeriesStats with combat and win rate data
+ */
+function mapGridSeriesToTeamSeriesStats(
+  stats: GridTeamStatistics,
+  winStats?: {
+    count: number;
+    percentage: number;
+    streak: { min: number; max: number; current: number };
+  },
+  lossStats?: {
+    count: number;
+    percentage: number;
+    streak: { min: number; max: number; current: number };
+  }
+): TeamSeriesStats {
+  const seriesKills = stats.series.kills;
+  const seriesDeaths = stats.series.deaths;
+
+  // Calculate K/D ratio
+  const kdRatio =
+    seriesDeaths.avg > 0 ? seriesKills.avg / seriesDeaths.avg : seriesKills.avg;
+
+  // Map GRID aggregate stats to our format
+  const mapAggregateStats = (
+    gridStats: typeof seriesKills
+  ): AggregateStats => ({
+    sum: gridStats.sum,
+    min: gridStats.min,
+    max: gridStats.max,
+    avg: Math.round(gridStats.avg * 10) / 10, // Round to 1 decimal
+    ratePerMinute: gridStats.ratePerMinute
+      ? {
+          min: Math.round(gridStats.ratePerMinute.min * 100) / 100,
+          max: Math.round(gridStats.ratePerMinute.max * 100) / 100,
+          avg: Math.round(gridStats.ratePerMinute.avg * 100) / 100,
+        }
+      : undefined,
+  });
+
+  const combat: TeamCombatStats = {
+    kills: mapAggregateStats(seriesKills),
+    deaths: mapAggregateStats(seriesDeaths),
+    kdRatio: Math.round(kdRatio * 100) / 100, // Round to 2 decimals
+  };
+
+  // Build win rate stats from GRID wins array
+  const winRate: WinRateStats = {
+    wins: winStats?.count || 0,
+    losses: lossStats?.count || 0,
+    percentage: winStats?.percentage || 0,
+    winStreak: {
+      min: winStats?.streak.min || 0,
+      max: winStats?.streak.max || 0,
+      current: winStats?.streak.current || 0,
+    },
+    lossStreak: {
+      min: lossStats?.streak.min || 0,
+      max: lossStats?.streak.max || 0,
+      current: lossStats?.streak.current || 0,
+    },
+  };
+
+  return {
+    count: stats.series.count,
+    combat,
+    winRate,
   };
 }
 

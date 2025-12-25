@@ -235,6 +235,26 @@ export interface EsportsTeamStats {
   timeWindow?: "LAST_WEEK" | "LAST_MONTH" | "LAST_3_MONTHS" | "LAST_6_MONTHS" | "LAST_YEAR";
   /** Series IDs used to calculate these stats */
   aggregationSeriesIds?: string[];
+
+  // ==========================================================================
+  // Roster: Team Players (Free Tier)
+  // ==========================================================================
+
+  /** Current team roster (player nicknames) */
+  roster?: TeamRosterPlayer[];
+}
+
+/**
+ * Player in a team roster
+ * Simplified player info from GRID Central Data Feed
+ */
+export interface TeamRosterPlayer {
+  /** GRID player ID */
+  id: string;
+  /** Player nickname/IGN (e.g., "s1mple", "ZywOo") */
+  nickname: string;
+  /** Game title (e.g., "Counter Strike 2") */
+  game?: string;
 }
 
 // =============================================================================

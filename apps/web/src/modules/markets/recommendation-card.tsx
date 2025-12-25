@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Trophy,
   Target,
@@ -13,6 +13,14 @@ import {
   Activity,
   Zap,
   Wallet,
+  Brain,
+  TrendingUp,
+  Shield,
+  Crosshair,
+  BarChart3,
+  Clock,
+  Swords,
+  Users,
 } from "lucide-react";
 import type {
   RecommendationResult,
@@ -36,20 +44,176 @@ interface RecommendationCardProps {
   className?: string;
 }
 
+// =============================================================================
+// ANIMATED COMPONENTS
+// =============================================================================
+
 /**
- * Live indicator badge with pulsing animation
+ * Circular confidence gauge with animated SVG arc
  */
-function LiveIndicator() {
+function ConfidenceGauge({
+  score,
+  confidence,
+  size = 80,
+}: {
+  score: number;
+  confidence: ConfidenceLevel;
+  size?: number;
+}) {
+  const [animatedScore, setAnimatedScore] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setAnimatedScore(score), 100);
+    return () => clearTimeout(timer);
+  }, [score]);
+
+  const strokeWidth = 6;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (animatedScore / 100) * circumference;
+
+  const gradientId = `gauge-gradient-${confidence}`;
+  const glowId = `gauge-glow-${confidence}`;
+
+  const colors = {
+    high: { start: "#10b981", end: "#34d399", glow: "#10b981" },
+    medium: { start: "#f59e0b", end: "#fbbf24", glow: "#f59e0b" },
+    low: { start: "#f97316", end: "#fb923c", glow: "#f97316" },
+  };
+
+  const { start, end, glow } = colors[confidence];
+
   return (
-    <div className="flex items-center gap-1.5 rounded-full bg-red-500/20 px-2 py-1 border border-red-500/30">
-      <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-      <span className="text-xs font-bold text-red-400">LIVE</span>
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg
+        width={size}
+        height={size}
+        className="transform -rotate-90"
+        style={{ filter: `drop-shadow(0 0 8px ${glow}40)` }}
+      >
+        <defs>
+          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor={start} />
+            <stop offset="100%" stopColor={end} />
+          </linearGradient>
+          <filter id={glowId}>
+            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        {/* Background track */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="rgba(255,255,255,0.08)"
+          strokeWidth={strokeWidth}
+        />
+
+        {/* Animated arc */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={`url(#${gradientId})`}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          filter={`url(#${glowId})`}
+          className="transition-all duration-1000 ease-out"
+        />
+      </svg>
+
+      {/* Center content */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span
+          className={cn(
+            "font-mono text-xl font-bold tabular-nums",
+            confidence === "high" && "text-emerald-400",
+            confidence === "medium" && "text-amber-400",
+            confidence === "low" && "text-orange-400"
+          )}
+        >
+          {animatedScore}%
+        </span>
+      </div>
     </div>
   );
 }
 
 /**
- * Team pick indicator with visual emphasis
+ * Live indicator with animated pulse rings
+ */
+function LiveIndicator({ compact = false }: { compact?: boolean }) {
+  return (
+    <div
+      className={cn(
+        "relative flex items-center gap-1.5",
+        !compact && "rounded-full bg-red-500/10 px-2.5 py-1 border border-red-500/20"
+      )}
+    >
+      {/* Pulse rings */}
+      <div className="relative h-2.5 w-2.5">
+        <div className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-75" />
+        <div className="absolute inset-0 rounded-full bg-red-500" />
+        <div
+          className="absolute -inset-1 rounded-full border border-red-500/50 animate-pulse"
+          style={{ animationDuration: "1.5s" }}
+        />
+      </div>
+      {!compact && (
+        <span className="text-[10px] font-bold uppercase tracking-wider text-red-400">
+          Live
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Neural network background pattern
+ */
+function NeuralPattern() {
+  return (
+    <div className="absolute inset-0 overflow-hidden opacity-[0.03] pointer-events-none">
+      <svg width="100%" height="100%" className="absolute inset-0">
+        <defs>
+          <pattern
+            id="neural-grid"
+            x="0"
+            y="0"
+            width="40"
+            height="40"
+            patternUnits="userSpaceOnUse"
+          >
+            <circle cx="20" cy="20" r="1" fill="currentColor" />
+            <path
+              d="M20 0 L20 40 M0 20 L40 20"
+              stroke="currentColor"
+              strokeWidth="0.5"
+              opacity="0.3"
+            />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#neural-grid)" />
+      </svg>
+    </div>
+  );
+}
+
+// =============================================================================
+// PICK & CONFIDENCE DISPLAY
+// =============================================================================
+
+/**
+ * Team pick indicator with trophy and gradient background
  */
 function PickIndicator({
   teamName,
@@ -58,136 +222,168 @@ function PickIndicator({
   teamName: string;
   confidence: ConfidenceLevel;
 }) {
-  const colorMap = {
+  const config = {
     high: {
-      bg: "bg-emerald-500/10",
+      bg: "bg-gradient-to-r from-emerald-500/20 to-emerald-500/5",
       border: "border-emerald-500/30",
       text: "text-emerald-400",
+      icon: "text-emerald-400",
+      glow: "shadow-emerald-500/20",
     },
     medium: {
-      bg: "bg-yellow-500/10",
-      border: "border-yellow-500/30",
-      text: "text-yellow-400",
+      bg: "bg-gradient-to-r from-amber-500/20 to-amber-500/5",
+      border: "border-amber-500/30",
+      text: "text-amber-400",
+      icon: "text-amber-400",
+      glow: "shadow-amber-500/20",
     },
     low: {
-      bg: "bg-orange-500/10",
+      bg: "bg-gradient-to-r from-orange-500/20 to-orange-500/5",
       border: "border-orange-500/30",
       text: "text-orange-400",
+      icon: "text-orange-400",
+      glow: "shadow-orange-500/20",
     },
   };
 
-  const colors = colorMap[confidence];
+  const styles = config[confidence];
 
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-lg border px-3 py-2",
-        colors.bg,
-        colors.border
+        "flex items-center gap-3 rounded-xl border px-4 py-3",
+        "shadow-lg transition-all duration-300",
+        styles.bg,
+        styles.border,
+        styles.glow
       )}
     >
-      <Trophy className={cn("h-5 w-5", colors.text)} />
-      <span className={cn("font-bold", colors.text)}>{teamName}</span>
+      <div
+        className={cn(
+          "flex h-10 w-10 items-center justify-center rounded-lg",
+          "bg-white/5 backdrop-blur-sm"
+        )}
+      >
+        <Trophy className={cn("h-5 w-5", styles.icon)} />
+      </div>
+      <div>
+        <p className="text-[10px] uppercase tracking-wider text-white/50">
+          Recommended Pick
+        </p>
+        <p className={cn("font-bold text-lg", styles.text)}>{teamName}</p>
+      </div>
     </div>
   );
 }
 
 /**
- * Confidence badge with color coding
+ * Confidence label badge
  */
-function ConfidenceBadge({
-  confidence,
-  score,
-}: {
-  confidence: ConfidenceLevel;
-  score: number;
-}) {
+function ConfidenceLabel({ confidence }: { confidence: ConfidenceLevel }) {
   const config = {
-    high: {
-      label: "High Confidence",
-      color: "text-emerald-400",
-      bg: "bg-emerald-500/10",
-      border: "border-emerald-500/30",
-    },
-    medium: {
-      label: "Medium Confidence",
-      color: "text-yellow-400",
-      bg: "bg-yellow-500/10",
-      border: "border-yellow-500/30",
-    },
-    low: {
-      label: "Low Confidence",
-      color: "text-orange-400",
-      bg: "bg-orange-500/10",
-      border: "border-orange-500/30",
-    },
+    high: { label: "High Confidence", color: "text-emerald-400" },
+    medium: { label: "Medium Confidence", color: "text-amber-400" },
+    low: { label: "Low Confidence", color: "text-orange-400" },
   };
 
-  const { label, color, bg, border } = config[confidence];
-
   return (
-    <div className={cn("rounded-lg border px-3 py-2", bg, border)}>
-      <div className="text-xs text-white/60">{label}</div>
-      <div className={cn("font-mono text-lg font-bold", color)}>{score}%</div>
-    </div>
+    <span className={cn("text-xs font-medium", config[confidence].color)}>
+      {config[confidence].label}
+    </span>
   );
 }
 
+// =============================================================================
+// REASONING & INSIGHTS
+// =============================================================================
+
 /**
- * Free reasoning bullets with icons
+ * Reasoning bullets with animated icons
  */
 function ReasoningBullets({ bullets }: { bullets: string[] }) {
+  const icons = [Crosshair, TrendingUp, Shield, BarChart3, Swords];
+
   return (
-    <div className="space-y-2">
-      {bullets.map((bullet, i) => (
-        <div key={i} className="flex items-start gap-2">
-          <Target className="mt-0.5 h-4 w-4 shrink-0 text-purple-400" />
-          <p className="text-sm text-white/80">{bullet}</p>
-        </div>
-      ))}
+    <div className="space-y-3">
+      {bullets.map((bullet, i) => {
+        const Icon = icons[i % icons.length];
+        return (
+          <div
+            key={i}
+            className="flex items-start gap-3 group"
+            style={{ animationDelay: `${i * 100}ms` }}
+          >
+            <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-purple-500/10 border border-purple-500/20 group-hover:bg-purple-500/20 transition-colors">
+              <Icon className="h-3.5 w-3.5 text-purple-400" />
+            </div>
+            <p className="text-sm leading-relaxed text-white/80">{bullet}</p>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
+// =============================================================================
+// PREMIUM CONTENT DISPLAYS
+// =============================================================================
+
 /**
- * Confidence breakdown with horizontal bars (PREMIUM)
+ * Confidence breakdown with gradient bars
  */
-function ConfidenceBreakdownDisplay({ breakdown }: { breakdown: ConfidenceBreakdown }) {
-  const factors: Array<{ key: keyof ConfidenceBreakdown; label: string }> = [
-    { key: "recentForm", label: "Recent Form" },
-    { key: "headToHead", label: "Head-to-Head" },
-    { key: "mapAdvantage", label: "Map Advantage" },
-    { key: "marketOdds", label: "Market Odds" },
-    { key: "rosterStability", label: "Roster Stability" },
-    { key: "livePerformance", label: "Live Performance" },
+function ConfidenceBreakdownDisplay({
+  breakdown,
+}: {
+  breakdown: ConfidenceBreakdown;
+}) {
+  const factors: Array<{
+    key: keyof ConfidenceBreakdown;
+    label: string;
+    icon: typeof Target;
+  }> = [
+    { key: "recentForm", label: "Recent Form", icon: TrendingUp },
+    { key: "headToHead", label: "Head-to-Head", icon: Swords },
+    { key: "mapAdvantage", label: "Map Advantage", icon: Target },
+    { key: "marketOdds", label: "Market Odds", icon: BarChart3 },
+    { key: "rosterStability", label: "Roster Stability", icon: Shield },
+    { key: "livePerformance", label: "Live Performance", icon: Activity },
   ];
 
   return (
-    <div className="space-y-2">
-      <h4 className="text-xs font-semibold uppercase tracking-wider text-white/50">
-        Factor Breakdown
-      </h4>
-      {factors.map(({ key, label }) => {
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 mb-4">
+        <Brain className="h-4 w-4 text-purple-400" />
+        <h4 className="text-xs font-semibold uppercase tracking-wider text-white/60">
+          Factor Analysis
+        </h4>
+      </div>
+
+      {factors.map(({ key, label, icon: Icon }) => {
         const value = breakdown[key];
         if (value === undefined) return null;
 
-        const getColor = (v: number) => {
-          if (v >= 70) return "bg-emerald-500";
-          if (v >= 40) return "bg-yellow-500";
-          return "bg-red-500";
+        const getGradient = (v: number) => {
+          if (v >= 70) return "from-emerald-500 to-emerald-400";
+          if (v >= 40) return "from-amber-500 to-amber-400";
+          return "from-red-500 to-red-400";
         };
 
         return (
-          <div key={key} className="space-y-1">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-white/70">{label}</span>
-              <span className="font-mono font-bold text-white">{value}%</span>
+          <div key={key} className="group">
+            <div className="flex items-center justify-between text-xs mb-1.5">
+              <div className="flex items-center gap-2">
+                <Icon className="h-3.5 w-3.5 text-white/40 group-hover:text-white/60 transition-colors" />
+                <span className="text-white/70">{label}</span>
+              </div>
+              <span className="font-mono font-bold text-white tabular-nums">
+                {value}%
+              </span>
             </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
               <div
                 className={cn(
-                  "h-full transition-all duration-500",
-                  getColor(value)
+                  "h-full rounded-full bg-gradient-to-r transition-all duration-700 ease-out",
+                  getGradient(value)
                 )}
                 style={{ width: `${value}%` }}
               />
@@ -200,7 +396,160 @@ function ConfidenceBreakdownDisplay({ breakdown }: { breakdown: ConfidenceBreakd
 }
 
 /**
- * Team stats comparison table (PREMIUM)
+ * Team series stats display (free tier)
+ * Shows historical performance data from GRID
+ */
+function TeamSeriesStatsDisplay({
+  team,
+  teamName,
+  isRecommended = false,
+}: {
+  team: EsportsTeamStats;
+  teamName: string;
+  isRecommended?: boolean;
+}) {
+  const seriesStats = team.seriesStats;
+  if (!seriesStats) return null;
+
+  const kdRatio = seriesStats.combat.kdRatio;
+  const isPositiveKD = kdRatio >= 1;
+
+  return (
+    <div
+      className={cn(
+        "rounded-xl border p-4",
+        isRecommended
+          ? "border-emerald-500/20 bg-emerald-500/5"
+          : "border-white/10 bg-white/[0.02]"
+      )}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-3">
+        {isRecommended && <Trophy className="h-4 w-4 text-emerald-400" />}
+        <h5
+          className={cn(
+            "text-sm font-semibold",
+            isRecommended ? "text-emerald-400" : "text-white/80"
+          )}
+        >
+          {teamName}
+        </h5>
+        <span className="text-[10px] text-white/40 ml-auto">
+          {seriesStats.count} series
+        </span>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Win Rate */}
+        <div className="space-y-1">
+          <div className="text-[10px] uppercase tracking-wider text-white/40">
+            Win Rate
+          </div>
+          <div className="flex items-baseline gap-1">
+            <span className="text-lg font-bold font-mono text-white tabular-nums">
+              {Math.round(seriesStats.winRate.percentage)}%
+            </span>
+            <span className="text-[10px] text-white/30">
+              ({seriesStats.winRate.wins}W-{seriesStats.winRate.losses}L)
+            </span>
+          </div>
+        </div>
+
+        {/* K/D Ratio */}
+        <div className="space-y-1">
+          <div className="text-[10px] uppercase tracking-wider text-white/40">
+            K/D Ratio
+          </div>
+          <div className="flex items-baseline gap-1">
+            <span
+              className={cn(
+                "text-lg font-bold font-mono tabular-nums",
+                isPositiveKD ? "text-emerald-400" : "text-red-400"
+              )}
+            >
+              {kdRatio.toFixed(2)}
+            </span>
+          </div>
+        </div>
+
+        {/* Kills */}
+        <div className="space-y-1">
+          <div className="text-[10px] uppercase tracking-wider text-white/40">
+            Avg Kills
+          </div>
+          <div className="flex items-baseline gap-1">
+            <span className="text-base font-semibold font-mono text-white tabular-nums">
+              {seriesStats.combat.kills.avg}
+            </span>
+            <span className="text-[10px] text-white/30">
+              ({seriesStats.combat.kills.min}-{seriesStats.combat.kills.max})
+            </span>
+          </div>
+        </div>
+
+        {/* Deaths */}
+        <div className="space-y-1">
+          <div className="text-[10px] uppercase tracking-wider text-white/40">
+            Avg Deaths
+          </div>
+          <div className="flex items-baseline gap-1">
+            <span className="text-base font-semibold font-mono text-white tabular-nums">
+              {seriesStats.combat.deaths.avg}
+            </span>
+            <span className="text-[10px] text-white/30">
+              ({seriesStats.combat.deaths.min}-{seriesStats.combat.deaths.max})
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Win Streak */}
+      {seriesStats.winRate.winStreak.current !== 0 && (
+        <div className="mt-3 flex items-center gap-2 pt-3 border-t border-white/5">
+          <Zap
+            className={cn(
+              "h-3.5 w-3.5",
+              seriesStats.winRate.winStreak.current > 0
+                ? "text-emerald-400"
+                : "text-red-400"
+            )}
+          />
+          <span className="text-xs text-white/60">
+            {seriesStats.winRate.winStreak.current > 0
+              ? `${seriesStats.winRate.winStreak.current} win streak`
+              : `${Math.abs(seriesStats.winRate.winStreak.current)} loss streak`}
+          </span>
+        </div>
+      )}
+
+      {/* Roster */}
+      {team.roster && team.roster.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-white/5">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Users className="h-3 w-3 text-white/40" />
+            <span className="text-[10px] uppercase tracking-wider text-white/40">
+              Roster
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {team.roster.map((player) => (
+              <span
+                key={player.id}
+                className="inline-flex items-center px-2 py-0.5 rounded-md bg-white/5 text-[11px] text-white/70 font-medium"
+              >
+                {player.nickname}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Team stats comparison table
  */
 function TeamStatsComparison({
   recommended,
@@ -212,42 +561,64 @@ function TeamStatsComparison({
   const stats = [
     { key: "winRate", label: "Win Rate", format: (v: number) => `${v}%` },
     { key: "recentForm", label: "Recent Form", format: (v: number) => `${v}%` },
-    { key: "avgKillsPerMap", label: "K/D Avg", format: (v: number) => v.toFixed(2) },
+    {
+      key: "rosterStability",
+      label: "Roster Stability",
+      format: (v: number) => `${v}%`,
+    },
   ];
 
   return (
-    <div className="space-y-2">
-      <h4 className="text-xs font-semibold uppercase tracking-wider text-white/50">
-        Team Comparison
-      </h4>
-      <div className="overflow-hidden rounded-lg border border-white/10">
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 mb-4">
+        <BarChart3 className="h-4 w-4 text-cyan-400" />
+        <h4 className="text-xs font-semibold uppercase tracking-wider text-white/60">
+          Team Comparison
+        </h4>
+      </div>
+
+      <div className="overflow-hidden rounded-lg border border-white/10 bg-white/[0.02]">
         <table className="w-full text-xs">
-          <thead className="bg-white/5">
-            <tr>
-              <th className="px-2 py-1.5 text-left font-medium text-white/60">
-                Stat
+          <thead>
+            <tr className="border-b border-white/10">
+              <th className="px-3 py-2 text-left font-medium text-white/50">
+                Metric
               </th>
-              <th className="px-2 py-1.5 text-right font-medium text-emerald-400">
-                Pick
+              <th className="px-3 py-2 text-right font-medium text-emerald-400">
+                <div className="flex items-center justify-end gap-1.5">
+                  <Trophy className="h-3 w-3" />
+                  Pick
+                </div>
               </th>
-              <th className="px-2 py-1.5 text-right font-medium text-white/60">
+              <th className="px-3 py-2 text-right font-medium text-white/50">
                 Opponent
               </th>
             </tr>
           </thead>
           <tbody>
             {stats.map(({ key, label, format }) => {
-              const recValue = (recommended as unknown as Record<string, number>)[key];
-              const oppValue = (opponent as unknown as Record<string, number>)[key];
+              const recValue = (recommended as unknown as Record<string, number>)[
+                key
+              ];
+              const oppValue = (opponent as unknown as Record<string, number>)[
+                key
+              ];
               if (recValue === undefined || oppValue === undefined) return null;
 
+              const isWinning = recValue > oppValue;
+
               return (
-                <tr key={key} className="border-t border-white/10">
-                  <td className="px-2 py-1.5 text-white/70">{label}</td>
-                  <td className="px-2 py-1.5 text-right font-mono font-bold text-emerald-400">
+                <tr key={key} className="border-t border-white/5">
+                  <td className="px-3 py-2.5 text-white/70">{label}</td>
+                  <td
+                    className={cn(
+                      "px-3 py-2.5 text-right font-mono font-bold tabular-nums",
+                      isWinning ? "text-emerald-400" : "text-white/70"
+                    )}
+                  >
                     {format(recValue)}
                   </td>
-                  <td className="px-2 py-1.5 text-right font-mono text-white/70">
+                  <td className="px-3 py-2.5 text-right font-mono text-white/50 tabular-nums">
                     {format(oppValue)}
                   </td>
                 </tr>
@@ -261,35 +632,52 @@ function TeamStatsComparison({
 }
 
 /**
- * Match history list (PREMIUM)
+ * Match history list
  */
 function MatchHistoryList({ matches }: { matches: MatchHistory[] }) {
   if (matches.length === 0) return null;
 
   return (
-    <div className="space-y-2">
-      <h4 className="text-xs font-semibold uppercase tracking-wider text-white/50">
-        Recent Matches
-      </h4>
-      <div className="space-y-1">
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 mb-4">
+        <Clock className="h-4 w-4 text-purple-400" />
+        <h4 className="text-xs font-semibold uppercase tracking-wider text-white/60">
+          Recent Matches
+        </h4>
+      </div>
+
+      <div className="space-y-1.5">
         {matches.slice(0, 5).map((match, i) => (
           <div
             key={i}
-            className="flex items-center justify-between rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-xs"
+            className={cn(
+              "flex items-center justify-between rounded-lg border px-3 py-2 text-xs",
+              "border-white/5 bg-white/[0.02]",
+              "hover:bg-white/[0.04] transition-colors"
+            )}
           >
-            <span className="text-white/70">{match.opponent}</span>
-            <span
-              className={cn(
-                "font-mono font-bold",
-                match.result === "win"
-                  ? "text-emerald-400"
-                  : match.result === "loss"
-                  ? "text-red-400"
-                  : "text-white/50"
-              )}
-            >
-              {match.result.toUpperCase()}
-            </span>
+            <div className="flex items-center gap-2">
+              <div
+                className={cn(
+                  "h-1.5 w-1.5 rounded-full",
+                  match.result === "win" ? "bg-emerald-400" : "bg-red-400"
+                )}
+              />
+              <span className="text-white/70">{match.opponent}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-white/40 font-mono">{match.score}</span>
+              <span
+                className={cn(
+                  "font-mono font-bold uppercase text-[10px] px-1.5 py-0.5 rounded",
+                  match.result === "win"
+                    ? "text-emerald-400 bg-emerald-500/10"
+                    : "text-red-400 bg-red-500/10"
+                )}
+              >
+                {match.result}
+              </span>
+            </div>
           </div>
         ))}
       </div>
@@ -298,68 +686,77 @@ function MatchHistoryList({ matches }: { matches: MatchHistory[] }) {
 }
 
 /**
- * Live match state widget (PREMIUM, GRID)
+ * Live match widget with score display
  */
 function LiveMatchWidget({ liveState }: { liveState: LiveMatchState }) {
   if (!liveState || liveState.state !== "ongoing") return null;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h4 className="text-xs font-semibold uppercase tracking-wider text-white/50">
-          Live Match
-        </h4>
+        <div className="flex items-center gap-2">
+          <Activity className="h-4 w-4 text-red-400" />
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-white/60">
+            Live Match
+          </h4>
+        </div>
         <LiveIndicator />
       </div>
 
-      {/* Series Score */}
-      <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3">
-        <div className="flex items-center justify-center gap-4">
+      {/* Score Display */}
+      <div className="relative overflow-hidden rounded-xl border border-red-500/20 bg-gradient-to-br from-red-500/10 to-transparent p-4">
+        <div className="flex items-center justify-center gap-6">
           <div className="text-center">
-            <div className="text-2xl font-bold text-white">
+            <div className="text-3xl font-bold text-white font-mono">
               {liveState.score.team1}
             </div>
-            <div className="text-xs text-white/50">Team 1</div>
+            <div className="text-[10px] uppercase tracking-wider text-white/40 mt-1">
+              Team 1
+            </div>
           </div>
-          <div className="text-xl font-bold text-white/40">-</div>
+
+          <div className="flex flex-col items-center">
+            <div className="text-lg font-bold text-white/30">vs</div>
+            {liveState.currentGame && (
+              <div className="text-[10px] text-white/40 mt-1">
+                Game {liveState.currentGame}
+              </div>
+            )}
+          </div>
+
           <div className="text-center">
-            <div className="text-2xl font-bold text-white">
+            <div className="text-3xl font-bold text-white font-mono">
               {liveState.score.team2}
             </div>
-            <div className="text-xs text-white/50">Team 2</div>
+            <div className="text-[10px] uppercase tracking-wider text-white/40 mt-1">
+              Team 2
+            </div>
           </div>
         </div>
 
-        {/* Current Game */}
-        {liveState.currentGame && (
-          <div className="mt-2 text-center text-xs text-white/60">
-            Game {liveState.currentGame}
-            {liveState.format && ` • ${liveState.format}`}
+        {liveState.format && (
+          <div className="text-center mt-3 text-[10px] text-white/30 uppercase tracking-wider">
+            {liveState.format}
           </div>
         )}
       </div>
 
-      {/* Game Stats */}
+      {/* Game breakdown */}
       {liveState.games && liveState.games.length > 0 && (
-        <div className="space-y-1">
+        <div className="flex gap-1.5">
           {liveState.games.map((game, i) => (
             <div
               key={i}
-              className="flex items-center justify-between rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-xs"
+              className={cn(
+                "flex-1 rounded-md border px-2 py-1.5 text-center text-[10px]",
+                game.state === "finished"
+                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+                  : game.state === "ongoing"
+                  ? "border-amber-500/20 bg-amber-500/10 text-amber-400"
+                  : "border-white/10 bg-white/5 text-white/40"
+              )}
             >
-              <span className="text-white/70">Game {game.gameNumber}</span>
-              <span
-                className={cn(
-                  "font-mono font-bold",
-                  game.state === "finished"
-                    ? "text-emerald-400"
-                    : game.state === "ongoing"
-                    ? "text-yellow-400"
-                    : "text-white/50"
-                )}
-              >
-                {game.state.toUpperCase()}
-              </span>
+              G{game.gameNumber}
             </div>
           ))}
         </div>
@@ -367,6 +764,10 @@ function LiveMatchWidget({ liveState }: { liveState: LiveMatchState }) {
     </div>
   );
 }
+
+// =============================================================================
+// RECOMMENDATION CONTENT
+// =============================================================================
 
 /**
  * Full recommendation content (preview or success)
@@ -382,114 +783,175 @@ function RecommendationContent({
   const [showStats, setShowStats] = useState(false);
 
   return (
-    <div className="space-y-4">
-      {/* Live Indicator */}
-      {recommendation.isLive && (
-        <div className="flex justify-end">
-          <LiveIndicator />
-        </div>
-      )}
-
-      {/* Pick and Confidence */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1">
+    <div className="space-y-5">
+      {/* Pick + Gauge Row */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-1 min-w-0">
           <PickIndicator
             teamName={recommendation.recommendedPick}
             confidence={recommendation.confidence}
           />
         </div>
-        <ConfidenceBadge
-          confidence={recommendation.confidence}
-          score={recommendation.confidenceScore}
-        />
+
+        <div className="flex flex-col items-center">
+          <ConfidenceGauge
+            score={recommendation.confidenceScore}
+            confidence={recommendation.confidence}
+            size={72}
+          />
+          <ConfidenceLabel confidence={recommendation.confidence} />
+        </div>
       </div>
 
-      {/* Short Reasoning (FREE) */}
-      <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+      {/* Short Reasoning */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
         <ReasoningBullets bullets={recommendation.shortReasoning} />
       </div>
 
-      {/* Full Explanation (PREMIUM) */}
+      {/* Team Historical Stats (Free Tier - always shown when available) */}
+      {recommendation.teamStats?.recommended?.seriesStats &&
+        recommendation.teamStats?.opponent?.seriesStats && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 mb-2">
+              <BarChart3 className="h-4 w-4 text-cyan-400" />
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-white/60">
+                Historical Performance (Last 3 Months)
+              </h4>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <TeamSeriesStatsDisplay
+                team={recommendation.teamStats.recommended}
+                teamName={recommendation.recommendedPick}
+                isRecommended={true}
+              />
+              <TeamSeriesStatsDisplay
+                team={recommendation.teamStats.opponent}
+                teamName={recommendation.otherTeam}
+                isRecommended={false}
+              />
+            </div>
+          </div>
+        )}
+
+      {/* Premium: Full Explanation */}
       {isPremium && recommendation.fullExplanation && (
-        <div className="rounded-lg border border-purple-500/30 bg-purple-500/10 p-3">
-          <div className="flex items-start gap-2">
-            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-purple-400" />
-            <p className="text-sm leading-relaxed text-white/90">
-              {recommendation.fullExplanation}
-            </p>
+        <div className="relative overflow-hidden rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-500/10 to-transparent p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-500/20">
+              <Sparkles className="h-4 w-4 text-purple-400" />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-purple-400/80 mb-1">
+                AI Analysis
+              </p>
+              <p className="text-sm leading-relaxed text-white/90">
+                {recommendation.fullExplanation}
+              </p>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Expandable Breakdown (PREMIUM) */}
+      {/* Premium: Expandable Breakdown */}
       {isPremium && recommendation.confidenceBreakdown && (
         <>
           <button
             onClick={() => setShowBreakdown(!showBreakdown)}
-            className="flex w-full items-center justify-between rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 hover:bg-white/10 transition-colors"
+            className={cn(
+              "flex w-full items-center justify-between rounded-lg border px-4 py-3 text-sm",
+              "border-white/10 bg-white/[0.02]",
+              "hover:bg-white/[0.04] transition-all duration-200",
+              showBreakdown && "border-purple-500/30 bg-purple-500/5"
+            )}
           >
-            <span>View factor breakdown</span>
+            <div className="flex items-center gap-2 text-white/70">
+              <Brain className="h-4 w-4 text-purple-400" />
+              <span>View factor breakdown</span>
+            </div>
             {showBreakdown ? (
-              <ChevronUp className="h-4 w-4" />
+              <ChevronUp className="h-4 w-4 text-white/40" />
             ) : (
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className="h-4 w-4 text-white/40" />
             )}
           </button>
 
           {showBreakdown && (
-            <ConfidenceBreakdownDisplay breakdown={recommendation.confidenceBreakdown} />
+            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 animate-in slide-in-from-top-2 duration-200">
+              <ConfidenceBreakdownDisplay
+                breakdown={recommendation.confidenceBreakdown}
+              />
+            </div>
           )}
         </>
       )}
 
-      {/* Expandable Team Stats (PREMIUM) */}
+      {/* Premium: Expandable Team Stats */}
       {isPremium &&
         recommendation.teamStats?.recommended &&
         recommendation.teamStats?.opponent && (
           <>
             <button
               onClick={() => setShowStats(!showStats)}
-              className="flex w-full items-center justify-between rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 hover:bg-white/10 transition-colors"
+              className={cn(
+                "flex w-full items-center justify-between rounded-lg border px-4 py-3 text-sm",
+                "border-white/10 bg-white/[0.02]",
+                "hover:bg-white/[0.04] transition-all duration-200",
+                showStats && "border-cyan-500/30 bg-cyan-500/5"
+              )}
             >
-              <span>View team statistics</span>
+              <div className="flex items-center gap-2 text-white/70">
+                <BarChart3 className="h-4 w-4 text-cyan-400" />
+                <span>View team statistics</span>
+              </div>
               {showStats ? (
-                <ChevronUp className="h-4 w-4" />
+                <ChevronUp className="h-4 w-4 text-white/40" />
               ) : (
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className="h-4 w-4 text-white/40" />
               )}
             </button>
 
             {showStats && (
-              <div className="space-y-3">
-                <TeamStatsComparison
-                  recommended={recommendation.teamStats.recommended}
-                  opponent={recommendation.teamStats.opponent}
-                />
-                {recommendation.recentMatches?.recommended && (
-                  <MatchHistoryList
-                    matches={recommendation.recentMatches.recommended}
+              <div className="space-y-4 animate-in slide-in-from-top-2 duration-200">
+                <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                  <TeamStatsComparison
+                    recommended={recommendation.teamStats.recommended}
+                    opponent={recommendation.teamStats.opponent}
                   />
+                </div>
+                {recommendation.recentMatches?.recommended && (
+                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                    <MatchHistoryList
+                      matches={recommendation.recentMatches.recommended}
+                    />
+                  </div>
                 )}
               </div>
             )}
           </>
         )}
 
-      {/* Live Match Widget (PREMIUM) */}
+      {/* Premium: Live Match Widget */}
       {isPremium && recommendation.liveState && (
         <LiveMatchWidget liveState={recommendation.liveState} />
       )}
 
       {/* Timestamp */}
-      <div className="text-right text-[10px] text-white/40">
-        Generated {new Date(recommendation.computedAt).toLocaleString()}
+      <div className="flex items-center justify-end gap-1.5 text-[10px] text-white/30">
+        <Clock className="h-3 w-3" />
+        <span>
+          Updated {new Date(recommendation.computedAt).toLocaleTimeString()}
+        </span>
       </div>
     </div>
   );
 }
 
+// =============================================================================
+// PAYMENT GATE
+// =============================================================================
+
 /**
- * Payment gate UI
+ * Premium payment gate with glassmorphism
  */
 function PaymentRequired({
   pricing,
@@ -508,91 +970,132 @@ function PaymentRequired({
   isWalletConnected: boolean;
   isWalletReady: boolean;
 }) {
-  // Show "Connect Wallet" if not connected
+  // Connect wallet state
   if (!isWalletConnected) {
     return (
-      <div className="flex flex-col items-center justify-center py-6 text-center">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-yellow-500/20">
-          <Wallet className="h-6 w-6 text-yellow-400" />
-        </div>
-        <h4 className="mb-1 font-semibold text-white">Connect Wallet to Unlock</h4>
-        <p className="mb-4 text-sm text-white/60">
-          Connect your wallet to access premium AI recommendations
-        </p>
-        <button
-          onClick={onConnect}
-          disabled={isConnecting}
-          className="flex items-center gap-2 rounded-lg bg-[#FACC15] px-4 py-2 font-semibold text-[#020617] hover:bg-[#FCD34D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isConnecting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Wallet className="h-4 w-4" />
-          )}
-          {isConnecting ? "Connecting..." : "Connect Wallet"}
-        </button>
-        {pricing && (
-          <p className="mt-3 text-xs text-white/50">
-            Premium analysis: ${pricing.priceUsdc} USDC
+      <div className="relative overflow-hidden rounded-xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-transparent to-transparent p-6">
+        <NeuralPattern />
+
+        <div className="relative flex flex-col items-center text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/20 border border-amber-500/30">
+            <Wallet className="h-7 w-7 text-amber-400" />
+          </div>
+
+          <h4 className="mb-2 text-lg font-semibold text-white">
+            Connect Wallet
+          </h4>
+          <p className="mb-5 text-sm text-white/60 max-w-xs">
+            Connect your wallet to access premium AI-powered recommendations
           </p>
-        )}
+
+          <button
+            onClick={onConnect}
+            disabled={isConnecting}
+            className={cn(
+              "flex items-center gap-2 rounded-xl px-6 py-3 font-semibold",
+              "bg-gradient-to-r from-amber-500 to-amber-400 text-slate-900",
+              "hover:from-amber-400 hover:to-amber-300",
+              "shadow-lg shadow-amber-500/25",
+              "transition-all duration-200",
+              "disabled:opacity-50 disabled:cursor-not-allowed"
+            )}
+          >
+            {isConnecting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Wallet className="h-4 w-4" />
+            )}
+            {isConnecting ? "Connecting..." : "Connect Wallet"}
+          </button>
+
+          {pricing && (
+            <p className="mt-4 text-xs text-white/40">
+              Premium analysis: ${pricing.priceUsdc} USDC
+            </p>
+          )}
+        </div>
       </div>
     );
   }
 
-  // Show "Preparing payment..." if connected but thirdweb adapter not ready
+  // Preparing payment state
   if (!isWalletReady) {
     return (
-      <div className="flex flex-col items-center justify-center py-6 text-center">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-purple-500/20">
-          <Loader2 className="h-6 w-6 animate-spin text-purple-400" />
+      <div className="relative overflow-hidden rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-500/10 via-transparent to-transparent p-6">
+        <NeuralPattern />
+
+        <div className="relative flex flex-col items-center text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-500/20 border border-purple-500/30">
+            <Loader2 className="h-7 w-7 text-purple-400 animate-spin" />
+          </div>
+
+          <h4 className="mb-2 text-lg font-semibold text-white">
+            Preparing Payment...
+          </h4>
+          <p className="text-sm text-white/60">
+            Setting up secure payment with your wallet
+          </p>
         </div>
-        <h4 className="mb-1 font-semibold text-white">Preparing Payment...</h4>
-        <p className="mb-4 text-sm text-white/60">
-          Setting up x402 payment with your connected wallet
-        </p>
-        <p className="text-xs text-white/40">
-          Using wallet from header (no sign-in required)
-        </p>
       </div>
     );
   }
 
-  // Show payment button when wallet is ready
+  // Ready to pay state
   return (
-    <div className="flex flex-col items-center justify-center py-6 text-center">
-      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-purple-500/20">
-        {isPaying ? (
-          <Loader2 className="h-6 w-6 animate-spin text-purple-400" />
-        ) : (
-          <Lock className="h-6 w-6 text-purple-400" />
+    <div className="relative overflow-hidden rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-500/10 via-transparent to-transparent p-6">
+      <NeuralPattern />
+
+      <div className="relative flex flex-col items-center text-center">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-500/20 border border-purple-500/30">
+          {isPaying ? (
+            <Loader2 className="h-7 w-7 text-purple-400 animate-spin" />
+          ) : (
+            <Lock className="h-7 w-7 text-purple-400" />
+          )}
+        </div>
+
+        <h4 className="mb-2 text-lg font-semibold text-white">
+          {isPaying ? "Processing Payment..." : "Unlock Full Analysis"}
+        </h4>
+        <p className="mb-5 text-sm text-white/60 max-w-xs">
+          {isPaying
+            ? "Please confirm the transaction in your wallet"
+            : "Get comprehensive AI recommendation with live data & detailed insights"}
+        </p>
+
+        {pricing && !isPaying && (
+          <button
+            onClick={onPay}
+            disabled={isPaying}
+            className={cn(
+              "flex items-center gap-2 rounded-xl px-6 py-3 font-semibold",
+              "bg-gradient-to-r from-purple-600 to-purple-500 text-white",
+              "hover:from-purple-500 hover:to-purple-400",
+              "shadow-lg shadow-purple-500/25",
+              "transition-all duration-200",
+              "disabled:opacity-50 disabled:cursor-not-allowed"
+            )}
+          >
+            <Sparkles className="h-4 w-4" />
+            Pay ${pricing.priceUsdc} USDC
+          </button>
         )}
+
+        <p className="mt-4 text-[10px] text-white/30 flex items-center gap-1">
+          <Shield className="h-3 w-3" />
+          Secured via x402 payment protocol
+        </p>
       </div>
-      <h4 className="mb-1 font-semibold text-white">
-        {isPaying ? "Processing Payment..." : "Unlock Full Analysis"}
-      </h4>
-      <p className="mb-4 text-sm text-white/60">
-        {isPaying
-          ? "Please confirm in your wallet"
-          : "Get comprehensive AI recommendation with live data"}
-      </p>
-      {pricing && !isPaying && (
-        <button
-          onClick={onPay}
-          disabled={isPaying}
-          className="flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 font-medium text-white hover:bg-purple-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Sparkles className="h-4 w-4" />
-          Pay ${pricing.priceUsdc} USDC
-        </button>
-      )}
-      <p className="mt-2 text-[10px] text-white/40">via x402 payment protocol</p>
     </div>
   );
 }
 
+// =============================================================================
+// STATE RENDERER
+// =============================================================================
+
 /**
- * State renderer for different recommendation states
+ * Renders different recommendation states
  */
 function StateRenderer({
   state,
@@ -617,91 +1120,107 @@ function StateRenderer({
 }) {
   switch (state.status) {
     case "idle":
-      return (
-        <div className="flex items-center justify-center gap-2 py-8">
-          <Loader2 className="h-5 w-5 animate-spin text-purple-400" />
-          <span className="text-sm text-white/60">Preparing recommendation...</span>
-        </div>
-      );
-
     case "checking":
       return (
-        <div className="flex items-center justify-center gap-2 py-8">
-          <Loader2 className="h-5 w-5 animate-spin text-purple-400" />
-          <span className="text-sm text-white/60">Checking availability...</span>
+        <div className="flex flex-col items-center justify-center py-10">
+          <div className="relative">
+            <div className="h-10 w-10 rounded-full border-2 border-purple-500/30 border-t-purple-500 animate-spin" />
+            <Brain className="absolute inset-0 m-auto h-5 w-5 text-purple-400" />
+          </div>
+          <p className="mt-4 text-sm text-white/50">
+            {state.status === "checking"
+              ? "Checking availability..."
+              : "Preparing recommendation..."}
+          </p>
         </div>
       );
 
     case "loading":
       return (
-        <div className="flex items-center justify-center gap-2 py-8">
-          <Loader2 className="h-5 w-5 animate-spin text-purple-400" />
-          <span className="text-sm text-white/60">
+        <div className="flex flex-col items-center justify-center py-10">
+          <div className="relative">
+            <div className="h-10 w-10 rounded-full border-2 border-purple-500/30 border-t-purple-500 animate-spin" />
+            <Zap className="absolute inset-0 m-auto h-5 w-5 text-purple-400" />
+          </div>
+          <p className="mt-4 text-sm text-white/50">
             {isLive ? "Fetching live data..." : "Analyzing matchup..."}
-          </span>
+          </p>
         </div>
       );
 
     case "unavailable":
       return (
-        <div className="flex flex-col items-center justify-center gap-2 py-6 text-center">
-          <AlertCircle className="h-8 w-8 text-yellow-400" />
-          <p className="text-sm text-white/70">{state.reason}</p>
-          <p className="text-xs text-white/50">
-            Recommendations are only available for esports markets
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20">
+            <AlertCircle className="h-6 w-6 text-amber-400" />
+          </div>
+          <p className="text-sm text-white/70 mb-1">{state.reason}</p>
+          <p className="text-xs text-white/40">
+            Recommendations available for esports markets only
           </p>
         </div>
       );
 
     case "preview":
       return (
-        <div className="space-y-4">
+        <div className="space-y-5">
           <RecommendationContent recommendation={state.data} isPremium={false} />
-          <div className="rounded-lg border border-purple-500/30 bg-purple-500/10 p-3">
-            <div className="flex items-start gap-2">
+
+          {/* Premium Upsell */}
+          <div className="relative overflow-hidden rounded-xl border border-purple-500/20 bg-gradient-to-r from-purple-500/10 to-transparent p-4">
+            <div className="flex items-start gap-3">
               {isWalletConnected ? (
-                <Lock className="mt-0.5 h-4 w-4 shrink-0 text-purple-400" />
+                <Lock className="mt-0.5 h-5 w-5 shrink-0 text-purple-400" />
               ) : (
-                <Wallet className="mt-0.5 h-4 w-4 shrink-0 text-yellow-400" />
+                <Wallet className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
               )}
-              <div>
-                <p className="text-sm font-medium text-purple-300">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white/90">
                   {isWalletConnected
-                    ? "Preview mode - Unlock full analysis for detailed insights"
+                    ? "Unlock full analysis for detailed insights"
                     : "Connect wallet to unlock premium analysis"}
                 </p>
+
                 {!isWalletConnected ? (
                   <button
                     onClick={onConnect}
                     disabled={isConnecting}
-                    className="mt-2 flex items-center gap-1.5 text-sm text-yellow-400 underline hover:text-yellow-300 disabled:opacity-50"
+                    className="mt-2 flex items-center gap-1.5 text-sm text-amber-400 hover:text-amber-300 transition-colors disabled:opacity-50"
                   >
                     {isConnecting ? (
                       <>
-                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         Connecting...
                       </>
                     ) : (
                       <>
-                        <Wallet className="h-3 w-3" />
+                        <Wallet className="h-3.5 w-3.5" />
                         Connect Wallet
                       </>
                     )}
                   </button>
                 ) : !isWalletReady ? (
-                  <p className="mt-2 text-sm text-white/50 flex items-center gap-1.5">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Preparing payment (no sign-in required)...
+                  <p className="mt-2 text-sm text-white/40 flex items-center gap-1.5">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Preparing payment...
                   </p>
                 ) : pricing ? (
                   <button
                     onClick={onPay}
                     disabled={isPaying}
-                    className="mt-2 text-sm text-purple-400 underline hover:text-purple-300 disabled:opacity-50"
+                    className="mt-2 flex items-center gap-1.5 text-sm text-purple-400 hover:text-purple-300 transition-colors disabled:opacity-50"
                   >
-                    {isPaying
-                      ? "Processing..."
-                      : `Unlock for $${pricing.priceUsdc} USDC`}
+                    {isPaying ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Unlock for ${pricing.priceUsdc} USDC
+                      </>
+                    )}
                   </button>
                 ) : null}
               </div>
@@ -728,22 +1247,28 @@ function StateRenderer({
 
     case "error":
       return (
-        <div className="flex items-center justify-center gap-2 py-6 text-red-400">
-          <AlertCircle className="h-5 w-5" />
-          <span className="text-sm">{state.error}</span>
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/10 border border-red-500/20">
+            <AlertCircle className="h-6 w-6 text-red-400" />
+          </div>
+          <p className="text-sm text-red-400">{state.error}</p>
         </div>
       );
   }
 }
 
+// =============================================================================
+// MAIN COMPONENT
+// =============================================================================
+
 /**
  * Recommendation Card Component
  *
- * Displays AI-powered esports betting recommendations with:
- * - Team pick with confidence score
- * - Free reasoning bullets
- * - Premium: LLM explanation, stats comparison, live data
- * - Auto-refresh for live matches (every 5s)
+ * AI-powered esports betting recommendations with:
+ * - Animated confidence gauge
+ * - Team pick visualization
+ * - Premium content with expandable sections
+ * - Live match updates with auto-refresh
  * - x402 payment integration
  */
 export function RecommendationCard({
@@ -756,7 +1281,6 @@ export function RecommendationCard({
     state,
     pricing,
     isPaying,
-    isConfigured,
     isLive,
     isWalletConnected,
     isWalletReady,
@@ -766,94 +1290,100 @@ export function RecommendationCard({
     clearWarning,
   } = useRecommendation();
 
-  // Get wallet connection functions from wallet provider
-  // Note: This uses the SAME wallet provider as the ConnectWalletButton in the header
-  // If wallet is already connected there, isWalletConnected will be true here
   const { connect, isConnecting } = useWallet();
 
-  // Auto-fetch preview when component mounts
+  // Auto-fetch preview on mount
   useEffect(() => {
     if (state.status === "idle") {
       fetchPreview(marketId);
     }
   }, [marketId, state.status, fetchPreview]);
 
-  const handleGetRecommendation = () => {
-    if (pricing?.enabled && isConfigured) {
-      // x402 enabled and configured - fetch recommendation directly
-      fetchRecommendation(marketId);
-    } else {
-      // x402 disabled or not configured - get preview first
-      fetchPreview(marketId);
-    }
-  };
-
   const handlePay = () => {
-    // Only proceed if wallet is connected and ready
-    if (!isWalletConnected || !isWalletReady) {
-      return;
-    }
-    // Payment flow using already connected wallet
+    if (!isWalletConnected || !isWalletReady) return;
     fetchRecommendation(marketId);
   };
 
   const handleConnect = () => {
-    // Trigger RainbowKit wallet connection via wallet provider
     connect();
   };
 
   return (
     <div
       className={cn(
-        "rounded-xl border border-white/10 bg-[#0D1421] p-4",
+        "relative overflow-hidden rounded-2xl",
+        "border border-white/10 bg-[#0a0f1a]",
+        "shadow-2xl shadow-black/50",
         className
       )}
     >
-      {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Zap className="h-5 w-5 text-purple-400" />
-          <h3 className="font-semibold text-white">AI Recommendation</h3>
-          {isLive && <Activity className="h-4 w-4 text-red-400 animate-pulse" />}
+      {/* Background Pattern */}
+      <NeuralPattern />
+
+      {/* Gradient Accent */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
+
+      <div className="relative p-5">
+        {/* Header */}
+        <div className="mb-5 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/10 border border-purple-500/20">
+              <Brain className="h-5 w-5 text-purple-400" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-white flex items-center gap-2">
+                AI Recommendation
+                {isLive && <LiveIndicator compact />}
+              </h3>
+              {team1Name && team2Name && (
+                <p className="text-xs text-white/50">
+                  {team1Name} vs {team2Name}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {isLive && (
+            <div className="flex items-center gap-1.5 text-[10px] text-emerald-400">
+              <Activity className="h-3 w-3 animate-pulse" />
+              Auto-updating
+            </div>
+          )}
         </div>
+
+        {/* Warning Banner */}
+        {warning && (
+          <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-amber-200">{warning}</p>
+            </div>
+            <button
+              onClick={clearWarning}
+              className="text-amber-400 hover:text-amber-300 transition-colors p-1"
+              aria-label="Dismiss warning"
+            >
+              <ChevronUp className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Content */}
+        <StateRenderer
+          state={state}
+          pricing={pricing}
+          onPay={handlePay}
+          onConnect={handleConnect}
+          isPaying={isPaying}
+          isConnecting={isConnecting}
+          isLive={isLive}
+          isWalletConnected={isWalletConnected}
+          isWalletReady={isWalletReady}
+        />
       </div>
 
-      {/* Matchup Info */}
-      {team1Name && team2Name && (
-        <p className="mb-4 text-sm text-white/60">
-          {team1Name} vs {team2Name}
-        </p>
-      )}
-
-      {/* Warning Banner */}
-      {warning && (
-        <div className="mb-4 flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-400" />
-          <div className="flex-1">
-            <p className="text-sm text-yellow-200">{warning}</p>
-          </div>
-          <button
-            onClick={clearWarning}
-            className="text-yellow-400 hover:text-yellow-300 transition-colors"
-            aria-label="Dismiss warning"
-          >
-            <ChevronUp className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-
-      {/* Content */}
-      <StateRenderer
-        state={state}
-        pricing={pricing}
-        onPay={handlePay}
-        onConnect={handleConnect}
-        isPaying={isPaying}
-        isConnecting={isConnecting}
-        isLive={isLive}
-        isWalletConnected={isWalletConnected}
-        isWalletReady={isWalletReady}
-      />
+      {/* Bottom Accent */}
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
     </div>
   );
 }
