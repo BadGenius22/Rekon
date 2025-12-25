@@ -22,6 +22,7 @@ import {
   generateRecommendationPreview,
   isRecommendationAvailable,
 } from "../services/recommendation";
+import { getPremiumAccessStatus } from "../services/premium-access";
 import { getX402PricingInfo, isX402Enabled } from "../middleware/x402";
 
 /**
@@ -171,4 +172,38 @@ export async function getRecommendationStatusController(c: Context) {
     },
     dataSource: "GRID Esports Data Platform",
   });
+}
+
+/**
+ * GET /recommendation/market/:marketId/access
+ * Check if user has premium access for a specific market.
+ *
+ * Query params:
+ * - wallet: User's wallet address (required)
+ *
+ * Returns:
+ * - hasAccess: boolean
+ * - expiresAt: ISO timestamp (if access exists)
+ * - paidAt: ISO timestamp (if access exists)
+ * - marketEndDate: When the market ends
+ * - marketTitle: Market question
+ *
+ * This endpoint allows frontend to check if user should skip payment
+ * after page refresh or revisiting the market.
+ */
+export async function getRecommendationAccessController(c: Context) {
+  const { marketId } = c.req.param();
+  const walletAddress = c.req.query("wallet");
+
+  if (!marketId) {
+    return c.json({ error: "Market ID is required" }, 400);
+  }
+
+  if (!walletAddress) {
+    return c.json({ error: "Wallet address is required (query param: wallet)" }, 400);
+  }
+
+  const accessStatus = await getPremiumAccessStatus(walletAddress, marketId);
+
+  return c.json(accessStatus);
 }

@@ -109,6 +109,28 @@ const EXPECTED_ROSTER_SIZE = {
 // ============================================================================
 
 /**
+ * Computes a comparative score between two teams for a given factor.
+ * Result is centered at 50:
+ * - 50 = teams are equal
+ * - >50 = recommended team has advantage
+ * - <50 = opponent has advantage (but recommended due to other factors)
+ *
+ * @param recommendedScore - Score of the recommended team (0-100)
+ * @param opponentScore - Score of the opponent team (0-100)
+ * @returns Comparative score (0-100, centered at 50)
+ */
+export function computeComparativeScore(
+  recommendedScore: number,
+  opponentScore: number
+): number {
+  // Calculate difference and scale to 0-100 range centered at 50
+  // Max advantage of 100 vs 0 = diff of 100, scaled to 50 points above/below center
+  const diff = recommendedScore - opponentScore;
+  const comparativeScore = 50 + diff / 2;
+  return Math.max(0, Math.min(100, comparativeScore));
+}
+
+/**
  * Computes recent form score from team statistics and matches.
  * Higher score = better recent performance.
  *
@@ -490,20 +512,33 @@ export function computeRecommendation(
   const recommendedTeam = isTeam1Recommended ? team1 : team2;
   const otherTeam = isTeam1Recommended ? team2 : team1;
   const recommendedScores = isTeam1Recommended ? team1Scores : team2Scores;
+  const opponentScores = isTeam1Recommended ? team2Scores : team1Scores;
 
   // Calculate confidence
   const rawConfidence = Math.abs(scoreDiff);
   const confidence = determineConfidenceLevel(rawConfidence);
   const confidenceScore = Math.min(95, Math.max(10, rawConfidence));
 
-  // Build breakdown
+  // Build breakdown with COMPARATIVE scores (centered at 50)
+  // >50 = recommended team has advantage, <50 = opponent has advantage
+  // headToHead and marketOdds are already meaningful on their own
+  // livePerformance is already comparative
   const breakdown: ConfidenceBreakdown = {
-    recentForm: recommendedScores.recentForm,
-    headToHead: recommendedScores.headToHead,
-    mapAdvantage: recommendedScores.mapAdvantage,
-    rosterStability: recommendedScores.rosterStability,
-    marketOdds: recommendedScores.marketOdds,
-    livePerformance: recommendedScores.livePerformance,
+    recentForm: computeComparativeScore(
+      recommendedScores.recentForm,
+      opponentScores.recentForm
+    ),
+    headToHead: recommendedScores.headToHead, // Already comparative (H2H win rate)
+    mapAdvantage: computeComparativeScore(
+      recommendedScores.mapAdvantage,
+      opponentScores.mapAdvantage
+    ),
+    rosterStability: computeComparativeScore(
+      recommendedScores.rosterStability,
+      opponentScores.rosterStability
+    ),
+    marketOdds: recommendedScores.marketOdds, // Implied probability is already meaningful
+    livePerformance: recommendedScores.livePerformance, // Already comparative in computation
   };
 
   // Generate reasoning
@@ -620,14 +655,21 @@ function generateShortReasoning(
   factors.sort((a, b) => Math.abs(b.score - 50) - Math.abs(a.score - 50));
 
   // Generate bullets for top factors
+  // Scores are now COMPARATIVE (centered at 50):
+  // >50 = recommended team has advantage, <50 = opponent has advantage
   for (const factor of factors.slice(0, 3)) {
-    const isPositive = factor.score > 55;
-    const isNegative = factor.score < 45;
+    const advantage = factor.score - 50; // Positive = recommended advantage
+    const isSignificantAdvantage = advantage > 5;
+    const isSignificantDisadvantage = advantage < -5;
 
-    if (isPositive) {
-      bullets.push(`${factor.label}: ${recommendedTeam} shows strength (${Math.round(factor.score)}%)`);
-    } else if (isNegative) {
-      bullets.push(`${factor.label}: ${otherTeam} underperforms (${Math.round(100 - factor.score)}%)`);
+    if (isSignificantAdvantage) {
+      bullets.push(
+        `${factor.label}: ${recommendedTeam} has edge (+${Math.round(advantage * 2)}%)`
+      );
+    } else if (isSignificantDisadvantage) {
+      bullets.push(
+        `${factor.label}: ${otherTeam} has edge (+${Math.round(Math.abs(advantage) * 2)}%)`
+      );
     } else {
       bullets.push(`${factor.label}: Even matchup between teams`);
     }
@@ -649,6 +691,11 @@ function generateShortReasoning(
  * Generates fallback reasoning when LLM is unavailable.
  * Uses factor scores to create a descriptive explanation.
  *
+ * NOTE: Scores are now comparative (centered at 50) for most factors:
+ * - recentForm, mapAdvantage, rosterStability: comparative (>50 = advantage)
+ * - headToHead, marketOdds: absolute (0-100 scale)
+ * - livePerformance: comparative (>50 = advantage)
+ *
  * @param pick - Recommended team name
  * @param breakdown - Confidence breakdown by factor
  * @param isLive - Whether match is currently live
@@ -667,18 +714,18 @@ export function generateFallbackReasoning(
     parts.push(`${pick} shows ${strongestFactor.description}`);
   }
 
-  // Secondary factor
+  // Secondary factor (using absolute thresholds for absolute scores)
   if (breakdown.marketOdds > 60) {
     parts.push(`market sentiment favors this pick`);
   } else if (breakdown.headToHead > 60) {
     parts.push(`historical matchup data supports this choice`);
   }
 
-  // Live context
+  // Live context (comparative: >55 = +10% advantage, <45 = -10% disadvantage)
   if (isLive && breakdown.livePerformance !== undefined) {
-    if (breakdown.livePerformance > 60) {
+    if (breakdown.livePerformance > 55) {
       parts.push(`currently performing well in live match`);
-    } else if (breakdown.livePerformance < 40) {
+    } else if (breakdown.livePerformance < 45) {
       parts.push(`though live performance is concerning`);
     }
   }
@@ -693,20 +740,27 @@ export function generateFallbackReasoning(
 
 /**
  * Finds the strongest contributing factor.
+ *
+ * NOTE: Uses appropriate thresholds for each score type:
+ * - Comparative scores (recentForm, mapAdvantage): >55 means +10% advantage
+ * - Absolute scores (headToHead, marketOdds): >60 means 60%+ raw score
  */
 function findStrongestFactor(
   breakdown: ConfidenceBreakdown
 ): { key: string; description: string } | null {
   const factors = [
-    { key: "recentForm", score: breakdown.recentForm, description: "strong recent form" },
-    { key: "headToHead", score: breakdown.headToHead, description: "favorable head-to-head record" },
-    { key: "mapAdvantage", score: breakdown.mapAdvantage, description: "map advantage" },
-    { key: "marketOdds", score: breakdown.marketOdds, description: "market confidence" },
+    // Comparative factors: threshold at 55 (>10% advantage from center 50)
+    { key: "recentForm", score: breakdown.recentForm, threshold: 55, description: "a form advantage" },
+    { key: "mapAdvantage", score: breakdown.mapAdvantage, threshold: 55, description: "map advantage" },
+    // Absolute factors: threshold at 60 (60%+ raw score)
+    { key: "headToHead", score: breakdown.headToHead, threshold: 60, description: "favorable head-to-head record" },
+    { key: "marketOdds", score: breakdown.marketOdds, threshold: 60, description: "market confidence" },
   ];
 
-  const validFactors = factors.filter((f) => f.score !== undefined && f.score > 60);
+  const validFactors = factors.filter((f) => f.score !== undefined && f.score > f.threshold);
   if (validFactors.length === 0) return null;
 
-  validFactors.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  // Sort by how much the score exceeds the threshold (normalized strength)
+  validFactors.sort((a, b) => (b.score! - b.threshold) - (a.score! - a.threshold));
   return validFactors[0];
 }

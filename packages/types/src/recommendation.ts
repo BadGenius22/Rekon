@@ -350,20 +350,35 @@ export interface MatchHistory {
 
 /**
  * Confidence breakdown by factor
- * All factors are scored 0-100, weighted per RECOMMENDATION_CONFIG.weights
+ * Scores show the recommended team's advantage in each factor.
+ *
+ * SCORE INTERPRETATION:
+ * - Comparative factors (centered at 50):
+ *   - 50 = teams are equal
+ *   - >50 = recommended team has advantage
+ *   - <50 = opponent has advantage (but may still be recommended due to other factors)
+ *   - Example: 65 = recommended team has +30% advantage
+ *
+ * - Absolute factors (0-100 scale):
+ *   - Represents the raw score/probability
+ *   - Example: 70 marketOdds = market implies 70% win probability
+ *
+ * FACTOR TYPES:
+ * - Comparative: recentForm, mapAdvantage, rosterStability, livePerformance
+ * - Absolute: headToHead (H2H win rate), marketOdds (implied probability)
  */
 export interface ConfidenceBreakdown {
-  /** Recent form factor (0-100) - GRID Historical */
+  /** Recent form advantage (COMPARATIVE: 50=even, >50=recommended team better) - GRID Historical */
   recentForm: number;
-  /** Head-to-head factor (0-100) - GRID Historical */
+  /** Head-to-head win rate (ABSOLUTE: 0-100% H2H wins vs opponent) - GRID Historical */
   headToHead: number;
-  /** Map advantage factor (0-100) - GRID Historical */
+  /** Map performance advantage (COMPARATIVE: 50=even, >50=recommended team better) - GRID Historical */
   mapAdvantage: number;
-  /** Roster stability factor (0-100) - Default/Future enhancement */
+  /** Roster stability advantage (COMPARATIVE: 50=even, >50=recommended team more stable) */
   rosterStability: number;
-  /** Market odds factor (0-100) - Polymarket */
+  /** Market implied probability (ABSOLUTE: 0-100%, direct from Polymarket) */
   marketOdds: number;
-  /** Live performance factor (0-100) - GRID Live Data (only if match ongoing) */
+  /** Live performance advantage (COMPARATIVE: 50=even, >50=recommended performing better) - GRID Live */
   livePerformance?: number;
 }
 

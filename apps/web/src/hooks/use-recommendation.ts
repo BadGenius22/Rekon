@@ -9,9 +9,11 @@ import {
   getRecommendationPreview,
   getRecommendationPricing,
   getRecommendationAvailability,
+  getRecommendationAccess,
   type RecommendationPreviewResponse,
   type RecommendationPricingResponse,
   type RecommendationAvailabilityResponse,
+  type RecommendationAccessResponse,
 } from "../lib/api-client";
 
 export type RecommendationState =
@@ -28,15 +30,18 @@ export interface UseRecommendationReturn {
   state: RecommendationState;
   pricing: RecommendationPricingResponse | null;
   availability: RecommendationAvailabilityResponse | null;
+  premiumAccess: RecommendationAccessResponse | null;
   isPaying: boolean;
   isConfigured: boolean;
   isLive: boolean;
   isWalletConnected: boolean;
   isWalletReady: boolean; // Wallet is connected and wallet client is ready
+  hasPremiumAccess: boolean; // User has already paid for this market
   warning: string | null; // Warning message to display (clears on next action)
   fetchAvailability: (marketId: string) => Promise<void>;
   fetchPreview: (marketId: string) => Promise<void>;
   fetchRecommendation: (marketId: string) => Promise<void>;
+  checkPremiumAccess: (marketId: string) => Promise<boolean>;
   clearWarning: () => void;
   reset: () => void;
 }
@@ -66,6 +71,8 @@ export function useRecommendation(): UseRecommendationReturn {
   );
   const [availability, setAvailability] =
     useState<RecommendationAvailabilityResponse | null>(null);
+  const [premiumAccess, setPremiumAccess] =
+    useState<RecommendationAccessResponse | null>(null);
   const [isPaying, setIsPaying] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
 
@@ -98,6 +105,11 @@ export function useRecommendation(): UseRecommendationReturn {
     }
     return false;
   }, [state]);
+
+  // Check if user has premium access for current market
+  const hasPremiumAccess = useMemo((): boolean => {
+    return premiumAccess?.hasAccess === true;
+  }, [premiumAccess]);
 
   // Fetch pricing on first use
   const ensurePricing = useCallback(async () => {
@@ -212,6 +224,30 @@ export function useRecommendation(): UseRecommendationReturn {
     [ensurePricing]
   );
 
+  /**
+   * Check if user has existing premium access for a market.
+   * Premium access persists until market ends, allowing page refreshes.
+   */
+  const checkPremiumAccess = useCallback(
+    async (marketId: string): Promise<boolean> => {
+      if (!isConnected || !address) {
+        setPremiumAccess(null);
+        return false;
+      }
+
+      try {
+        const accessInfo = await getRecommendationAccess(marketId, address);
+        setPremiumAccess(accessInfo);
+        return accessInfo.hasAccess;
+      } catch (err) {
+        console.warn("[useRecommendation] Failed to check premium access:", err);
+        setPremiumAccess(null);
+        return false;
+      }
+    },
+    [isConnected, address]
+  );
+
   const fetchRecommendation = useCallback(
     async (marketId: string) => {
       // Check wallet is ready
@@ -242,30 +278,65 @@ export function useRecommendation(): UseRecommendationReturn {
       setWarning(null); // Clear any previous warning
       currentMarketIdRef.current = marketId;
 
+      // Track if user has existing premium access (already paid)
+      // This affects error handling - we don't treat fetch errors as "payment failed"
+      let userHasPremiumAccess = false;
+
       try {
         const recommendationUrl = `${API_CONFIG.baseUrl}/recommendation/market/${marketId}`;
 
         console.log(
           "[useRecommendation] ========================================"
         );
-        console.log(
-          "[useRecommendation] Fetching recommendation with x402 payment"
-        );
-        console.log("[useRecommendation] URL:", recommendationUrl);
         console.log("[useRecommendation] Wallet connected:", isConnected);
         console.log("[useRecommendation] Wallet address:", address);
-        console.log("[useRecommendation] Wallet client ready:", !!walletClient);
 
-        // Use manual x402 implementation - uses wagmi wallet directly, NO thirdweb modal!
-        // This will:
-        // 1. Make initial request (gets 402)
-        // 2. Parse payment requirements
-        // 3. Sign with wagmi wallet (shows wallet extension popup only)
-        // 4. Retry with payment header
-        const result = await fetchWithX402Payment<RecommendationResult>(
-          recommendationUrl,
-          walletClient
-        );
+        // Check for existing premium access first
+        // If user already paid, we can skip payment flow
+        const hasAccess = await checkPremiumAccess(marketId);
+        userHasPremiumAccess = hasAccess;
+
+        let result: RecommendationResult;
+
+        if (hasAccess) {
+          console.log("[useRecommendation] User has premium access, fetching directly");
+          // User already paid - fetch with wallet address header to skip x402
+          // Use proper headers including Content-Type
+          const response = await fetch(recommendationUrl, {
+            headers: {
+              "Content-Type": "application/json",
+              "x-wallet-address": address,
+            },
+          });
+
+          if (!response.ok) {
+            // For premium users, provide specific error message
+            const errorText = await response.text().catch(() => "");
+            throw new Error(
+              `Failed to load premium content: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ""}`
+            );
+          }
+
+          result = await response.json();
+        } else {
+          console.log("[useRecommendation] Fetching with x402 payment");
+          console.log("[useRecommendation] URL:", recommendationUrl);
+          console.log("[useRecommendation] Wallet client ready:", !!walletClient);
+
+          // Use manual x402 implementation - uses wagmi wallet directly, NO thirdweb modal!
+          // This will:
+          // 1. Make initial request (gets 402)
+          // 2. Parse payment requirements
+          // 3. Sign with wagmi wallet (shows wallet extension popup only)
+          // 4. Retry with payment header
+          result = await fetchWithX402Payment<RecommendationResult>(
+            recommendationUrl,
+            walletClient
+          );
+
+          // After successful payment, refresh premium access state
+          await checkPremiumAccess(marketId);
+        }
 
         console.log(
           "[useRecommendation] Payment successful, received result:",
@@ -288,6 +359,66 @@ export function useRecommendation(): UseRecommendationReturn {
         }
       } catch (err) {
         const errMsg = err instanceof Error ? err.message.toLowerCase() : "";
+
+        // =====================================================================
+        // PREMIUM ACCESS ERRORS (user already paid - different handling)
+        // =====================================================================
+        if (userHasPremiumAccess) {
+          console.log("[useRecommendation] Error fetching premium content:", err instanceof Error ? err.message : String(err));
+
+          // For users with premium access, network/server errors should trigger retry
+          const isNetworkError =
+            errMsg.includes("failed to fetch") ||
+            errMsg.includes("networkerror") ||
+            errMsg.includes("network error") ||
+            errMsg.includes("failed to load premium content");
+
+          if (isNetworkError) {
+            // Retry once automatically for network errors
+            console.log("[useRecommendation] Network error for premium user, retrying...");
+            try {
+              const recommendationUrl = `${API_CONFIG.baseUrl}/recommendation/market/${marketId}`;
+              const retryResponse = await fetch(recommendationUrl, {
+                headers: {
+                  "Content-Type": "application/json",
+                  "x-wallet-address": address,
+                },
+              });
+
+              if (retryResponse.ok) {
+                const retryResult = await retryResponse.json();
+                if (retryResult && typeof retryResult === "object" && "recommendedPick" in retryResult) {
+                  console.log("[useRecommendation] Retry successful");
+                  setState({ status: "success", data: retryResult as RecommendationResult });
+                  setIsPaying(false);
+                  return;
+                }
+              }
+            } catch (retryErr) {
+              console.log("[useRecommendation] Retry also failed:", retryErr);
+            }
+
+            // Retry failed - show error but with helpful message
+            setState({
+              status: "error",
+              error: "Unable to load your premium content. Please refresh the page or try again later. Your access is still valid.",
+            });
+            setIsPaying(false);
+            return;
+          }
+
+          // For other errors (server errors, etc.), show clear message
+          setState({
+            status: "error",
+            error: "Failed to load premium content. Please refresh the page. Your access is still valid.",
+          });
+          setIsPaying(false);
+          return;
+        }
+
+        // =====================================================================
+        // PAYMENT FLOW ERRORS (user trying to pay)
+        // =====================================================================
 
         // Check for user rejection FIRST - this is expected user behavior, not an error
         // Restore to preview state so user can try again without page refresh
@@ -387,7 +518,7 @@ export function useRecommendation(): UseRecommendationReturn {
         setIsPaying(false);
       }
     },
-    [isConnected, address, walletClient, state]
+    [isConnected, address, walletClient, state, checkPremiumAccess]
   );
 
   const clearWarning = useCallback(() => {
@@ -397,6 +528,7 @@ export function useRecommendation(): UseRecommendationReturn {
   const reset = useCallback(() => {
     setState({ status: "idle" });
     setWarning(null);
+    setPremiumAccess(null);
     currentMarketIdRef.current = null;
     stopRefresh();
   }, [stopRefresh]);
@@ -405,15 +537,18 @@ export function useRecommendation(): UseRecommendationReturn {
     state,
     pricing,
     availability,
+    premiumAccess,
     isPaying,
     isConfigured: true, // Always configured since we use manual implementation
     isLive,
     isWalletConnected: isConnected,
     isWalletReady: isConnected && !!walletClient,
+    hasPremiumAccess,
     warning,
     fetchAvailability,
     fetchPreview,
     fetchRecommendation,
+    checkPremiumAccess,
     clearWarning,
     reset,
   };

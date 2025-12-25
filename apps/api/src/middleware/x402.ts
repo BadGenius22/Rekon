@@ -19,6 +19,10 @@
 import { createMiddleware } from "hono/factory";
 import type { Context, Next } from "hono";
 import { X402_CONFIG } from "@rekon/config";
+import {
+  checkPremiumAccess,
+  recordPremiumAccessForMarket,
+} from "../services/premium-access";
 
 // Network mapping: Rekon config → EIP-155 chain ID
 const NETWORK_TO_CHAIN_ID: Record<string, number> = {
@@ -232,10 +236,59 @@ async function settlePaymentWithApi(
 }
 
 /**
+ * Extract market ID from recommendation URL path
+ */
+function extractMarketIdFromPath(pathname: string): string | null {
+  // Path format: /recommendation/market/:marketId
+  const match = pathname.match(/\/recommendation\/market\/([^\/]+)$/);
+  return match ? match[1] : null;
+}
+
+/**
+ * Extract wallet address from payment payload
+ *
+ * Payment payload structure:
+ * {
+ *   x402Version: 1,
+ *   scheme: "exact",
+ *   network: "eip155:137",
+ *   payload: {
+ *     signature: "0x...",
+ *     authorization: {
+ *       from: "0x...",  <-- wallet address
+ *       to: "0x...",
+ *       ...
+ *     }
+ *   }
+ * }
+ */
+function extractWalletFromPaymentPayload(
+  paymentData: string
+): string | null {
+  try {
+    const decoded = JSON.parse(atob(paymentData));
+    // The wallet address is in payload.authorization.from
+    return (
+      decoded.payload?.authorization?.from ||
+      decoded.payload?.from ||
+      decoded.from ||
+      null
+    );
+  } catch {
+    return null;
+  }
+}
+
+/**
  * x402 Payment Middleware for Hono
  *
  * Uses thirdweb's HTTP API directly with vault access token support.
  * Returns 402 Payment Required if no valid payment provided.
+ *
+ * Premium Access Feature:
+ * - Checks for existing premium access before requiring payment
+ * - Records access after successful payment (expires when market ends)
+ * - Users can refresh page without repaying for same market
  */
 export const x402Middleware = createMiddleware(
   async (c: Context, next: Next) => {
@@ -260,12 +313,37 @@ export const x402Middleware = createMiddleware(
       return next();
     }
 
-    // Get payment data from header
-    const paymentData = c.req.header("x-payment") || null;
-
     // Build resource URL
     const url = new URL(c.req.url);
     const resourceUrl = `${url.origin}${url.pathname}`;
+
+    // Extract market ID for premium access check
+    const marketId = extractMarketIdFromPath(url.pathname);
+
+    // Check for existing premium access via wallet address header
+    const walletAddress = c.req.header("x-wallet-address");
+    if (walletAddress && marketId) {
+      try {
+        const accessInfo = await checkPremiumAccess(walletAddress, marketId);
+        if (accessInfo.hasAccess) {
+          console.log("[x402] User has existing premium access:", {
+            walletAddress: walletAddress.slice(0, 10) + "...",
+            marketId,
+            expiresAt: accessInfo.expiresAt,
+          });
+          // Skip payment, user already paid for this market
+          c.header("x-premium-access", "existing");
+          c.header("x-premium-expires", accessInfo.expiresAt || "");
+          return next();
+        }
+      } catch (error) {
+        console.warn("[x402] Error checking premium access:", error);
+        // Continue with normal payment flow
+      }
+    }
+
+    // Get payment data from header
+    const paymentData = c.req.header("x-payment") || null;
 
     // Build payment requirements
     const paymentRequirements = buildPaymentRequirements(
@@ -315,6 +393,38 @@ export const x402Middleware = createMiddleware(
       for (const [key, value] of Object.entries(result.responseHeaders)) {
         c.header(key, value);
       }
+
+      // Record premium access for this market
+      if (marketId) {
+        // Try to extract wallet address from payment payload or header
+        const payerAddress =
+          extractWalletFromPaymentPayload(paymentData) || walletAddress;
+
+        if (payerAddress) {
+          try {
+            const txHash = result.paymentReceipt?.transaction;
+            const { expiresAt } = await recordPremiumAccessForMarket({
+              walletAddress: payerAddress,
+              marketId,
+              txHash,
+              priceUsdc: parseFloat(X402_CONFIG.priceUsdc),
+            });
+
+            console.log("[x402] Premium access recorded:", {
+              walletAddress: payerAddress.slice(0, 10) + "...",
+              marketId,
+              expiresAt,
+            });
+
+            c.header("x-premium-access", "granted");
+            c.header("x-premium-expires", expiresAt);
+          } catch (error) {
+            console.error("[x402] Failed to record premium access:", error);
+            // Don't fail the request - payment succeeded, just logging failed
+          }
+        }
+      }
+
       return next();
     }
 

@@ -297,6 +297,14 @@ export interface RecommendationAvailabilityResponse {
   game?: string;
 }
 
+export interface RecommendationAccessResponse {
+  hasAccess: boolean;
+  expiresAt?: string;
+  paidAt?: string;
+  marketEndDate?: string;
+  marketTitle?: string;
+}
+
 /**
  * Get recommendation system status (free endpoint)
  */
@@ -319,6 +327,25 @@ export async function getRecommendationAvailability(
 ): Promise<RecommendationAvailabilityResponse> {
   return apiGet<RecommendationAvailabilityResponse>(
     `/recommendation/market/${marketId}/available`
+  );
+}
+
+/**
+ * Check if user has premium access for a market (free endpoint)
+ *
+ * Premium access is granted after payment and persists until market ends.
+ * This allows users to refresh the page without repaying.
+ *
+ * @param marketId - Market ID to check access for
+ * @param walletAddress - User's wallet address
+ * @returns Access status with expiry info
+ */
+export async function getRecommendationAccess(
+  marketId: string,
+  walletAddress: string
+): Promise<RecommendationAccessResponse> {
+  return apiGet<RecommendationAccessResponse>(
+    `/recommendation/market/${marketId}/access?wallet=${encodeURIComponent(walletAddress)}`
   );
 }
 

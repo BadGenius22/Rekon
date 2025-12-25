@@ -330,23 +330,32 @@ function ReasoningBullets({ bullets }: { bullets: string[] }) {
 
 /**
  * Confidence breakdown with gradient bars
+ *
+ * SCORE TYPES:
+ * - Comparative (centered at 50): recentForm, mapAdvantage, rosterStability, livePerformance
+ *   - 50 = teams are equal
+ *   - >50 = recommended team has advantage
+ *   - <50 = opponent has advantage
+ * - Absolute (0-100): headToHead (H2H win rate), marketOdds (implied probability)
  */
 function ConfidenceBreakdownDisplay({
   breakdown,
 }: {
   breakdown: ConfidenceBreakdown;
 }) {
+  // Factor definitions with type indicator
   const factors: Array<{
     key: keyof ConfidenceBreakdown;
     label: string;
     icon: typeof Target;
+    isComparative: boolean; // true = centered at 50, false = absolute 0-100
   }> = [
-    { key: "recentForm", label: "Recent Form", icon: TrendingUp },
-    { key: "headToHead", label: "Head-to-Head", icon: Swords },
-    { key: "mapAdvantage", label: "Map Advantage", icon: Target },
-    { key: "marketOdds", label: "Market Odds", icon: BarChart3 },
-    { key: "rosterStability", label: "Roster Stability", icon: Shield },
-    { key: "livePerformance", label: "Live Performance", icon: Activity },
+    { key: "recentForm", label: "Recent Form", icon: TrendingUp, isComparative: true },
+    { key: "headToHead", label: "Head-to-Head", icon: Swords, isComparative: false },
+    { key: "mapAdvantage", label: "Map Advantage", icon: Target, isComparative: true },
+    { key: "marketOdds", label: "Market Odds", icon: BarChart3, isComparative: false },
+    { key: "rosterStability", label: "Roster Stability", icon: Shield, isComparative: true },
+    { key: "livePerformance", label: "Live Performance", icon: Activity, isComparative: true },
   ];
 
   return (
@@ -358,14 +367,42 @@ function ConfidenceBreakdownDisplay({
         </h4>
       </div>
 
-      {factors.map(({ key, label, icon: Icon }) => {
+      {factors.map(({ key, label, icon: Icon, isComparative }) => {
         const value = breakdown[key];
         if (value === undefined) return null;
 
-        const getGradient = (v: number) => {
-          if (v >= 70) return "from-emerald-500 to-emerald-400";
+        // For comparative scores: show advantage/disadvantage relative to 50
+        // For absolute scores: use traditional thresholds
+        const getGradient = (v: number, comparative: boolean) => {
+          if (comparative) {
+            // Comparative: centered at 50
+            if (v >= 55) return "from-emerald-500 to-emerald-400"; // Advantage
+            if (v >= 45) return "from-amber-500 to-amber-400"; // Even
+            return "from-red-500 to-red-400"; // Disadvantage
+          }
+          // Absolute: 0-100 scale
+          if (v >= 60) return "from-emerald-500 to-emerald-400";
           if (v >= 40) return "from-amber-500 to-amber-400";
           return "from-red-500 to-red-400";
+        };
+
+        // For comparative scores, show advantage indicator
+        const getAdvantageLabel = (v: number, comparative: boolean) => {
+          if (!comparative) return `${Math.round(v)}%`;
+          const advantage = v - 50;
+          if (advantage > 5) return `+${Math.round(advantage * 2)}%`;
+          if (advantage < -5) return `${Math.round(advantage * 2)}%`;
+          return "Even";
+        };
+
+        // Bar width for comparative vs absolute
+        const getBarWidth = (v: number, comparative: boolean) => {
+          if (comparative) {
+            // Show bar width relative to advantage (0-50 scale mapped to 0-100%)
+            // 50 = 0% width (neutral), 100 = 100% width, 0 = 100% width (other direction)
+            return Math.abs(v - 50) * 2;
+          }
+          return v; // Absolute: direct percentage
         };
 
         return (
@@ -374,23 +411,44 @@ function ConfidenceBreakdownDisplay({
               <div className="flex items-center gap-2">
                 <Icon className="h-3.5 w-3.5 text-white/40 group-hover:text-white/60 transition-colors" />
                 <span className="text-white/70">{label}</span>
+                {isComparative && (
+                  <span className="text-[9px] text-white/30 uppercase">vs opp</span>
+                )}
               </div>
-              <span className="font-mono font-bold text-white tabular-nums">
-                {value}%
+              <span
+                className={cn(
+                  "font-mono font-bold tabular-nums",
+                  isComparative
+                    ? value > 55
+                      ? "text-emerald-400"
+                      : value < 45
+                      ? "text-red-400"
+                      : "text-amber-400"
+                    : "text-white"
+                )}
+              >
+                {getAdvantageLabel(value, isComparative)}
               </span>
             </div>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
               <div
                 className={cn(
                   "h-full rounded-full bg-gradient-to-r transition-all duration-700 ease-out",
-                  getGradient(value)
+                  getGradient(value, isComparative)
                 )}
-                style={{ width: `${value}%` }}
+                style={{ width: `${getBarWidth(value, isComparative)}%` }}
               />
             </div>
           </div>
         );
       })}
+
+      {/* Legend */}
+      <div className="pt-2 border-t border-white/5">
+        <p className="text-[9px] text-white/30 text-center">
+          Comparative factors show advantage over opponent • Absolute factors show raw score
+        </p>
+      </div>
     </div>
   );
 }
@@ -1284,13 +1342,19 @@ export function RecommendationCard({
     isLive,
     isWalletConnected,
     isWalletReady,
+    hasPremiumAccess,
+    premiumAccess,
     warning,
     fetchPreview,
     fetchRecommendation,
+    checkPremiumAccess,
     clearWarning,
   } = useRecommendation();
 
   const { connect, isConnecting } = useWallet();
+
+  // Track if we've checked for existing access
+  const [hasCheckedAccess, setHasCheckedAccess] = useState(false);
 
   // Auto-fetch preview on mount
   useEffect(() => {
@@ -1298,6 +1362,36 @@ export function RecommendationCard({
       fetchPreview(marketId);
     }
   }, [marketId, state.status, fetchPreview]);
+
+  // Check for existing premium access when wallet connects
+  // If user has access and is in preview state, auto-fetch full recommendation
+  useEffect(() => {
+    const checkAndFetchIfAccess = async () => {
+      if (isWalletConnected && isWalletReady && state.status === "preview" && !hasCheckedAccess) {
+        setHasCheckedAccess(true);
+        const hasAccess = await checkPremiumAccess(marketId);
+        if (hasAccess) {
+          // User has existing access, fetch full recommendation without payment
+          fetchRecommendation(marketId);
+        }
+      }
+    };
+
+    checkAndFetchIfAccess();
+  }, [
+    isWalletConnected,
+    isWalletReady,
+    state.status,
+    marketId,
+    hasCheckedAccess,
+    checkPremiumAccess,
+    fetchRecommendation,
+  ]);
+
+  // Reset access check when market changes
+  useEffect(() => {
+    setHasCheckedAccess(false);
+  }, [marketId]);
 
   const handlePay = () => {
     if (!isWalletConnected || !isWalletReady) return;

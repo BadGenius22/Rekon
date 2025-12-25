@@ -107,8 +107,19 @@ app.use(
     },
     credentials: true,
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization", "x-demo-mode", "x-payment"],
-    exposeHeaders: ["x-payment-response", "x-payment-receipt"],
+    allowHeaders: [
+      "Content-Type",
+      "Authorization",
+      "x-demo-mode",
+      "x-payment",
+      "x-wallet-address", // For premium access bypass (user already paid)
+    ],
+    exposeHeaders: [
+      "x-payment-response",
+      "x-payment-receipt",
+      "x-premium-access", // Indicates premium access status
+      "x-premium-expires", // When premium access expires
+    ],
   })
 );
 

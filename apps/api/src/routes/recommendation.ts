@@ -21,6 +21,7 @@ import {
   getRecommendationController,
   getRecommendationPreviewController,
   getRecommendationAvailableController,
+  getRecommendationAccessController,
   getRecommendationPricingController,
   getRecommendationStatusController,
 } from "../controllers/recommendation";
@@ -36,15 +37,17 @@ import { x402Middleware } from "../middleware/x402";
  * - GET /recommendation/status                       - Check service status (free)
  * - GET /recommendation/market/:marketId/available   - Check availability (free)
  * - GET /recommendation/market/:marketId/preview     - Preview recommendation (free)
+ * - GET /recommendation/market/:marketId/access      - Check premium access (free)
  * - GET /recommendation/market/:marketId             - Full recommendation (x402 protected)
  *
  * Route Order:
- * - More specific routes (/market/:id/preview, /market/:id/available) come BEFORE
- *   the general route (/market/:id) to ensure correct matching.
+ * - More specific routes (/market/:id/preview, /market/:id/available, /market/:id/access)
+ *   come BEFORE the general route (/market/:id) to ensure correct matching.
  *
  * x402 Middleware:
  * - Applied only to the paid endpoint (/market/:marketId)
  * - Other endpoints are free to allow previews and status checks
+ * - Middleware checks for existing premium access before requiring payment
  */
 
 const recommendationRoutes = new Hono()
@@ -64,11 +67,15 @@ const recommendationRoutes = new Hono()
   // GET /recommendation/market/:marketId/preview - Free preview (no LLM, no premium data)
   .get("/market/:marketId/preview", getRecommendationPreviewController)
 
+  // GET /recommendation/market/:marketId/access - Check premium access status
+  .get("/market/:marketId/access", getRecommendationAccessController)
+
   // ==========================================================================
   // Paid endpoint (protected by x402 middleware when enabled)
   // ==========================================================================
 
   // GET /recommendation/market/:marketId - Full recommendation with all premium content
+  // Note: x402 middleware checks for existing premium access before requiring payment
   .get("/market/:marketId", x402Middleware, getRecommendationController);
 
 export { recommendationRoutes };
