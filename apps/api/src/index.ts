@@ -10,7 +10,7 @@ import { initSentry, captureError, trackFailedRequest } from "./utils/sentry";
 // Initialize Sentry for error tracking
 initSentry();
 
-const app = new Hono().basePath("/api");
+const app = new Hono();
 
 // Global error handler
 app.onError((err, c) => {
@@ -105,10 +105,10 @@ app.use(
 
       // In production, allow multiple domains
       const allowedOrigins = [
-        "https://rekon.gg",           // Landing page
-        "https://www.rekon.gg",       // Landing page with www
-        "https://app.rekon.gg",       // Web app
-        process.env.FRONTEND_URL,     // Additional configured URL
+        "https://rekon.gg", // Landing page
+        "https://www.rekon.gg", // Landing page with www
+        "https://app.rekon.gg", // Web app
+        process.env.FRONTEND_URL, // Additional configured URL
       ].filter(Boolean); // Remove undefined/null values
 
       // Check if origin is in allowed list
@@ -255,15 +255,19 @@ app.route("/premium", premiumLeaderboardRoutes);
 
 const port = Number(process.env.PORT) || 3001;
 
-// Start server
-// Use a check that works with both tsx (Node.js) and Bun
+// Start server only when running locally (not in Vercel serverless)
+// Vercel serverless functions should NOT start a server - they export handlers instead
+const isVercel = !!process.env.VERCEL;
 const isMainModule =
   typeof import.meta.main !== "undefined"
     ? import.meta.main
     : import.meta.url === `file://${process.argv[1]}` ||
       process.argv[1]?.endsWith("src/index.ts");
 
-if (isMainModule) {
+// Only start server if:
+// 1. Not in Vercel environment (serverless functions don't need servers)
+// 2. This is the main module (not imported by another module)
+if (!isVercel && isMainModule) {
   const { serve } = await import("@hono/node-server");
   serve({
     fetch: app.fetch,
