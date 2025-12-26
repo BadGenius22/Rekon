@@ -180,10 +180,10 @@ export function DashboardDataProvider({
           `${API_CONFIG.baseUrl}/gamification/profile?user=${walletAddress}${demoParam}`,
           fetchOptions
         ),
-        // Premium x402 purchase history - use EOA address since that's what made the payment
+        // Premium x402 purchase history - check both EOA and Safe addresses
         eoaAddress
           ? fetch(
-              `${API_CONFIG.baseUrl}/premium/history/${eoaAddress}?limit=50`,
+              `${API_CONFIG.baseUrl}/premium/history/${eoaAddress}?limit=50${safeAddress ? `&safeAddress=${safeAddress}` : ""}`,
               fetchOptions
             )
           : Promise.resolve(new Response(JSON.stringify({ purchases: [] }))),

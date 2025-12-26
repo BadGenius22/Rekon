@@ -25,6 +25,7 @@ const AddressParamSchema = z.object({
 
 const HistoryQuerySchema = z.object({
   limit: z.coerce.number().min(1).max(500).default(50),
+  safeAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/).optional(),
 });
 
 /**
@@ -101,10 +102,11 @@ export async function getUserStatsController(c: Context) {
  * Get user's premium purchase history
  *
  * Params:
- * - address: Ethereum address (0x...)
+ * - address: Ethereum address (0x...) - typically EOA address
  *
  * Query params:
  * - limit: number (1-500, default: 50)
+ * - safeAddress: optional Safe wallet address to also check
  *
  * Response:
  * - walletAddress: normalized address
@@ -139,10 +141,16 @@ export async function getPurchaseHistoryController(c: Context) {
   }
 
   const { address } = paramValidation.data;
-  const { limit } = queryValidation.data;
+  const { limit, safeAddress } = queryValidation.data;
 
-  // Query Neon database for real purchase history
-  const history = await getPurchaseHistory(address, limit);
+  // Build list of addresses to check (EOA and optionally Safe)
+  const addresses = [address.toLowerCase()];
+  if (safeAddress && safeAddress.toLowerCase() !== address.toLowerCase()) {
+    addresses.push(safeAddress.toLowerCase());
+  }
+
+  // Query Neon database for purchase history across all addresses
+  const history = await getPurchaseHistory(addresses, limit);
 
   return c.json(history);
 }

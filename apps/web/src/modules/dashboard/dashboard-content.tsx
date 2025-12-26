@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@rekon/ui";
-import { Loader2 } from "lucide-react";
+import { Loader2, Wallet } from "lucide-react";
 import { OpenPositionsCard } from "@/components/open-positions-card";
 import { DashboardPositionsStat } from "@/components/dashboard-positions-stat";
 import { DashboardPnLStat } from "@/components/dashboard-pnl-stat";
@@ -16,6 +16,7 @@ import {
   DashboardDataProvider,
   useDashboardData,
 } from "@/contexts/DashboardDataContext";
+import { useWallet } from "@/providers/wallet-provider";
 
 /**
  * Dashboard Content - Client Component
@@ -36,28 +37,38 @@ function DashboardContentInner() {
     isInitialized,
   } = useDashboardData();
 
+  // Check for real wallet connection (not demo mode)
+  const { isConnected, eoaAddress, safeAddress } = useWallet();
+
+  // Use Safe address for Polymarket operations, fallback to EOA
+  const userAddress = safeAddress || eoaAddress || "";
+
   // Calculate derived values from centralized data
   const totalExposure = totalPortfolio?.totalValue ?? 0;
   const stats = portfolio?.stats;
   const rekonVolume = stats?.rekonVolume ?? 0;
   const exposureByGame = stats?.exposureByGame ?? [];
 
-  // Show message when no wallet is available
-  if (!walletAddress) {
+  // Show connect wallet prompt if no real wallet is connected
+  if (!isConnected || !eoaAddress) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div className="h-16 w-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
-            <span className="text-3xl">🎮</span>
+      <div className="flex items-center justify-center min-h-[500px]">
+        <div className="flex flex-col items-center gap-6 text-center max-w-md">
+          <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 flex items-center justify-center">
+            <Wallet className="h-10 w-10 text-emerald-400" />
           </div>
           <div>
-            <h3 className="text-xl font-semibold text-white mb-2">
+            <h3 className="text-2xl font-bold text-white mb-3">
               Connect Your Wallet
             </h3>
-            <p className="text-white/60 max-w-md">
-              Connect your wallet to view your portfolio, positions, and trading
-              history. Or try our demo mode to explore the platform.
+            <p className="text-white/60 leading-relaxed">
+              Connect your wallet to view your portfolio, positions, trading
+              history, and premium purchases.
             </p>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-white/40">
+            <div className="h-2 w-2 rounded-full bg-emerald-500/50" />
+            <span>Supports MetaMask, WalletConnect & more</span>
           </div>
         </div>
       </div>
@@ -72,7 +83,7 @@ function DashboardContentInner() {
           <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
           <p className="text-white/60">Loading dashboard data...</p>
           <p className="text-white/40 text-sm font-mono">
-            {walletAddress.slice(0, 10)}...
+            {userAddress.slice(0, 10)}...
           </p>
         </div>
       </div>
@@ -89,7 +100,7 @@ function DashboardContentInner() {
           delay={0}
         >
           <TraderProfileCard
-            userAddress={walletAddress}
+            userAddress={userAddress}
             profile={gamificationProfile}
           />
         </BentoGridItem>
@@ -101,7 +112,7 @@ function DashboardContentInner() {
           highlight
         >
           <PortfolioValueCard
-            userAddress={walletAddress}
+            userAddress={userAddress}
             portfolioData={portfolio}
           />
         </BentoGridItem>
@@ -109,14 +120,14 @@ function DashboardContentInner() {
         {/* Stats Grid - 2x2 on the right */}
         <BentoGridItem className="col-span-6 lg:col-span-2" delay={0.1}>
           <DashboardPnLStat
-            userAddress={walletAddress}
+            userAddress={userAddress}
             portfolioData={portfolio}
           />
         </BentoGridItem>
 
         <BentoGridItem className="col-span-6 lg:col-span-2" delay={0.15}>
           <DashboardPositionsStat
-            userAddress={walletAddress}
+            userAddress={userAddress}
             positionCount={positions.length}
           />
         </BentoGridItem>
@@ -171,7 +182,7 @@ function DashboardContentInner() {
       <div className="grid grid-cols-12 gap-4 mb-4">
         <BentoGridItem className="col-span-12 lg:col-span-8" delay={0.25}>
           <OpenPositionsCard
-            userAddress={walletAddress}
+            userAddress={userAddress}
             positions={positions}
           />
         </BentoGridItem>

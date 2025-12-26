@@ -82,12 +82,18 @@ export async function getUserPremiumStats(
 
 /**
  * Get user's premium purchase history
+ * Accepts single address or array of addresses (EOA + Safe)
  */
 export async function getUserPremiumPurchases(
-  walletAddress: string,
+  walletAddresses: string | string[],
   limit: number = 50
 ): Promise<PremiumPurchase[]> {
   const sql = getSql();
+
+  // Normalize to array of lowercase addresses
+  const addresses = Array.isArray(walletAddresses)
+    ? walletAddresses.map((a) => a.toLowerCase())
+    : [walletAddresses.toLowerCase()];
 
   const rows = (await sql`
     SELECT
@@ -99,7 +105,7 @@ export async function getUserPremiumPurchases(
       paid_at as "paidAt",
       expires_at as "expiresAt"
     FROM premium_access
-    WHERE wallet_address = ${walletAddress.toLowerCase()}
+    WHERE wallet_address = ANY(${addresses})
     ORDER BY paid_at DESC
     LIMIT ${limit}
   `) as PremiumPurchase[];

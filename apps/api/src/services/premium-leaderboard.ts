@@ -204,28 +204,33 @@ function mapStats(dbStats: {
 
 /**
  * Get user's premium purchase history
+ * Accepts single address or array of addresses (EOA + Safe)
  * Cached for 1 minute
  */
 export async function getPurchaseHistory(
-  walletAddress: string,
+  walletAddresses: string | string[],
   limit: number = 50
 ): Promise<PurchaseHistoryResponse> {
-  const normalizedAddress = walletAddress.toLowerCase();
-  const cacheKey = `${normalizedAddress}:${limit}`;
+  // Normalize to array
+  const addresses = Array.isArray(walletAddresses)
+    ? walletAddresses.map((a) => a.toLowerCase())
+    : [walletAddresses.toLowerCase()];
+
+  const cacheKey = `${addresses.sort().join(",")}:${limit}`;
 
   // Try to get from cache
   let purchases = await userHistoryCache.get(cacheKey);
 
   // If not in cache, fetch from DB
   if (!purchases) {
-    purchases = await getUserPremiumPurchases(normalizedAddress, limit);
+    purchases = await getUserPremiumPurchases(addresses, limit);
     await userHistoryCache.set(cacheKey, purchases);
   }
 
   const now = new Date();
 
   return {
-    walletAddress: normalizedAddress,
+    walletAddress: addresses[0], // Primary address (EOA)
     purchases: purchases.map((p) => ({
       id: p.id,
       marketId: p.marketId,
