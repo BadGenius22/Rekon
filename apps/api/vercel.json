@@ -1,24 +1,26 @@
 {
   "buildCommand": "cd ../.. && pnpm install && pnpm build --filter=@rekon/api",
   "installCommand": "pnpm install",
-  "framework": null,
   "outputDirectory": "dist",
+  "functions": {
+    "api/[...].ts": {
+      "runtime": "nodejs20.x"
+    }
+  },
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/index.js"
+      "destination": "/api/$1"
     }
   ],
-  "functions": {
-    "dist/index.js": {
-      "runtime": "nodejs20.x",
-      "maxDuration": 10
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
+        {
+          "key": "Access-Control-Allow-Credentials",
+          "value": "true"
+        },
         {
           "key": "Access-Control-Allow-Origin",
           "value": "*"
