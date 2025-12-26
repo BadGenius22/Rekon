@@ -1,11 +1,10 @@
 /**
  * Vercel Serverless Function Entry Point for Hono API
  *
- * Catch-all route handler for all API requests.
- * Uses @hono/node-server/vercel adapter for proper Vercel integration.
+ * Uses Hono's native Vercel adapter (not @hono/node-server/vercel).
  */
 
-import { handle } from "@hono/node-server/vercel";
+import { handle } from "hono/vercel";
 import app from "../src/index";
 
 // Export the Hono app handler for Vercel
