@@ -55,26 +55,29 @@ export const X402_CONFIG = {
   llmModel: process.env.LLM_MODEL || "gpt-4o-mini", // Cost-effective model
 } as const;
 
-// Fail-fast validation on module import
-// This ensures required variables are set before the app boots
-if (X402_CONFIG.enabled) {
-  if (!X402_CONFIG.recipientAddress) {
-    throw new Error(
-      "X402_RECIPIENT_ADDRESS is required when X402_ENABLED=true. " +
-        "Set this to your wallet address where x402 payments will be received."
-    );
-  }
-  if (!X402_CONFIG.llmApiKey) {
-    throw new Error(
-      "LLM_API_KEY is required when X402_ENABLED=true. " +
-        "Set this to your OpenAI or Anthropic API key for signal explanations."
-    );
-  }
-  // Thirdweb secret key is required for server-side facilitator
-  if (!X402_CONFIG.thirdwebSecretKey) {
-    throw new Error(
-      "THIRDWEB_SECRET_KEY is required when X402_ENABLED=true. " +
-        "Get your secret key from https://thirdweb.com/dashboard"
-    );
-  }
-}
+// DISABLED: Fail-fast validation breaks serverless deployments
+// Module-level validation runs before serverless functions initialize,
+// causing FUNCTION_INVOCATION_FAILED if env vars are missing.
+// Validation should happen at request time, not module import time.
+//
+// if (X402_CONFIG.enabled) {
+//   if (!X402_CONFIG.recipientAddress) {
+//     throw new Error(
+//       "X402_RECIPIENT_ADDRESS is required when X402_ENABLED=true. " +
+//         "Set this to your wallet address where x402 payments will be received."
+//     );
+//   }
+//   if (!X402_CONFIG.llmApiKey) {
+//     throw new Error(
+//       "LLM_API_KEY is required when X402_ENABLED=true. " +
+//         "Set this to your OpenAI or Anthropic API key for signal explanations."
+//     );
+//   }
+//   // Thirdweb secret key is required for server-side facilitator
+//   if (!X402_CONFIG.thirdwebSecretKey) {
+//     throw new Error(
+//       "THIRDWEB_SECRET_KEY is required when X402_ENABLED=true. " +
+//       "Get your secret key from https://thirdweb.com/dashboard"
+//     );
+//   }
+// }
