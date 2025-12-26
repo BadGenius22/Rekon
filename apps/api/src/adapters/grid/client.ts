@@ -862,13 +862,10 @@ export async function fetchHeadToHeadHistory(
     }
 
     const matches: H2HMatchResult[] = data.allSeries.edges
-      .map((edge) => {
+      .filter((edge) => edge.node.teams && edge.node.teams.length === 2)
+      .map((edge): H2HMatchResult => {
         const series = edge.node;
-        if (!series.teams || series.teams.length !== 2) {
-          return null;
-        }
-
-        const [t1, t2] = series.teams;
+        const [t1, t2] = series.teams!;
         const t1Won = t1.scoreAdvantage > t2.scoreAdvantage;
         const t2Won = t2.scoreAdvantage > t1.scoreAdvantage;
 
@@ -890,8 +887,7 @@ export async function fetchHeadToHeadHistory(
             won: t2Won,
           },
         };
-      })
-      .filter((m): m is H2HMatchResult => m !== null);
+      });
 
     console.log(
       `[GRID API] Found ${matches.length} H2H match(es) for ${team1Id} vs ${team2Id}`

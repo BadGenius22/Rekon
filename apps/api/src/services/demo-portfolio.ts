@@ -550,3 +550,89 @@ export function generateDemoGamificationProfile(walletAddress: string) {
     },
   };
 }
+
+/**
+ * Premium Purchase interface for demo data
+ */
+export interface DemoPremiumPurchase {
+  id: number;
+  marketId: string;
+  txHash: string | null;
+  chain: string | null;
+  priceUsdc: number;
+  paidAt: string;
+  expiresAt: string;
+  status: "active" | "expired";
+}
+
+/**
+ * Generates deterministic demo premium purchase history
+ * Returns mock x402 premium access purchases for demo wallets
+ */
+export function generateDemoPremiumHistory(
+  walletAddress: string,
+  limit: number = 50
+): DemoPremiumPurchase[] {
+  const purchases: DemoPremiumPurchase[] = [];
+  const now = Date.now();
+
+  // Generate 3-8 purchases based on wallet address
+  const purchaseCount = Math.min(
+    limit,
+    randomIntInRange(walletAddress, 5000, 3, 8)
+  );
+
+  for (let i = 0; i < purchaseCount; i++) {
+    // Generate purchase timestamp (spread over last 60 days)
+    const daysAgo = randomInRange(walletAddress, 5100 + i, 0, 60);
+    const paidAt = new Date(now - daysAgo * 24 * 60 * 60 * 1000);
+
+    // Premium access expires 24 hours after purchase
+    const expiresAt = new Date(paidAt.getTime() + 24 * 60 * 60 * 1000);
+
+    // Determine if active or expired
+    const status = expiresAt.getTime() > now ? "active" : "expired";
+
+    // Generate deterministic market ID (looks like a real condition ID)
+    const marketIdSeed = randomIntInRange(
+      walletAddress,
+      5200 + i,
+      1000000000,
+      9999999999
+    );
+    const marketId = `0x${marketIdSeed.toString(16).padStart(64, "0")}`;
+
+    // Generate transaction hash (looks real but deterministic)
+    const txHashSeed = randomIntInRange(
+      walletAddress,
+      5300 + i,
+      1000000000,
+      9999999999
+    );
+    const txHash = `0x${txHashSeed.toString(16).padStart(64, "0")}`;
+
+    // Determine chain (Base Sepolia for demo)
+    const chain = "84532"; // Base Sepolia testnet
+
+    // Premium price is always $5 USDC
+    const priceUsdc = 5.0;
+
+    purchases.push({
+      id: i + 1,
+      marketId,
+      txHash,
+      chain,
+      priceUsdc,
+      paidAt: paidAt.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+      status,
+    });
+  }
+
+  // Sort by paid date descending (most recent first)
+  purchases.sort(
+    (a, b) => new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime()
+  );
+
+  return purchases;
+}

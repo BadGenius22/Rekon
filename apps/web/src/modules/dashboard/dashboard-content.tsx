@@ -11,6 +11,7 @@ import { WatchlistProviderWrapper } from "@/components/watchlist-provider-wrappe
 import { TraderProfileCard } from "@/components/trader-profile-card";
 import { PortfolioValueCard } from "@/components/portfolio-value-card";
 import { BentoGrid, BentoGridItem } from "@/components/bento-grid";
+import { PremiumTxHistory } from "@/components/premium-tx-history";
 import {
   DashboardDataProvider,
   useDashboardData,
@@ -30,6 +31,7 @@ function DashboardContentInner() {
     trades,
     positions,
     gamificationProfile,
+    premiumHistory,
     isLoading,
     isInitialized,
   } = useDashboardData();
@@ -165,7 +167,7 @@ function DashboardContentInner() {
         </BentoGridItem>
       </BentoGrid>
 
-      {/* Section 2: Open Positions + Trade History (side by side) */}
+      {/* Section 2: Open Positions + Trade History + Premium History */}
       <div className="grid grid-cols-12 gap-4 mb-4">
         <BentoGridItem className="col-span-12 lg:col-span-8" delay={0.25}>
           <OpenPositionsCard
@@ -200,9 +202,9 @@ function DashboardContentInner() {
         </BentoGridItem>
       </div>
 
-      {/* Section 3: Bottom Row - Insights */}
+      {/* Section 3: Bottom Row - Insights & Premium History */}
       <BentoGrid>
-        <BentoGridItem className="col-span-12 md:col-span-6" delay={0.35}>
+        <BentoGridItem className="col-span-12 md:col-span-4" delay={0.35}>
           <div className="h-full p-6">
             <div className="flex items-center gap-3 mb-5">
               <div className="h-10 w-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center">
@@ -237,7 +239,13 @@ function DashboardContentInner() {
           </div>
         </BentoGridItem>
 
-        <BentoGridItem className="col-span-12 md:col-span-6" delay={0.4}>
+        <BentoGridItem className="col-span-12 md:col-span-4" delay={0.38}>
+          <div className="h-full">
+            <PremiumTxHistory purchases={premiumHistory} isLoading={isLoading} />
+          </div>
+        </BentoGridItem>
+
+        <BentoGridItem className="col-span-12 md:col-span-4" delay={0.4}>
           <WatchlistProviderWrapper>
             <WatchlistPreview />
           </WatchlistProviderWrapper>

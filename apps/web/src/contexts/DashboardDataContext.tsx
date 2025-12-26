@@ -14,6 +14,20 @@ import { useWallet } from "@/providers/wallet-provider";
 import type { Portfolio, Activity, GamificationProfile } from "@rekon/types";
 
 /**
+ * Premium purchase from x402 transactions
+ */
+export interface PremiumPurchase {
+  id: number;
+  marketId: string;
+  txHash: string | null;
+  chain: string | null;
+  priceUsdc: number;
+  paidAt: string;
+  expiresAt: string;
+  status: "active" | "expired";
+}
+
+/**
  * Dashboard data that's fetched once and shared across all components.
  * Ensures consistent data for the same wallet address.
  */
@@ -33,6 +47,9 @@ export interface DashboardData {
 
   // Gamification profile
   gamificationProfile: GamificationProfile | null;
+
+  // Premium x402 purchase history
+  premiumHistory: PremiumPurchase[];
 
   // Loading states
   isLoading: boolean;
@@ -87,7 +104,7 @@ export function DashboardDataProvider({
   children: ReactNode;
 }): JSX.Element {
   const { isDemoMode, demoWalletAddress } = useDemoMode();
-  const { safeAddress, isConnected } = useWallet();
+  const { safeAddress, eoaAddress, isConnected } = useWallet();
 
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [totalPortfolio, setTotalPortfolio] = useState<Portfolio | null>(null);
@@ -95,6 +112,7 @@ export function DashboardDataProvider({
   const [positions, setPositions] = useState<PolymarketPosition[]>([]);
   const [gamificationProfile, setGamificationProfile] =
     useState<GamificationProfile | null>(null);
+  const [premiumHistory, setPremiumHistory] = useState<PremiumPurchase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -135,6 +153,7 @@ export function DashboardDataProvider({
         tradesRes,
         positionsRes,
         profileRes,
+        premiumHistoryRes,
       ] = await Promise.allSettled([
         // Esports portfolio
         fetch(
@@ -161,6 +180,13 @@ export function DashboardDataProvider({
           `${API_CONFIG.baseUrl}/gamification/profile?user=${walletAddress}${demoParam}`,
           fetchOptions
         ),
+        // Premium x402 purchase history - use EOA address since that's what made the payment
+        eoaAddress
+          ? fetch(
+              `${API_CONFIG.baseUrl}/premium/history/${eoaAddress}?limit=50`,
+              fetchOptions
+            )
+          : Promise.resolve(new Response(JSON.stringify({ purchases: [] }))),
       ]);
 
       // Process portfolio
@@ -196,6 +222,18 @@ export function DashboardDataProvider({
         setGamificationProfile(data);
       }
 
+      // Process premium x402 history
+      if (
+        premiumHistoryRes.status === "fulfilled" &&
+        premiumHistoryRes.value.ok
+      ) {
+        const data = await premiumHistoryRes.value.json();
+        console.debug("[DashboardData] Premium history:", data);
+        setPremiumHistory(data.purchases || []);
+      } else {
+        console.debug("[DashboardData] Premium history failed:", premiumHistoryRes);
+      }
+
       setIsInitialized(true);
       console.debug("[DashboardData] All data fetched successfully");
     } catch (err) {
@@ -204,7 +242,7 @@ export function DashboardDataProvider({
     } finally {
       setIsLoading(false);
     }
-  }, [walletAddress, isDemoMode]);
+  }, [walletAddress, eoaAddress, isDemoMode]);
 
   // Fetch data when wallet address becomes available
   useEffect(() => {
@@ -222,6 +260,7 @@ export function DashboardDataProvider({
         trades,
         positions,
         gamificationProfile,
+        premiumHistory,
         isLoading,
         isInitialized,
         error,
