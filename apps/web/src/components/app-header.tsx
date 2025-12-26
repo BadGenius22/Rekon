@@ -10,6 +10,7 @@ import { SearchModal } from "./search-modal";
 import { NotificationsDropdown } from "./notifications-dropdown";
 import { ConnectWalletButton } from "./connect-wallet-button";
 import { DemoModeBanner } from "./demo-mode-banner";
+import { RekonLogo } from "./rekon-logo";
 
 export function AppHeader() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -37,17 +38,10 @@ export function AppHeader() {
           {/* Logo + name */}
           <Link
             href="/"
-            className="flex min-w-0 items-center gap-1.5 sm:gap-2.5 shrink-0"
+            className="flex min-w-0 items-center shrink-0 transition-opacity hover:opacity-80"
+            aria-label="Rekon - Esports Markets"
           >
-            <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#3B82F6] via-[#22D3EE] to-[#8B5CF6] shadow-[0_0_20px_rgba(59,130,246,0.5)]" />
-            <div className="flex flex-col leading-tight">
-              <span className="truncate text-xs sm:text-sm font-semibold tracking-tight text-white">
-                Rekon
-              </span>
-              <span className="hidden text-[9px] sm:text-[10px] font-medium uppercase tracking-wider text-white/50 sm:block">
-                Esports Markets
-              </span>
-            </div>
+            <RekonLogo size="md" />
           </Link>
 
           {/* Primary nav - hidden on mobile */}
