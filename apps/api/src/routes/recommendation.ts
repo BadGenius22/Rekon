@@ -24,6 +24,7 @@ import {
   getRecommendationAccessController,
   getRecommendationPricingController,
   getRecommendationStatusController,
+  debugPremiumAccessController,
 } from "../controllers/recommendation";
 import { x402Middleware } from "../middleware/x402";
 
@@ -69,6 +70,9 @@ const recommendationRoutes = new Hono()
 
   // GET /recommendation/market/:marketId/access - Check premium access status
   .get("/market/:marketId/access", getRecommendationAccessController)
+
+  // GET /recommendation/market/:marketId/debug-access - Debug premium access (temporary)
+  .get("/market/:marketId/debug-access", debugPremiumAccessController)
 
   // ==========================================================================
   // Paid endpoint (protected by x402 middleware when enabled)

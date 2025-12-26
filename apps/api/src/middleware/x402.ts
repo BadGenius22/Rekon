@@ -553,7 +553,17 @@ export const x402Middleware = createMiddleware(
       } else {
         // Demo/MVP mode: no signature verification required
         try {
+          console.log("[x402] Checking premium access (no signature required):", {
+            walletAddress: walletAddress.slice(0, 10) + "...",
+            walletAddressLower: walletAddress.toLowerCase().slice(0, 10) + "...",
+            marketId,
+          });
           const accessInfo = await checkPremiumAccess(walletAddress, marketId);
+          console.log("[x402] Premium access check result:", {
+            hasAccess: accessInfo.hasAccess,
+            expiresAt: accessInfo.expiresAt,
+            paidAt: accessInfo.paidAt,
+          });
           if (accessInfo.hasAccess) {
             console.log("[x402] User has existing premium access:", {
               walletAddress: walletAddress.slice(0, 10) + "...",
@@ -564,6 +574,8 @@ export const x402Middleware = createMiddleware(
             c.header("x-premium-access", "existing");
             c.header("x-premium-expires", accessInfo.expiresAt || "");
             return next();
+          } else {
+            console.log("[x402] No premium access found, requiring payment");
           }
         } catch (error) {
           console.warn("[x402] Error checking premium access:", error);

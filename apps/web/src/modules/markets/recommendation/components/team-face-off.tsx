@@ -1,6 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { cn } from "@rekon/ui";
+import { API_CONFIG } from "@rekon/config";
 import { FormIndicator } from "../ui/form-indicator";
 import {
   VSDivider,
@@ -14,21 +16,82 @@ import {
 import type { TeamFaceOffProps, TeamDisplayData } from "../types";
 
 /**
+ * Fetch team logo from the teams API
+ * Same logic as market-hero.tsx for consistency
+ */
+async function fetchTeamLogo(
+  teamName: string,
+  league?: string
+): Promise<string | null> {
+  try {
+    const url = new URL(`${API_CONFIG.baseUrl}/teams`);
+    url.searchParams.set("name", teamName);
+    if (league) {
+      url.searchParams.set("league", league);
+    }
+
+    const response = await fetch(url.toString(), {
+      next: { revalidate: 3600 }, // Cache for 1 hour
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    const teams = data.teams || [];
+    if (teams.length > 0 && teams[0].imageUrl) {
+      return teams[0].imageUrl;
+    }
+
+    return null;
+  } catch (error) {
+    console.warn(`Failed to fetch team logo for ${teamName}:`, error);
+    return null;
+  }
+}
+
+/**
  * Side-by-side team comparison cards with VS divider
  * PRIMARY visual for free tier - shows key stats for both teams
+ * Now fetches team logos from Polymarket API for better visuals
  */
 export function TeamFaceOff({
   team1,
   team2,
   recommendedTeamName,
+  league,
   className,
-}: TeamFaceOffProps) {
+}: TeamFaceOffProps & { league?: string }) {
+  const [team1Logo, setTeam1Logo] = useState<string | undefined>(team1.imageUrl);
+  const [team2Logo, setTeam2Logo] = useState<string | undefined>(team2.imageUrl);
+
+  // Fetch team logos from API
+  useEffect(() => {
+    async function loadTeamLogos() {
+      const [logo1, logo2] = await Promise.all([
+        fetchTeamLogo(team1.name, league),
+        fetchTeamLogo(team2.name, league),
+      ]);
+
+      if (logo1) {
+        setTeam1Logo(logo1);
+      }
+      if (logo2) {
+        setTeam2Logo(logo2);
+      }
+    }
+
+    loadTeamLogos();
+  }, [team1.name, team2.name, league]);
+
   return (
     <div className={cn("relative", className)}>
       {/* Team cards grid */}
       <div className="grid grid-cols-[1fr,auto,1fr] gap-2 items-stretch">
         <TeamCard
           team={team1}
+          logoUrl={team1Logo}
           isRecommended={team1.name === recommendedTeamName}
           side="left"
         />
@@ -38,6 +101,7 @@ export function TeamFaceOff({
 
         <TeamCard
           team={team2}
+          logoUrl={team2Logo}
           isRecommended={team2.name === recommendedTeamName}
           side="right"
         />
@@ -48,15 +112,20 @@ export function TeamFaceOff({
 
 function TeamCard({
   team,
+  logoUrl,
   isRecommended,
   side,
 }: {
   team: TeamDisplayData;
+  logoUrl?: string;
   isRecommended: boolean;
   side: "left" | "right";
 }) {
   const kdColor = team.kdRatio >= 1.0 ? "text-emerald-400" : "text-red-400";
   const rankTier = getWinRateTier(team.winRate);
+
+  // Use fetched logo, fall back to team.imageUrl, then to initials
+  const displayLogo = logoUrl || team.imageUrl;
 
   return (
     <div
@@ -93,11 +162,11 @@ function TeamCard({
               isRecommended && "border-emerald-500/30"
             )}
           >
-            {team.imageUrl ? (
+            {displayLogo ? (
               <img
-                src={team.imageUrl}
+                src={displayLogo}
                 alt={team.name}
-                className="h-9 w-9 rounded-lg object-cover"
+                className="h-9 w-9 rounded-lg object-contain"
               />
             ) : (
               <span className="text-sm font-bold text-white/60">

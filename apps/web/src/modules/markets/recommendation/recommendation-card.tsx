@@ -9,6 +9,7 @@ import {
   Loader2,
   Zap,
   Clock,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@rekon/ui";
 import {
@@ -188,6 +189,7 @@ function FreeTierContent({
 /**
  * Premium tier content layout
  * Full analysis with AI pick hero, insights, breakdown, H2H, and risk factors
+ * Now includes TeamFaceOff and StatBars for visual context (previously only in free tier)
  */
 function PremiumTierContent({
   state,
@@ -203,26 +205,80 @@ function PremiumTierContent({
   const resolvedTeam1Name = team1Name || recommendation.recommendedPick;
   const resolvedTeam2Name = team2Name || recommendation.otherTeam;
 
+  // Map team stats for visual display (same logic as FreeTierContent)
+  const team1Stats = recommendation.teamStats?.recommended;
+  const team2Stats = recommendation.teamStats?.opponent;
+  const team1Display = mapTeamToDisplayData(team1Stats);
+  const team2Display = mapTeamToDisplayData(team2Stats);
+
+  // Build compact stat comparisons from team data
+  const compactStats: Array<{
+    label: string;
+    value1: number;
+    value2: number;
+    format?: (v: number) => string;
+  }> = [];
+  if (team1Display && team2Display) {
+    compactStats.push(
+      {
+        label: "Win Rate",
+        value1: team1Display.winRate,
+        value2: team2Display.winRate,
+        format: (v) => `${Math.round(v)}%`,
+      },
+      {
+        label: "K/D Ratio",
+        value1: team1Display.kdRatio,
+        value2: team2Display.kdRatio,
+        format: (v) => v.toFixed(2),
+      }
+    );
+
+    // Add recent form if available
+    const recForm = team1Stats?.recentForm ?? 50;
+    const oppForm = team2Stats?.recentForm ?? 50;
+    if (recForm !== 50 || oppForm !== 50) {
+      compactStats.push({
+        label: "Recent Form",
+        value1: recForm,
+        value2: oppForm,
+        format: (v) => `${Math.round(v)}%`,
+      });
+    }
+  }
+
   return (
     <div className="space-y-5">
-      {/* Section 1: AI Pick Hero (Revealed) */}
+      {/* Section 1: Team Face-Off Visual (Context from free tier) */}
+      {team1Display && team2Display && (
+        <TeamFaceOff
+          team1={team1Display}
+          team2={team2Display}
+          recommendedTeamName={recommendation.recommendedPick}
+        />
+      )}
+
+      {/* Section 2: Stat Comparison Bars (Context from free tier) */}
+      {compactStats.length > 0 && <CompactStatBars stats={compactStats} />}
+
+      {/* Section 3: AI Pick Hero (Revealed) */}
       <AIPickHero
         teamName={recommendation.recommendedPick}
         confidence={recommendation.confidence}
         confidenceScore={recommendation.confidenceScore}
       />
 
-      {/* Section 2: Key Insights (AI-generated) */}
+      {/* Section 4: Key Insights (AI-generated) */}
       {recommendation.keyInsights && recommendation.keyInsights.length > 0 && (
         <KeyInsights insights={recommendation.keyInsights} />
       )}
 
-      {/* Section 3: Factor Breakdown */}
+      {/* Section 5: Factor Breakdown */}
       {recommendation.confidenceBreakdown && (
         <FactorBreakdown breakdown={recommendation.confidenceBreakdown} />
       )}
 
-      {/* Section 4: Head-to-Head History */}
+      {/* Section 6: Head-to-Head History */}
       {recommendation.recentMatches?.headToHead &&
         recommendation.recentMatches.headToHead.length > 0 && (
           <H2HTimeline
@@ -233,12 +289,12 @@ function PremiumTierContent({
           />
         )}
 
-      {/* Section 5: Risk Factors */}
+      {/* Section 7: Risk Factors */}
       {recommendation.riskFactors && recommendation.riskFactors.length > 0 && (
         <RiskFactors factors={recommendation.riskFactors} />
       )}
 
-      {/* Section 6: Live Match Widget */}
+      {/* Section 8: Live Match Widget */}
       {recommendation.liveState && (
         <LiveMatchWidget
           liveState={recommendation.liveState}
@@ -414,10 +470,12 @@ export function RecommendationCard({
     isLive,
     isWalletConnected,
     isWalletReady,
+    premiumLoadFailed,
     warning,
     fetchPreview,
     fetchRecommendation,
     fetchPremiumContent,
+    retryPremiumContent,
     checkPremiumAccess,
     clearWarning,
   } = useRecommendation();
@@ -519,20 +577,36 @@ export function RecommendationCard({
           )}
         </div>
 
-        {/* Warning Banner */}
+        {/* Warning Banner with Retry Button for Premium Load Failures */}
         {warning && (
           <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
             <div className="flex-1 min-w-0">
               <p className="text-sm text-amber-200">{warning}</p>
+              {premiumLoadFailed && (
+                <p className="mt-1 text-xs text-amber-400/70">
+                  Your premium access is still valid
+                </p>
+              )}
             </div>
-            <button
-              onClick={clearWarning}
-              className="text-amber-400 hover:text-amber-300 transition-colors p-1"
-              aria-label="Dismiss warning"
-            >
-              <ChevronUp className="h-4 w-4" />
-            </button>
+            {premiumLoadFailed ? (
+              <button
+                onClick={retryPremiumContent}
+                className="flex items-center gap-1 text-amber-400 hover:text-amber-300 transition-colors px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-xs font-medium"
+                aria-label="Retry loading premium content"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Retry
+              </button>
+            ) : (
+              <button
+                onClick={clearWarning}
+                className="text-amber-400 hover:text-amber-300 transition-colors p-1"
+                aria-label="Dismiss warning"
+              >
+                <ChevronUp className="h-4 w-4" />
+              </button>
+            )}
           </div>
         )}
 

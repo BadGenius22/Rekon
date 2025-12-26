@@ -22,8 +22,9 @@ import {
   generateRecommendationPreview,
   isRecommendationAvailable,
 } from "../services/recommendation";
-import { getPremiumAccessStatus } from "../services/premium-access";
+import { getPremiumAccessStatus, checkPremiumAccess } from "../services/premium-access";
 import { getX402PricingInfo, isX402Enabled } from "../middleware/x402";
+import { getPremiumAccess, hasValidPremiumAccess } from "../db/premium-access";
 
 /**
  * Recommendation Controllers
@@ -206,4 +207,76 @@ export async function getRecommendationAccessController(c: Context) {
   const accessStatus = await getPremiumAccessStatus(walletAddress, marketId);
 
   return c.json(accessStatus);
+}
+
+/**
+ * GET /recommendation/market/:marketId/debug-access
+ * Debug endpoint to troubleshoot premium access issues.
+ *
+ * Headers:
+ * - x-wallet-address: Wallet address to check
+ *
+ * Returns detailed debug info about:
+ * - What values are being received
+ * - What the DB returns
+ * - Step-by-step access check results
+ */
+export async function debugPremiumAccessController(c: Context) {
+  const { marketId } = c.req.param();
+  const walletAddressHeader = c.req.header("x-wallet-address");
+  const walletAddressQuery = c.req.query("wallet");
+  const walletAddress = walletAddressHeader || walletAddressQuery;
+
+  const debugInfo: Record<string, unknown> = {
+    timestamp: new Date().toISOString(),
+    request: {
+      marketId,
+      walletAddressHeader: walletAddressHeader || null,
+      walletAddressQuery: walletAddressQuery || null,
+      walletAddressUsed: walletAddress || null,
+      walletAddressNormalized: walletAddress?.toLowerCase() || null,
+    },
+    checks: {},
+    errors: [],
+  };
+
+  if (!marketId) {
+    debugInfo.errors = [...(debugInfo.errors as string[]), "Market ID is missing"];
+    return c.json(debugInfo, 400);
+  }
+
+  if (!walletAddress) {
+    debugInfo.errors = [...(debugInfo.errors as string[]), "Wallet address is missing (send via header or query)"];
+    return c.json(debugInfo, 400);
+  }
+
+  try {
+    // Check 1: Direct DB query for valid access
+    const hasAccess = await hasValidPremiumAccess(walletAddress, marketId);
+    (debugInfo.checks as Record<string, unknown>).hasValidPremiumAccess = hasAccess;
+
+    // Check 2: Get the actual record
+    const record = await getPremiumAccess(walletAddress, marketId);
+    (debugInfo.checks as Record<string, unknown>).dbRecord = record ? {
+      walletAddress: record.walletAddress,
+      marketId: record.marketId,
+      expiresAt: record.expiresAt,
+      paidAt: record.paidAt,
+      isExpired: new Date(record.expiresAt) <= new Date(),
+    } : null;
+
+    // Check 3: Service layer check
+    const serviceCheck = await checkPremiumAccess(walletAddress, marketId);
+    (debugInfo.checks as Record<string, unknown>).serviceLayerCheck = serviceCheck;
+
+    debugInfo.summary = {
+      shouldHaveAccess: hasAccess,
+      recordFound: !!record,
+      serviceReportsAccess: serviceCheck.hasAccess,
+    };
+  } catch (error) {
+    debugInfo.errors = [...(debugInfo.errors as string[]), String(error)];
+  }
+
+  return c.json(debugInfo);
 }

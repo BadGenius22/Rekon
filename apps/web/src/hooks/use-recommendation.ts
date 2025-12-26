@@ -43,11 +43,13 @@ export interface UseRecommendationReturn {
   isWalletConnected: boolean;
   isWalletReady: boolean; // Wallet is connected and wallet client is ready
   hasPremiumAccess: boolean; // User has already paid for this market
+  premiumLoadFailed: boolean; // Premium content failed to load (user has access but content unavailable)
   warning: string | null; // Warning message to display (clears on next action)
   fetchAvailability: (marketId: string) => Promise<void>;
   fetchPreview: (marketId: string) => Promise<void>;
   fetchRecommendation: (marketId: string) => Promise<void>;
   fetchPremiumContent: (marketId: string) => Promise<void>; // Fetch for users with existing access
+  retryPremiumContent: () => Promise<void>; // Retry loading premium content after failure
   checkPremiumAccess: (marketId: string) => Promise<boolean>;
   clearWarning: () => void;
   reset: () => void;
@@ -82,13 +84,14 @@ export function useRecommendation(): UseRecommendationReturn {
     useState<RecommendationAccessResponse | null>(null);
   const [isPaying, setIsPaying] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
+  const [premiumLoadFailed, setPremiumLoadFailed] = useState(false);
 
   // Track current marketId for auto-refresh
   const currentMarketIdRef = useRef<string | null>(null);
   const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
     null
   );
-  // Store preview data to restore on user cancellation
+  // Store preview data to restore on user cancellation or premium load failure
   const lastPreviewDataRef = useRef<RecommendationPreviewResponse | null>(null);
 
   // Get wagmi connected wallet - use the SAME wallet from header/RainbowKit
@@ -551,6 +554,8 @@ export function useRecommendation(): UseRecommendationReturn {
    * Fetch premium content for users who already have access.
    * This function does NOT show payment UI - it's for users who already paid.
    * Shows "Loading premium content..." instead of "Processing payment..."
+   *
+   * On failure, falls back to preview with a warning instead of showing an error.
    */
   const fetchPremiumContent = useCallback(
     async (marketId: string) => {
@@ -560,7 +565,13 @@ export function useRecommendation(): UseRecommendationReturn {
         return;
       }
 
+      // Save current preview data before loading (for fallback on failure)
+      if (state.status === "preview") {
+        lastPreviewDataRef.current = state.data;
+      }
+
       setState({ status: "loading-premium" });
+      setPremiumLoadFailed(false);
       currentMarketIdRef.current = marketId;
 
       try {
@@ -593,6 +604,7 @@ export function useRecommendation(): UseRecommendationReturn {
           const retryResult = await retryResponse.json();
           if (retryResult && typeof retryResult === "object" && "recommendedPick" in retryResult) {
             setState({ status: "success", data: retryResult as RecommendationResult });
+            setPremiumLoadFailed(false);
             return;
           }
           throw new Error("Invalid response format");
@@ -603,19 +615,55 @@ export function useRecommendation(): UseRecommendationReturn {
         if (result && typeof result === "object" && "recommendedPick" in result) {
           console.log("[useRecommendation] Premium content loaded successfully");
           setState({ status: "success", data: result as RecommendationResult });
+          setPremiumLoadFailed(false);
         } else {
           throw new Error("Invalid recommendation response format");
         }
       } catch (err) {
         console.error("[useRecommendation] Error fetching premium content:", err);
-        setState({
-          status: "error",
-          error: "Unable to load premium content. Please refresh the page. Your access is still valid.",
-        });
+
+        // Fall back to preview with warning instead of showing error
+        if (lastPreviewDataRef.current) {
+          console.log("[useRecommendation] Falling back to preview with warning");
+          setPremiumLoadFailed(true);
+          setWarning("Premium content temporarily unavailable. Showing preview data. Tap to retry.");
+          setState({ status: "preview", data: lastPreviewDataRef.current });
+        } else {
+          // No preview data available - try to fetch it
+          console.log("[useRecommendation] No preview data, fetching preview as fallback");
+          try {
+            const preview = await getRecommendationPreview(marketId);
+            lastPreviewDataRef.current = preview;
+            setPremiumLoadFailed(true);
+            setWarning("Premium content temporarily unavailable. Showing preview data. Tap to retry.");
+            setState({ status: "preview", data: preview });
+          } catch (previewErr) {
+            // Can't even fetch preview - show error
+            console.error("[useRecommendation] Preview fallback also failed:", previewErr);
+            setState({
+              status: "error",
+              error: "Unable to load content. Please refresh the page. Your premium access is still valid.",
+            });
+          }
+        }
       }
     },
-    [isConnected, address]
+    [isConnected, address, state]
   );
+
+  /**
+   * Retry loading premium content after a failure.
+   * Only works when premiumLoadFailed is true.
+   */
+  const retryPremiumContent = useCallback(async () => {
+    if (!currentMarketIdRef.current) {
+      console.warn("[useRecommendation] retryPremiumContent: no market ID");
+      return;
+    }
+
+    setWarning(null);
+    await fetchPremiumContent(currentMarketIdRef.current);
+  }, [fetchPremiumContent]);
 
   const clearWarning = useCallback(() => {
     setWarning(null);
@@ -625,6 +673,7 @@ export function useRecommendation(): UseRecommendationReturn {
     setState({ status: "idle" });
     setWarning(null);
     setPremiumAccess(null);
+    setPremiumLoadFailed(false);
     currentMarketIdRef.current = null;
     stopRefresh();
   }, [stopRefresh]);
@@ -640,11 +689,13 @@ export function useRecommendation(): UseRecommendationReturn {
     isWalletConnected: isConnected,
     isWalletReady: isConnected && !!walletClient,
     hasPremiumAccess,
+    premiumLoadFailed,
     warning,
     fetchAvailability,
     fetchPreview,
     fetchRecommendation,
     fetchPremiumContent, // For users with existing access (no payment UI)
+    retryPremiumContent, // Retry loading premium content after failure
     checkPremiumAccess,
     clearWarning,
     reset,

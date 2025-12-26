@@ -92,14 +92,25 @@ export async function hasValidPremiumAccess(
 ): Promise<boolean> {
   const sql = getSql();
 
+  const normalizedWallet = walletAddress.toLowerCase();
+  console.log("[DB] hasValidPremiumAccess query:", {
+    walletAddress: normalizedWallet.slice(0, 10) + "...",
+    marketId,
+  });
+
   const rows = (await sql`
     SELECT 1
     FROM premium_access
-    WHERE wallet_address = ${walletAddress.toLowerCase()}
+    WHERE wallet_address = ${normalizedWallet}
       AND market_id = ${marketId}
       AND expires_at > NOW()
     LIMIT 1
   `) as { "?column?": number }[];
+
+  console.log("[DB] hasValidPremiumAccess result:", {
+    found: rows.length > 0,
+    rowCount: rows.length,
+  });
 
   return rows.length > 0;
 }
