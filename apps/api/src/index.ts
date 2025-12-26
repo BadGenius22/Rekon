@@ -102,8 +102,22 @@ app.use(
           return origin;
         }
       }
-      // In production, use configured frontend URL
-      return process.env.FRONTEND_URL || "http://localhost:3000";
+
+      // In production, allow multiple domains
+      const allowedOrigins = [
+        "https://rekon.gg",           // Landing page
+        "https://www.rekon.gg",       // Landing page with www
+        "https://app.rekon.gg",       // Web app
+        process.env.FRONTEND_URL,     // Additional configured URL
+      ].filter(Boolean); // Remove undefined/null values
+
+      // Check if origin is in allowed list
+      if (origin && allowedOrigins.includes(origin)) {
+        return origin;
+      }
+
+      // Fallback to first allowed origin or localhost
+      return allowedOrigins[0] || "http://localhost:3000";
     },
     credentials: true,
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
