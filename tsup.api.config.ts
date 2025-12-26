@@ -10,4 +10,11 @@ export default defineConfig({
   clean: true,
   dts: false,
   splitting: false,
+  bundle: true, // CRITICAL: Actually bundle dependencies, not just transpile
+  noExternal: [
+    // Bundle workspace packages (monorepo dependencies)
+    "@rekon/config",
+    "@rekon/types",
+    "@rekon/utils",
+  ],
 });
