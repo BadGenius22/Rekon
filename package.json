@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
+    "build:api": "tsup --config tsup.api.config.ts",
+    "dev:api": "tsup --config tsup.api.config.ts --watch",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
     "clean": "turbo run clean",
@@ -16,6 +18,7 @@
   "devDependencies": {
     "@types/node": "^25.0.2",
     "@vitest/coverage-v8": "^4.0.14",
+    "tsup": "^8.0.0",
     "turbo": "^2.7.2",
     "typescript": "^5.6.0",
     "vitest": "^4.0.14"
