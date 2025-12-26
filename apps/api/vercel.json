@@ -1,9 +1,6 @@
 {
   "installCommand": "cd ../.. && pnpm install",
   "buildCommand": "cd ../.. && pnpm build:api",
-  "functions": {
-    "apps/api/api/[[...route]].ts": {}
-  },
   "headers": [
     {
       "source": "/(.*)",
