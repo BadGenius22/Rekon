@@ -28,10 +28,10 @@ export function FormIndicator({ form, size = "md" }: FormIndicatorProps) {
     cold: {
       icon: Snowflake,
       label: "Cold",
-      bgColor: "bg-red-500/10",
-      borderColor: "border-red-500/30",
-      textColor: "text-red-400",
-      iconColor: "text-red-400",
+      bgColor: "bg-blue-500/10",
+      borderColor: "border-blue-500/30",
+      textColor: "text-blue-400",
+      iconColor: "text-blue-400",
     },
   };
 

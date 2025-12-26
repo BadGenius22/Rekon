@@ -12,6 +12,7 @@ import {
   CrownIcon,
   SkullIcon,
   ScanLines,
+  UsersIcon,
 } from "../ui/gaming-icons";
 import type { TeamFaceOffProps, TeamDisplayData } from "../types";
 
@@ -247,6 +248,32 @@ function TeamCard({
             </div>
           ) : null}
         </div>
+
+        {/* Team Roster */}
+        {team.roster && team.roster.length > 0 && (
+          <div className="pt-3 mt-3 border-t border-white/5">
+            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/40 mb-2">
+              <UsersIcon className="h-3 w-3" />
+              Roster
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {team.roster.slice(0, 5).map((player) => (
+                <span
+                  key={player.id}
+                  className={cn(
+                    "px-1.5 py-0.5 text-[10px] font-medium rounded",
+                    "bg-white/5 border border-white/10",
+                    isRecommended
+                      ? "text-emerald-300/80"
+                      : "text-white/60"
+                  )}
+                >
+                  {player.nickname}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -204,6 +204,36 @@ export function BoltIcon({ className, size = 24 }: IconProps) {
 }
 
 /**
+ * Users icon - for team roster/players
+ */
+export function UsersIcon({ className, size = 24 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+    >
+      <circle cx="9" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <circle cx="17" cy="7" r="2.5" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M21 21v-1.5a3 3 0 00-3-3h-1"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/**
  * Skull icon - for K/D ratio or eliminations
  */
 export function SkullIcon({ className, size = 24 }: IconProps) {

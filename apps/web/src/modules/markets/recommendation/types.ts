@@ -5,6 +5,7 @@ import type {
   EsportsTeamStats,
   MatchHistory,
   LiveMatchState,
+  TeamRosterPlayer,
 } from "@rekon/types";
 
 // =============================================================================
@@ -34,6 +35,7 @@ export interface TeamDisplayData {
   form: "hot" | "neutral" | "cold";
   streak: number;
   totalSeries?: number;
+  roster?: TeamRosterPlayer[];
 }
 
 export interface StatComparisonBarsProps {
@@ -183,5 +185,6 @@ export function mapTeamToDisplayData(stats: EsportsTeamStats | null | undefined)
     form: recentForm > 60 ? "hot" : recentForm < 40 ? "cold" : "neutral",
     streak,
     totalSeries,
+    roster: stats.roster,
   };
 }
