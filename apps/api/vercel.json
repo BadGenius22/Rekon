@@ -2,11 +2,6 @@
   "buildCommand": "cd ../.. && pnpm install && pnpm build --filter=@rekon/api",
   "installCommand": "pnpm install",
   "outputDirectory": "dist",
-  "functions": {
-    "api/[...].ts": {
-      "runtime": "nodejs20.x"
-    }
-  },
   "rewrites": [
     {
       "source": "/(.*)",
