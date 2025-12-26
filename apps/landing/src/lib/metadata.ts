@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
 
 /**
- * Site configuration for SEO and metadata
+ * Site configuration for SEO and metadata - Landing Page (rekon.gg)
  */
 export const SITE_CONFIG = {
   name: "Rekon",
   title: "Professional Esports Trading Terminal",
+  tagline: "Trade Esports Markets Like a Pro",
   description:
     "Professional trading terminal for esports prediction markets. Real-time odds, instant settlements, and pro-grade analytics for CS2, LoL, Dota 2, Valorant, and more.",
-  url: "https://app.rekon.gg",
-  landingUrl: "https://rekon.gg",
+  url: "https://rekon.gg",
+  appUrl: "https://app.rekon.gg",
   ogImage: "/og-image.png",
   twitterImage: "/twitter-card.png",
   keywords: [
@@ -25,6 +26,8 @@ export const SITE_CONFIG = {
     "esports predictions",
     "crypto betting",
     "decentralized betting",
+    "esports trading terminal",
+    "pro esports betting",
   ],
   social: {
     twitter: "@rekongg",
@@ -32,10 +35,19 @@ export const SITE_CONFIG = {
     github: "https://github.com/BadGenius22/Rekon",
   },
   creator: "Rekon Team",
+  games: [
+    { name: "CS2", slug: "cs2", color: "#F59E0B" },
+    { name: "League of Legends", slug: "lol", color: "#3B82F6" },
+    { name: "Dota 2", slug: "dota2", color: "#EF4444" },
+    { name: "Valorant", slug: "valorant", color: "#EC4899" },
+    { name: "Call of Duty", slug: "cod", color: "#22C55E" },
+    { name: "Rainbow Six", slug: "r6", color: "#8B5CF6" },
+    { name: "Honor of Kings", slug: "hok", color: "#F97316" },
+  ],
 } as const;
 
 /**
- * Default metadata for the application
+ * Default metadata for the landing page
  */
 export const DEFAULT_METADATA: Metadata = {
   metadataBase: new URL(SITE_CONFIG.url),
@@ -134,7 +146,7 @@ export function generateWebSiteSchema() {
     description: SITE_CONFIG.description,
     potentialAction: {
       "@type": "SearchAction",
-      target: `${SITE_CONFIG.url}/markets?q={search_term_string}`,
+      target: `${SITE_CONFIG.appUrl}/markets?q={search_term_string}`,
       "query-input": "required name=search_term_string",
     },
   };
@@ -161,15 +173,11 @@ export function generateSoftwareApplicationSchema() {
       "Instant settlements",
       "Professional analytics",
       "Portfolio tracking",
-      "Multi-game support",
+      "Multi-game support (CS2, LoL, Dota 2, Valorant, CoD, R6, HoK)",
+      "Powered by Polymarket",
     ],
     screenshot: `${SITE_CONFIG.url}${SITE_CONFIG.ogImage}`,
     softwareVersion: "1.0.0",
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: "4.8",
-      ratingCount: "100",
-    },
   };
 }
 
@@ -182,94 +190,4 @@ export function generateAllSchemas() {
     generateWebSiteSchema(),
     generateSoftwareApplicationSchema(),
   ];
-}
-
-/**
- * Helper to create page-specific metadata
- */
-export function createPageMetadata({
-  title,
-  description,
-  path = "",
-  image,
-  noIndex = false,
-}: {
-  title: string;
-  description: string;
-  path?: string;
-  image?: string;
-  noIndex?: boolean;
-}): Metadata {
-  const url = `${SITE_CONFIG.url}${path}`;
-  const ogImage = image || SITE_CONFIG.ogImage;
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title: `${title} | ${SITE_CONFIG.name}`,
-      description,
-      url,
-      images: [
-        {
-          url: ogImage,
-          width: 1200,
-          height: 630,
-          alt: title,
-        },
-      ],
-    },
-    twitter: {
-      title: `${title} | ${SITE_CONFIG.name}`,
-      description,
-      images: [ogImage],
-    },
-    alternates: {
-      canonical: url,
-    },
-    ...(noIndex && {
-      robots: {
-        index: false,
-        follow: false,
-      },
-    }),
-  };
-}
-
-/**
- * Generate BreadcrumbList schema for navigation
- */
-export function generateBreadcrumbSchema(
-  items: Array<{ name: string; url: string }>
-) {
-  return {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: items.map((item, index) => ({
-      "@type": "ListItem",
-      position: index + 1,
-      name: item.name,
-      item: item.url.startsWith("http") ? item.url : `${SITE_CONFIG.url}${item.url}`,
-    })),
-  };
-}
-
-/**
- * Generate FAQ schema for FAQ pages
- */
-export function generateFAQSchema(
-  faqs: Array<{ question: string; answer: string }>
-) {
-  return {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqs.map((faq) => ({
-      "@type": "Question",
-      name: faq.question,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: faq.answer,
-      },
-    })),
-  };
 }
