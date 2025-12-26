@@ -1,0 +1,77 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#0a0a0a"/>
+
+  <!-- Grid pattern -->
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a1a1a" stroke-width="1"/>
+    </pattern>
+
+    <!-- Gradient for glow effects -->
+    <radialGradient id="glow1" cx="50%" cy="50%">
+      <stop offset="0%" style="stop-color:#00ffff;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#00ffff;stop-opacity:0" />
+    </radialGradient>
+
+    <radialGradient id="glow2" cx="50%" cy="50%">
+      <stop offset="0%" style="stop-color:#ff0066;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#ff0066;stop-opacity:0" />
+    </radialGradient>
+
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00ffff" />
+      <stop offset="50%" style="stop-color:#ff0066" />
+      <stop offset="100%" style="stop-color:#00ffff" />
+    </linearGradient>
+  </defs>
+
+  <!-- Grid background -->
+  <rect width="1200" height="630" fill="url(#grid)"/>
+
+  <!-- Glow orbs -->
+  <circle cx="200" cy="150" r="200" fill="url(#glow1)"/>
+  <circle cx="1000" cy="500" r="250" fill="url(#glow2)"/>
+
+  <!-- Logo (simplified R) -->
+  <g transform="translate(450, 180)">
+    <!-- Red layer (offset) -->
+    <path d="M 0 0 L 0 -50 L 25 -50 L 25 0 Z M 25 -50 L 25 -75 L 150 -75 L 150 -50 Z M 150 -75 L 150 -100 L 175 -100 L 175 -75 Z M 0 -100 L 0 -125 L 150 -125 L 150 -100 Z M 150 0 L 150 -50 L 175 -50 L 175 0 Z"
+          fill="#ff0000" transform="translate(3, 3)"/>
+
+    <!-- Cyan layer (offset) -->
+    <path d="M 0 0 L 0 -50 L 25 -50 L 25 0 Z M 25 -50 L 25 -75 L 150 -75 L 150 -50 Z M 150 -75 L 150 -100 L 175 -100 L 175 -75 Z M 0 -100 L 0 -125 L 150 -125 L 150 -100 Z M 150 0 L 150 -50 L 175 -50 L 175 0 Z"
+          fill="#00ffff" transform="translate(-3, -3)"/>
+
+    <!-- White layer (main) -->
+    <path d="M 0 0 L 0 -50 L 25 -50 L 25 0 Z M 25 -50 L 25 -75 L 150 -75 L 150 -50 Z M 150 -75 L 150 -100 L 175 -100 L 175 -75 Z M 0 -100 L 0 -125 L 150 -125 L 150 -100 Z M 150 0 L 150 -50 L 175 -50 L 175 0 Z"
+          fill="#ffffff"/>
+  </g>
+
+  <!-- Brand name -->
+  <text x="600" y="300" font-family="system-ui, -apple-system, sans-serif" font-size="96" font-weight="900" fill="url(#textGradient)" text-anchor="middle" letter-spacing="8">
+    REKON
+  </text>
+
+  <!-- Tagline -->
+  <text x="600" y="380" font-family="system-ui, -apple-system, sans-serif" font-size="36" font-weight="600" fill="#ffffff" text-anchor="middle" opacity="0.9">
+    Professional Esports Trading Terminal
+  </text>
+
+  <!-- Description -->
+  <text x="600" y="440" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="400" fill="#888888" text-anchor="middle">
+    Real-time odds • Instant settlements • Pro-grade analytics
+  </text>
+
+  <!-- Games supported -->
+  <g transform="translate(600, 500)" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="500" fill="#666666">
+    <text x="-200" y="0" text-anchor="middle">CS2</text>
+    <text x="-100" y="0" text-anchor="middle">DOTA 2</text>
+    <text x="0" y="0" text-anchor="middle">LOL</text>
+    <text x="100" y="0" text-anchor="middle">VALORANT</text>
+    <text x="200" y="0" text-anchor="middle">+3 MORE</text>
+  </g>
+
+  <!-- Border accent -->
+  <rect x="0" y="0" width="1200" height="630" fill="none" stroke="url(#textGradient)" stroke-width="2" opacity="0.3"/>
+</svg>
