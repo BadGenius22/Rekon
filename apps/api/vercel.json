@@ -1,6 +1,7 @@
 {
   "buildCommand": "cd ../.. && pnpm install && pnpm turbo run build --filter=@rekon/types --filter=@rekon/utils --filter=@rekon/config",
   "installCommand": "pnpm install",
+  "outputDirectory": ".",
   "framework": null,
   "rewrites": [
     {
