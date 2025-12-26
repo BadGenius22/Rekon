@@ -1,11 +1,11 @@
 {
-  "buildCommand": "cd ../.. && pnpm install && pnpm build --filter=@rekon/api",
+  "buildCommand": "cd ../.. && pnpm install && pnpm turbo run build --filter=@rekon/types --filter=@rekon/utils --filter=@rekon/config",
   "installCommand": "pnpm install",
-  "outputDirectory": "dist",
+  "framework": null,
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/api/$1"
+      "destination": "/api"
     }
   ],
   "headers": [
