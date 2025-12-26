@@ -10,7 +10,7 @@ import { initSentry, captureError, trackFailedRequest } from "./utils/sentry";
 // Initialize Sentry for error tracking
 initSentry();
 
-const app = new Hono();
+const app = new Hono().basePath("/api");
 
 // Global error handler
 app.onError((err, c) => {
