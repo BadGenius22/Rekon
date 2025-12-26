@@ -764,3 +764,184 @@ function findStrongestFactor(
   validFactors.sort((a, b) => (b.score! - b.threshold) - (a.score! - a.threshold));
   return validFactors[0];
 }
+
+// ============================================================================
+// Risk Factors Generation
+// ============================================================================
+
+/**
+ * Generates risk factors for the recommended pick.
+ *
+ * Identifies potential concerns or weaknesses that traders should be aware of.
+ * Returns up to 4 risk factors, sorted by severity.
+ *
+ * @param recommendedTeam - The team being recommended
+ * @param opponentTeam - The opposing team
+ * @param breakdown - Confidence breakdown by factor
+ * @returns Array of risk factor strings
+ */
+export function generateRiskFactors(
+  recommendedTeam: TeamData,
+  opponentTeam: TeamData,
+  breakdown: ConfidenceBreakdown
+): string[] {
+  const risks: string[] = [];
+  const stats = recommendedTeam.stats;
+  const oppStats = opponentTeam.stats;
+
+  // Check for losing streak
+  const streak = stats?.seriesStats?.winRate.winStreak?.current ?? 0;
+  if (streak < -2) {
+    risks.push(`${recommendedTeam.name} has lost ${Math.abs(streak)} consecutive series`);
+  }
+
+  // Check for form disadvantage (comparative: <45 means opponent has edge)
+  if (breakdown.recentForm < 45) {
+    risks.push(`${recommendedTeam.name} is currently in worse form than ${opponentTeam.name}`);
+  }
+
+  // Check for roster instability
+  if (breakdown.rosterStability < 45) {
+    const rosterSize = stats?.roster?.length ?? 0;
+    if (rosterSize > 0 && rosterSize < 5) {
+      risks.push(`Roster stability concern: only ${rosterSize} active players listed`);
+    } else {
+      risks.push(`Possible roster instability detected`);
+    }
+  }
+
+  // Check for market underdog position
+  if (breakdown.marketOdds < 40) {
+    risks.push(`Market odds suggest underdog position (${Math.round(breakdown.marketOdds)}% implied probability)`);
+  }
+
+  // Check for H2H disadvantage
+  if (breakdown.headToHead < 40) {
+    risks.push(`Historically unfavorable head-to-head record against ${opponentTeam.name}`);
+  }
+
+  // Check for low K/D
+  const kdRatio = stats?.seriesStats?.combat.kdRatio ?? 1.0;
+  if (kdRatio < 0.9) {
+    risks.push(`Below-average combat performance (${kdRatio.toFixed(2)} K/D ratio)`);
+  }
+
+  // Check for low win rate
+  const winRate = stats?.seriesStats?.winRate.percentage ?? 50;
+  if (winRate < 45) {
+    risks.push(`Low overall win rate (${Math.round(winRate)}%) in recent series`);
+  }
+
+  // Check opponent advantages
+  const oppKd = oppStats?.seriesStats?.combat.kdRatio ?? 1.0;
+  if (oppKd > 1.3 && kdRatio < oppKd - 0.3) {
+    risks.push(`Opponent has significantly better K/D (${oppKd.toFixed(2)} vs ${kdRatio.toFixed(2)})`);
+  }
+
+  // Return max 4 risk factors
+  return risks.slice(0, 4);
+}
+
+// ============================================================================
+// Key Insights Generation
+// ============================================================================
+
+/**
+ * Generates statistical insights for the recommendation.
+ *
+ * Creates data-driven talking points that explain why the recommendation was made.
+ * These are shown to premium users to provide deeper analysis context.
+ *
+ * @param recommendedStats - Stats for the recommended team
+ * @param opponentStats - Stats for the opponent
+ * @param breakdown - Confidence breakdown by factor
+ * @param isLive - Whether the match is currently live
+ * @returns Array of insight strings (max 5)
+ */
+export function generateStatisticalInsights(
+  recommendedStats: EsportsTeamStats | null,
+  opponentStats: EsportsTeamStats | null,
+  breakdown: ConfidenceBreakdown,
+  isLive: boolean
+): string[] {
+  const insights: string[] = [];
+
+  if (!recommendedStats || !opponentStats) {
+    return ["Limited historical data available for comprehensive analysis"];
+  }
+
+  const recName = recommendedStats.teamName || "Recommended team";
+  const oppName = opponentStats.teamName || "Opponent";
+
+  // Win rate advantage
+  const recWinRate = recommendedStats.seriesStats?.winRate.percentage ?? recommendedStats.winRate ?? 50;
+  const oppWinRate = opponentStats.seriesStats?.winRate.percentage ?? opponentStats.winRate ?? 50;
+  const winRateDiff = recWinRate - oppWinRate;
+
+  if (Math.abs(winRateDiff) > 10) {
+    const leader = winRateDiff > 0 ? recName : oppName;
+    insights.push(
+      `${leader} has ${Math.round(Math.abs(winRateDiff))}% higher win rate over the last 3 months`
+    );
+  }
+
+  // K/D performance
+  const kdRatio = recommendedStats.seriesStats?.combat.kdRatio ?? 1.0;
+  if (kdRatio > 1.2) {
+    insights.push(
+      `Strong combat performance with ${kdRatio.toFixed(2)} K/D ratio`
+    );
+  } else if (kdRatio > 1.0) {
+    insights.push(
+      `Positive K/D ratio (${kdRatio.toFixed(2)}) indicates solid team fighting`
+    );
+  }
+
+  // Streak momentum
+  const streak = recommendedStats.seriesStats?.winRate.winStreak?.current ?? 0;
+  if (streak >= 3) {
+    insights.push(`Currently riding a ${streak}-series win streak`);
+  } else if (streak <= -3) {
+    insights.push(`Currently in a ${Math.abs(streak)}-series losing streak - potential bounce-back opportunity`);
+  }
+
+  // Market alignment
+  if (breakdown.marketOdds > 55 && breakdown.recentForm > 55) {
+    insights.push(`Market sentiment aligns with statistical advantage`);
+  } else if (breakdown.marketOdds < 45 && breakdown.recentForm > 55) {
+    insights.push(
+      `Statistical edge exists despite unfavorable market odds - potential value opportunity`
+    );
+  } else if (breakdown.marketOdds > 55 && breakdown.recentForm < 50) {
+    insights.push(
+      `Market favors this pick despite neutral recent form`
+    );
+  }
+
+  // Head-to-head
+  if (breakdown.headToHead > 60) {
+    insights.push(`Strong historical head-to-head record against ${oppName}`);
+  } else if (breakdown.headToHead < 40) {
+    insights.push(`Note: Historical H2H favors ${oppName}`);
+  }
+
+  // Series sample size
+  const seriesCount = recommendedStats.seriesStats?.count ?? 0;
+  if (seriesCount >= 10) {
+    insights.push(`Analysis based on ${seriesCount} series - strong data foundation`);
+  } else if (seriesCount < 5 && seriesCount > 0) {
+    insights.push(`Limited sample size (${seriesCount} series) - higher uncertainty`);
+  }
+
+  // Live context
+  if (isLive && breakdown.livePerformance !== undefined) {
+    if (breakdown.livePerformance > 55) {
+      insights.push(`Currently performing well in the live match`);
+    } else if (breakdown.livePerformance < 45) {
+      insights.push(`Live performance is concerning - consider current match dynamics`);
+    }
+  }
+
+  // Return max 5 insights
+  return insights.slice(0, 5);
+}

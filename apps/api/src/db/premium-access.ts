@@ -15,6 +15,7 @@ import { getSql } from "./client";
  *   expires_at TIMESTAMPTZ NOT NULL,
  *   paid_at TIMESTAMPTZ DEFAULT NOW(),
  *   tx_hash TEXT,
+ *   chain TEXT DEFAULT 'polygon',
  *   price_usdc NUMERIC(18, 6),
  *   created_at TIMESTAMPTZ DEFAULT NOW(),
  *   UNIQUE(wallet_address, market_id)
@@ -33,6 +34,7 @@ export interface PremiumAccessRecord {
   expiresAt: string;
   paidAt: string;
   txHash: string | null;
+  chain: string | null;
   priceUsdc: number | null;
   createdAt: string;
 }
@@ -42,6 +44,7 @@ export interface CreatePremiumAccessInput {
   marketId: string;
   expiresAt: string; // ISO timestamp (market end time)
   txHash?: string | null;
+  chain?: string | null; // e.g., 'polygon', 'base'
   priceUsdc?: number | null;
 }
 
@@ -60,6 +63,7 @@ export async function recordPremiumAccess(
       market_id,
       expires_at,
       tx_hash,
+      chain,
       price_usdc
     )
     VALUES (
@@ -67,12 +71,14 @@ export async function recordPremiumAccess(
       ${input.marketId},
       ${input.expiresAt},
       ${input.txHash ?? null},
+      ${input.chain ?? null},
       ${input.priceUsdc ?? null}
     )
     ON CONFLICT (wallet_address, market_id)
     DO UPDATE SET
       expires_at = GREATEST(premium_access.expires_at, EXCLUDED.expires_at),
       tx_hash = COALESCE(EXCLUDED.tx_hash, premium_access.tx_hash),
+      chain = COALESCE(EXCLUDED.chain, premium_access.chain),
       price_usdc = COALESCE(EXCLUDED.price_usdc, premium_access.price_usdc)
   `;
 }
@@ -115,6 +121,7 @@ export async function getPremiumAccess(
       expires_at as "expiresAt",
       paid_at as "paidAt",
       tx_hash as "txHash",
+      chain,
       price_usdc as "priceUsdc",
       created_at as "createdAt"
     FROM premium_access
@@ -142,6 +149,7 @@ export async function getActivePremiumAccessForWallet(
       expires_at as "expiresAt",
       paid_at as "paidAt",
       tx_hash as "txHash",
+      chain,
       price_usdc as "priceUsdc",
       created_at as "createdAt"
     FROM premium_access

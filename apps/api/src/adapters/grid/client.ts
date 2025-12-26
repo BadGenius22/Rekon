@@ -35,6 +35,7 @@ import {
   GET_TEAM_GAME_STATISTICS,
   GET_SERIES_STATISTICS,
   GET_GAME_STATISTICS,
+  GET_HEAD_TO_HEAD_SERIES,
 } from "./queries";
 import type {
   GridSeriesState,
@@ -770,5 +771,132 @@ export async function fetchGridTeamRoster(
     );
 
     return players;
+  });
+}
+
+// ============================================================================
+// Head-to-Head Data
+// ============================================================================
+
+interface GridH2HSeries {
+  id: string;
+  startTimeScheduled: string;
+  title?: {
+    nameShortened?: string;
+  };
+  tournament?: {
+    nameShortened?: string;
+  };
+  format?: {
+    nameShortened?: string;
+  };
+  teams: Array<{
+    baseInfo: {
+      id: string;
+      name: string;
+    };
+    scoreAdvantage: number;
+  }>;
+}
+
+interface GridH2HResponse {
+  allSeries: {
+    edges: Array<{
+      node: GridH2HSeries;
+    }>;
+    pageInfo: GridPageInfo;
+  };
+}
+
+export interface H2HMatchResult {
+  matchId: string;
+  date: string;
+  tournament?: string;
+  format?: string;
+  team1: {
+    id: string;
+    name: string;
+    score: number;
+    won: boolean;
+  };
+  team2: {
+    id: string;
+    name: string;
+    score: number;
+    won: boolean;
+  };
+}
+
+/**
+ * Fetch head-to-head series history between two teams
+ *
+ * @param team1Id - GRID team ID for first team
+ * @param team2Id - GRID team ID for second team
+ * @param limit - Maximum number of matches to return (default: 10)
+ * @returns Array of H2H match results, most recent first
+ */
+export async function fetchHeadToHeadHistory(
+  team1Id: string,
+  team2Id: string,
+  limit = 10
+): Promise<H2HMatchResult[]> {
+  const cacheKey = getCacheKey("h2h-history", { team1Id, team2Id, limit });
+
+  return withCache(cacheKey, GRID_CONFIG.cache.teamDataTtl, async () => {
+    console.log(
+      `[GRID API] Fetching H2H history: ${team1Id} vs ${team2Id}`
+    );
+
+    const data = await executeQuery<GridH2HResponse>(
+      centralDataClient,
+      GET_HEAD_TO_HEAD_SERIES,
+      { team1Id, team2Id, first: limit },
+      GRID_CONFIG.centralDataUrl
+    );
+
+    if (!data?.allSeries?.edges) {
+      console.log(
+        `[GRID API] No H2H history found for ${team1Id} vs ${team2Id}`
+      );
+      return [];
+    }
+
+    const matches: H2HMatchResult[] = data.allSeries.edges
+      .map((edge) => {
+        const series = edge.node;
+        if (!series.teams || series.teams.length !== 2) {
+          return null;
+        }
+
+        const [t1, t2] = series.teams;
+        const t1Won = t1.scoreAdvantage > t2.scoreAdvantage;
+        const t2Won = t2.scoreAdvantage > t1.scoreAdvantage;
+
+        return {
+          matchId: series.id,
+          date: series.startTimeScheduled,
+          tournament: series.tournament?.nameShortened,
+          format: series.format?.nameShortened,
+          team1: {
+            id: t1.baseInfo.id,
+            name: t1.baseInfo.name,
+            score: t1.scoreAdvantage,
+            won: t1Won,
+          },
+          team2: {
+            id: t2.baseInfo.id,
+            name: t2.baseInfo.name,
+            score: t2.scoreAdvantage,
+            won: t2Won,
+          },
+        };
+      })
+      .filter((m): m is H2HMatchResult => m !== null);
+
+    console.log(
+      `[GRID API] Found ${matches.length} H2H match(es) for ${team1Id} vs ${team2Id}`
+    );
+
+    return matches;
   });
 }

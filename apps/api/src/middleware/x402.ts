@@ -36,6 +36,14 @@ const NETWORK_TO_CHAIN_ID: Record<string, number> = {
   "base-sepolia": 84532,
 };
 
+// Reverse mapping: chain ID → chain name for DB storage
+const CHAIN_ID_TO_NAME: Record<number, string> = {
+  137: "polygon",
+  80002: "polygon-amoy",
+  8453: "base",
+  84532: "base-sepolia",
+};
+
 // USDC contract addresses per network
 const USDC_ADDRESSES: Record<number, string> = {
   137: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", // Polygon USDC
@@ -77,9 +85,38 @@ interface SettleResponse {
   responseBody?: unknown;
   responseHeaders: Record<string, string>;
   paymentReceipt?: {
-    transaction: string;
-    success: boolean;
+    // Various field names thirdweb might return
+    transaction?: string;
+    transactionHash?: string;
+    txHash?: string;
+    queueId?: string;
+    id?: string;
+    success?: boolean;
   };
+}
+
+/**
+ * Extract the best transaction identifier from settle response
+ * Prefers real tx hash over queue ID
+ */
+function extractTxFromReceipt(receipt: SettleResponse["paymentReceipt"]): string | undefined {
+  if (!receipt) return undefined;
+
+  // Prefer fields that are likely to be real tx hashes
+  const candidates = [
+    receipt.transactionHash,
+    receipt.txHash,
+    receipt.transaction,
+    receipt.queueId,
+    receipt.id,
+  ].filter(Boolean) as string[];
+
+  // Return the first one that looks like a real tx hash (0x + 64 hex)
+  const realTxHash = candidates.find((c) => /^0x[a-fA-F0-9]{64}$/.test(c));
+  if (realTxHash) return realTxHash;
+
+  // Otherwise return the first available (likely a queue ID)
+  return candidates[0];
 }
 
 /**
@@ -284,6 +321,158 @@ function extractWalletFromPaymentPayload(
 }
 
 /**
+ * Extract chain name from payment payload network field
+ * e.g., "eip155:137" → "polygon"
+ */
+function extractChainFromPaymentPayload(paymentData: string): string | null {
+  try {
+    const decoded = JSON.parse(atob(paymentData));
+    const network = decoded.network; // e.g., "eip155:137"
+    if (!network) return null;
+
+    const chainIdMatch = network.match(/eip155:(\d+)/);
+    if (!chainIdMatch) return null;
+
+    const chainId = parseInt(chainIdMatch[1], 10);
+    return CHAIN_ID_TO_NAME[chainId] || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch real transaction hash from thirdweb API
+ *
+ * When thirdweb settle returns a queue ID instead of tx hash,
+ * we poll the transaction status API to get the actual on-chain tx hash.
+ *
+ * The thirdweb API may return different field names depending on the endpoint:
+ * - transactionHash or txHash
+ * - onChainTxHash (for queued transactions)
+ *
+ * @see https://portal.thirdweb.com/engine/features/backend-wallets
+ */
+interface ThirdwebTransactionResponse {
+  // Different possible field names from thirdweb API
+  transactionHash?: string;
+  txHash?: string;
+  onChainTxHash?: string;
+  chainId?: number | string;
+  status?: string;
+  result?: {
+    transactionHash?: string;
+    txHash?: string;
+    onChainTxHash?: string;
+    chainId?: number | string;
+  };
+  transaction?: {
+    transactionHash?: string;
+    txHash?: string;
+    onChainTxHash?: string;
+    chainId?: number | string;
+  };
+}
+
+async function fetchRealTxHash(
+  transactionId: string,
+  maxRetries = 5,
+  delayMs = 2000
+): Promise<{ txHash: string; chainId: number } | null> {
+  try {
+    // Skip if it already looks like a real tx hash (0x + 64 hex chars)
+    if (/^0x[a-fA-F0-9]{64}$/.test(transactionId)) {
+      return null; // Already a real tx hash
+    }
+
+    console.log("[x402] Resolving queue ID to tx hash:", transactionId);
+
+    // Poll with retries - transaction might not be mined immediately
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      // Wait before polling (except first attempt)
+      if (attempt > 1) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+
+      console.log(`[x402] Polling transaction status (attempt ${attempt}/${maxRetries})...`);
+
+      const response = await fetch(
+        `https://api.thirdweb.com/v1/transactions/${transactionId}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "x-secret-key": X402_CONFIG.thirdwebSecretKey,
+            ...(X402_CONFIG.thirdwebVaultAccessToken && {
+              "x-vault-access-token": X402_CONFIG.thirdwebVaultAccessToken,
+            }),
+          },
+        }
+      );
+
+      if (!response.ok) {
+        console.warn(`[x402] Transaction status API returned ${response.status}`);
+        continue; // Retry
+      }
+
+      const data = (await response.json()) as ThirdwebTransactionResponse;
+      console.log("[x402] Transaction status response:", JSON.stringify(data, null, 2));
+
+      // Extract tx hash from various possible locations in response
+      const txHash =
+        data.transactionHash ||
+        data.txHash ||
+        data.onChainTxHash ||
+        data.result?.transactionHash ||
+        data.result?.txHash ||
+        data.result?.onChainTxHash ||
+        data.transaction?.transactionHash ||
+        data.transaction?.txHash ||
+        data.transaction?.onChainTxHash;
+
+      // Extract chain ID
+      const rawChainId =
+        data.chainId ||
+        data.result?.chainId ||
+        data.transaction?.chainId;
+
+      const chainId = typeof rawChainId === "string" ? parseInt(rawChainId, 10) : rawChainId;
+
+      // Check if we got a valid tx hash (0x + 64 hex chars)
+      if (txHash && /^0x[a-fA-F0-9]{64}$/.test(txHash)) {
+        console.log("[x402] Resolved real tx hash:", {
+          queueId: transactionId,
+          txHash,
+          chainId,
+          attempt,
+        });
+        return {
+          txHash,
+          chainId: chainId || 137, // Default to Polygon if not specified
+        };
+      }
+
+      // Check if transaction is still pending
+      const status = data.status?.toLowerCase();
+      if (status === "pending" || status === "queued" || status === "submitted") {
+        console.log(`[x402] Transaction still ${status}, will retry...`);
+        continue; // Retry
+      }
+
+      // If status is failed or we got an unexpected response, stop retrying
+      if (status === "failed" || status === "error") {
+        console.warn("[x402] Transaction failed:", data);
+        return null;
+      }
+    }
+
+    console.warn("[x402] Failed to resolve tx hash after", maxRetries, "attempts");
+    return null;
+  } catch (error) {
+    console.warn("[x402] Error fetching transaction status:", error);
+    return null;
+  }
+}
+
+/**
  * x402 Payment Middleware for Hono
  *
  * Uses thirdweb's HTTP API directly with vault access token support.
@@ -443,17 +632,39 @@ export const x402Middleware = createMiddleware(
 
         if (payerAddress) {
           try {
-            const txHash = result.paymentReceipt?.transaction;
+            // Extract tx identifier from receipt (might be real tx hash or queue ID)
+            let txHash = extractTxFromReceipt(result.paymentReceipt);
+            let chain = extractChainFromPaymentPayload(paymentData);
+
+            console.log("[x402] Initial tx identifier from receipt:", txHash);
+
+            // If txHash looks like a queue ID (not 0x + 64 hex), try to resolve real tx hash
+            if (txHash && !/^0x[a-fA-F0-9]{64}$/.test(txHash)) {
+              console.log("[x402] Detected queue ID, attempting to resolve real tx hash...");
+              const realTx = await fetchRealTxHash(txHash);
+              if (realTx) {
+                txHash = realTx.txHash;
+                // Update chain from Monitor API if available
+                chain = CHAIN_ID_TO_NAME[realTx.chainId] || chain;
+                console.log("[x402] Resolved to real tx hash:", txHash);
+              } else {
+                console.warn("[x402] Could not resolve queue ID to tx hash, saving queue ID as fallback");
+              }
+            }
+
             const { expiresAt } = await recordPremiumAccessForMarket({
               walletAddress: payerAddress,
               marketId,
               txHash,
+              chain: chain || undefined,
               priceUsdc: parseFloat(X402_CONFIG.priceUsdc),
             });
 
             console.log("[x402] Premium access recorded:", {
               walletAddress: payerAddress.slice(0, 10) + "...",
               marketId,
+              txHash,
+              chain,
               expiresAt,
             });
 

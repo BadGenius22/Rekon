@@ -789,3 +789,54 @@ export const GET_LIVE_SERIES_STATE = gql`
     }
   }
 `;
+
+/**
+ * Get head-to-head series between two teams
+ *
+ * Fetches historical matchups between two specific teams.
+ * Results are ordered by most recent first.
+ */
+export const GET_HEAD_TO_HEAD_SERIES = gql`
+  query GetHeadToHeadSeries(
+    $team1Id: ID!
+    $team2Id: ID!
+    $first: Int = 10
+  ) {
+    allSeries(
+      filter: {
+        teamIdFilter: { all: [$team1Id, $team2Id] }
+        finishedFilter: true
+      }
+      orderBy: StartTimeScheduled
+      orderByDirection: Descending
+      first: $first
+    ) {
+      edges {
+        node {
+          id
+          startTimeScheduled
+          title {
+            nameShortened
+          }
+          tournament {
+            nameShortened
+          }
+          format {
+            nameShortened
+          }
+          teams {
+            baseInfo {
+              id
+              name
+            }
+            scoreAdvantage
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+      }
+    }
+  }
+`;

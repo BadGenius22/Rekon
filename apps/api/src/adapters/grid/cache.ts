@@ -41,7 +41,8 @@ export type CacheType =
   | "tournaments" // Tournament list
   | "team-index" // Team index for fuzzy search
   | "team-resolution" // Resolved team mappings
-  | "market-stats"; // Market esports stats
+  | "market-stats" // Market esports stats
+  | "h2h-history"; // Head-to-head match history
 
 /**
  * Generate cache key from type and parameters

@@ -33,6 +33,8 @@ import {
 import {
   computeRecommendation,
   generateFallbackReasoning,
+  generateRiskFactors,
+  generateStatisticalInsights,
   type TeamData,
   type RecommendationInput,
 } from "./recommendation-engine";
@@ -41,6 +43,8 @@ import {
   fetchGridLiveSeriesState,
   findSeriesByTeamNames,
   mapGridLiveStateToRekon,
+  fetchHeadToHeadHistory,
+  type H2HMatchResult,
 } from "../adapters/grid";
 import { withCache, getCacheKey } from "../adapters/grid/cache";
 import { NotFound, BadRequest } from "../utils/http-errors";
@@ -381,38 +385,101 @@ export async function generateRecommendation(
     cacheKey,
     RECOMMENDATION_CACHE_TTL,
     async () => {
-      // 5. Fetch all data in parallel
-      const [esportsStats, liveState] = await Promise.all([
-        getMarketEsportsStats(market),
+      // 5. Fetch esports stats first (needed to get team IDs for H2H)
+      const esportsStats = await getMarketEsportsStats(market);
+
+      // 6. Fetch live state and H2H data in parallel
+      const team1GridId = esportsStats.team1.stats?.teamId;
+      const team2GridId = esportsStats.team2.stats?.teamId;
+
+      const [liveState, h2hMatches] = await Promise.all([
         fetchLiveStateIfOngoing(teamNames.team1, teamNames.team2, game),
+        // Fetch H2H if we have both team IDs
+        (async () => {
+          if (team1GridId && team2GridId) {
+            try {
+              return await fetchHeadToHeadHistory(team1GridId, team2GridId, 10);
+            } catch (error) {
+              console.warn("[Recommendation] Failed to fetch H2H data:", error);
+              return [];
+            }
+          }
+          return [];
+        })(),
       ]);
 
-      // 6. Build input for recommendation engine
+      // 7. Convert H2H matches to recommendation format
+      const h2hMatchHistory: MatchHistory[] = h2hMatches.map((m) => {
+        // Determine result from perspective of team1
+        const team1InMatch = m.team1.name === teamNames.team1 || m.team2.name === teamNames.team1;
+        const team1Won = team1InMatch
+          ? (m.team1.name === teamNames.team1 ? m.team1.won : m.team2.won)
+          : false;
+
+        return {
+          matchId: m.matchId,
+          opponent: teamNames.team2, // Always show as H2H against the other team
+          result: team1Won ? "win" : "loss",
+          score: `${m.team1.score}-${m.team2.score}`,
+          date: m.date,
+          tournament: m.tournament,
+        };
+      });
+
+      // 8. Build input for recommendation engine
       const team1Data: TeamData = {
         name: teamNames.team1,
         stats: esportsStats.team1.stats,
-        matches: [],
+        matches: h2hMatchHistory,
         price: market.outcomes[0]?.price ?? 0.5,
       };
 
       const team2Data: TeamData = {
         name: teamNames.team2,
         stats: esportsStats.team2.stats,
-        matches: [],
+        matches: h2hMatchHistory.map((m) => ({
+          ...m,
+          result: m.result === "win" ? "loss" : "win", // Invert for team2 perspective
+        })),
         price: market.outcomes[1]?.price ?? 0.5,
       };
 
       const input: RecommendationInput = {
         team1: team1Data,
         team2: team2Data,
-        h2hMatches: [], // H2H would require additional GRID queries
+        h2hMatches: h2hMatchHistory,
         liveState: liveState ?? undefined,
       };
 
-      // 7. Compute recommendation (pure function)
+      // 9. Compute recommendation (pure function)
       const computed = computeRecommendation(input);
 
-      // 8. Generate LLM explanation (premium content)
+      // 10. Determine recommended and opponent teams for risk/insights
+      const isTeam1Recommended = computed.recommendedPick === teamNames.team1;
+      const recommendedTeamData = isTeam1Recommended ? team1Data : team2Data;
+      const opponentTeamData = isTeam1Recommended ? team2Data : team1Data;
+      const recommendedStats = isTeam1Recommended
+        ? esportsStats.team1.stats
+        : esportsStats.team2.stats;
+      const opponentStats = isTeam1Recommended
+        ? esportsStats.team2.stats
+        : esportsStats.team1.stats;
+
+      // 11. Generate risk factors and key insights
+      const riskFactors = generateRiskFactors(
+        recommendedTeamData,
+        opponentTeamData,
+        computed.breakdown
+      );
+
+      const keyInsights = generateStatisticalInsights(
+        recommendedStats,
+        opponentStats,
+        computed.breakdown,
+        computed.isLive
+      );
+
+      // 12. Generate LLM explanation (premium content)
       const fullExplanation = await generateRecommendationExplanation(
         market,
         {
@@ -424,11 +491,34 @@ export async function generateRecommendation(
         }
       );
 
-      // 9. Build premium content
+      // 13. Build premium content
       const teamStats = buildTeamStatsComparison(esportsStats);
-      const recentMatches = buildRecentMatchesComparison(esportsStats, []);
 
-      // 10. Return complete result
+      // Build H2H summary
+      const recommendedH2HWins = h2hMatchHistory.filter((m) => {
+        const isRecommendedTeam1 = computed.recommendedPick === teamNames.team1;
+        return isRecommendedTeam1 ? m.result === "win" : m.result === "loss";
+      }).length;
+
+      const recentMatches: RecentMatchesComparison = {
+        recommended: [],
+        opponent: [],
+        headToHead: h2hMatchHistory,
+        h2hSummary: h2hMatchHistory.length > 0
+          ? {
+              totalMatches: h2hMatchHistory.length,
+              recommendedWins: recommendedH2HWins,
+              opponentWins: h2hMatchHistory.length - recommendedH2HWins,
+              lastMeetingDate: h2hMatchHistory[0]?.date,
+              lastMeetingWinner:
+                recommendedH2HWins > h2hMatchHistory.length - recommendedH2HWins
+                  ? computed.recommendedPick
+                  : computed.otherTeam,
+            }
+          : undefined,
+      };
+
+      // 14. Return complete result
       return {
         marketId: market.id,
         marketTitle: market.question,
@@ -449,6 +539,8 @@ export async function generateRecommendation(
         confidenceBreakdown: computed.breakdown,
         teamStats,
         recentMatches,
+        keyInsights,
+        riskFactors,
         liveState: liveState ?? undefined,
         livePerformanceScore: computed.breakdown.livePerformance,
 

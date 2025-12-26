@@ -35,6 +35,7 @@ export interface RecordAccessInput {
   walletAddress: string;
   marketId: string;
   txHash?: string;
+  chain?: string; // e.g., 'polygon', 'base'
   priceUsdc?: number;
 }
 
@@ -79,6 +80,7 @@ export async function recordPremiumAccessForMarket(
     marketId: input.marketId,
     expiresAt: expiryTime.toISOString(),
     txHash: input.txHash,
+    chain: input.chain,
     priceUsdc: input.priceUsdc,
   });
 

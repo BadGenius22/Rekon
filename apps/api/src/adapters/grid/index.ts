@@ -16,6 +16,8 @@ export {
   fetchGridSeriesStatistics,
   fetchGridGameStatistics,
   fetchGridTeamRoster,
+  fetchHeadToHeadHistory,
+  type H2HMatchResult,
 } from "./client";
 
 // Mapper functions
@@ -83,6 +85,7 @@ export {
   GET_TOURNAMENTS,
   GET_TOURNAMENT,
   GET_SERIES_FORMATS,
+  GET_HEAD_TO_HEAD_SERIES,
 } from "./queries";
 
 // Team Index (fuzzy search for team name resolution)
