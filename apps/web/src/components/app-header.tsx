@@ -39,7 +39,7 @@ export function AppHeader() {
           <Link
             href="/"
             className="flex min-w-0 items-center shrink-0 transition-opacity hover:opacity-80"
-            aria-label="Rekon - Esports Markets"
+            aria-label="RekonGG - Esports Markets"
           >
             <RekonLogo size="md" />
           </Link>
