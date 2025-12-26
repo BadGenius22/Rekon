@@ -1,8 +1,14 @@
 {
-  "buildCommand": "mkdir -p public && echo '{}' > public/index.json",
+  "buildCommand": "mkdir -p public && echo '{}' > public/.keep.json",
   "outputDirectory": "public",
   "installCommand": "cd ../.. && pnpm install",
   "framework": null,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
