@@ -1,15 +1,11 @@
 /**
- * Vercel Serverless Function Handler (Build Output API v3)
+ * Vercel Serverless Function Entry Point
  *
- * Uses @hono/node-server for Node.js runtime compatibility.
- * Build Output API v3 passes Node.js IncomingMessage/ServerResponse,
- * not Web Request objects, so we need the node-server adapter.
+ * Just export the Hono app directly.
+ * Vercel auto-detects Hono and handles the adaptation.
+ * See: https://hono.dev/docs/getting-started/vercel
  */
 
-import { getRequestListener } from "@hono/node-server";
 import app from "../src/index.js";
 
-// Bind fetch to preserve 'this' context
-const handler = getRequestListener(app.fetch.bind(app));
-
-export default handler;
+export default app;
