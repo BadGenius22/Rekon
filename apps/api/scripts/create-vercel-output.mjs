@@ -48,10 +48,11 @@ if (existsSync(sourceMapSrc)) {
 }
 
 // Create function config (.vc-config.json)
-// Build Output API v3: handler file is "handler.js", Hono app is exported as default
+// Build Output API v3: handler file is "handler.js"
+// For default exports, Vercel automatically uses the default export when handler is "handler.js"
 const vcConfig = {
   runtime: "nodejs20.x",
-  handler: "handler.default", // File is handler.js, export is default (Hono app)
+  handler: "handler.js", // Vercel will use the default export automatically
   launcherType: "Nodejs",
   shouldAddHelpers: false,
   shouldAddSourcemapSupport: false,
