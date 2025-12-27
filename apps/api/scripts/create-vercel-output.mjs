@@ -7,9 +7,18 @@
  * Build Output API: https://vercel.com/docs/build-output-api/v3
  */
 
-import { mkdirSync, writeFileSync, copyFileSync, existsSync } from "fs";
+import {
+  mkdirSync,
+  writeFileSync,
+  copyFileSync,
+  existsSync,
+  readFileSync,
+  readdirSync,
+} from "fs";
+import { cp, mkdir, realpath } from "fs/promises";
 import { dirname, join, resolve } from "path";
 import { fileURLToPath } from "url";
+import { builtinModules } from "module";
 
 // Use script location (__dirname) as reference point for absolute paths
 // This makes the script work regardless of current working directory
@@ -77,6 +86,270 @@ writeFileSync(
   JSON.stringify(vcConfig, null, 2)
 );
 console.log("✓ Created .vc-config.json");
+
+// Copy external npm packages that are marked as external in tsup
+// These packages are imported but not bundled, so they need to be available at runtime
+console.log("\n📦 Copying external npm packages...");
+
+const repoRoot = resolve(apiDir, "..", "..");
+const rootNodeModules = join(repoRoot, "node_modules");
+const localNodeModules = join(apiDir, "node_modules");
+const funcNodeModules = join(apiFuncDir, "node_modules");
+
+mkdirSync(funcNodeModules, { recursive: true });
+
+// Copy all npm packages from apps/api/node_modules
+// These are the packages that are external (not bundled)
+// We'll copy everything except workspace packages
+const apiPackageJsonPath = join(apiDir, "package.json");
+const apiPackageJson = JSON.parse(readFileSync(apiPackageJsonPath, "utf-8"));
+
+// Also check root package.json for dependencies (e.g., fuse.js)
+const rootPackageJsonPath = join(repoRoot, "package.json");
+let rootPackageJson = { dependencies: {} };
+if (existsSync(rootPackageJsonPath)) {
+  rootPackageJson = JSON.parse(readFileSync(rootPackageJsonPath, "utf-8"));
+}
+
+// Get list of external packages to copy (all npm packages, not workspace)
+// Merge dependencies from both API and root package.json
+const allDependencies = {
+  ...(rootPackageJson.dependencies || {}),
+  ...(apiPackageJson.dependencies || {}),
+};
+
+// Start with direct dependencies
+const externalPackages = Object.keys(allDependencies).filter(
+  (name) => !name.startsWith("@rekon/")
+);
+
+// Helper to find a package in .pnpm store
+function findInPnpmStore(packageName) {
+  const pnpmStore = join(rootNodeModules, ".pnpm");
+  if (!existsSync(pnpmStore)) {
+    return null;
+  }
+
+  try {
+    const pnpmEntries = readdirSync(pnpmStore, { withFileTypes: true });
+    for (const entry of pnpmEntries) {
+      if (
+        entry.isDirectory() &&
+        entry.name.includes(packageName.replace("@", "").replace("/", "+"))
+      ) {
+        const packagePath = join(
+          pnpmStore,
+          entry.name,
+          "node_modules",
+          packageName
+        );
+        if (existsSync(packagePath)) {
+          return packagePath;
+        }
+        // Check scoped packages
+        const scopedMatch = packageName.match(/^(@[^/]+)\/(.+)$/);
+        if (scopedMatch) {
+          const [, scope, pkg] = scopedMatch;
+          const scopedPath = join(
+            pnpmStore,
+            entry.name,
+            "node_modules",
+            scope,
+            pkg
+          );
+          if (existsSync(scopedPath)) {
+            return scopedPath;
+          }
+        }
+      }
+    }
+  } catch (err) {
+    // Ignore errors
+  }
+
+  return null;
+}
+
+// Helper to find and copy a package
+async function copyPackage(packageName) {
+  // Check local node_modules first
+  let sourcePath = null;
+  if (existsSync(localNodeModules)) {
+    const localPath = join(localNodeModules, packageName);
+    if (existsSync(localPath)) {
+      sourcePath = localPath;
+    } else {
+      // Check scoped packages
+      const scopedMatch = packageName.match(/^(@[^/]+)\/(.+)$/);
+      if (scopedMatch) {
+        const [, scope, pkg] = scopedMatch;
+        const scopedPath = join(localNodeModules, scope, pkg);
+        if (existsSync(scopedPath)) {
+          sourcePath = scopedPath;
+        }
+      }
+    }
+  }
+
+  // Fall back to root node_modules
+  if (!sourcePath) {
+    const rootPath = join(rootNodeModules, packageName);
+    if (existsSync(rootPath)) {
+      sourcePath = rootPath;
+    } else {
+      const scopedMatch = packageName.match(/^(@[^/]+)\/(.+)$/);
+      if (scopedMatch) {
+        const [, scope, pkg] = scopedMatch;
+        const scopedPath = join(rootNodeModules, scope, pkg);
+        if (existsSync(scopedPath)) {
+          sourcePath = scopedPath;
+        }
+      }
+    }
+  }
+
+  // Last resort: search in .pnpm store
+  if (!sourcePath) {
+    sourcePath = findInPnpmStore(packageName);
+  }
+
+  if (!sourcePath || !existsSync(sourcePath)) {
+    return false;
+  }
+
+  try {
+    // Resolve symlinks and copy
+    const realSource = await realpath(sourcePath);
+    const scopedMatch = packageName.match(/^(@[^/]+)\/(.+)$/);
+    let dest;
+    if (scopedMatch) {
+      const [, scope, pkg] = scopedMatch;
+      const scopeDest = join(funcNodeModules, scope);
+      await mkdir(scopeDest, { recursive: true });
+      dest = join(scopeDest, pkg);
+    } else {
+      dest = join(funcNodeModules, packageName);
+    }
+
+    if (!existsSync(dest)) {
+      await cp(realSource, dest, { recursive: true, dereference: true });
+      return true;
+    }
+    return true;
+  } catch (err) {
+    console.warn(`⚠ Could not copy ${packageName}:`, err.message);
+    return false;
+  }
+}
+
+// Helper to read package.json and get dependencies
+function getPackageDependencies(packagePath) {
+  const packageJsonPath = join(packagePath, "package.json");
+  if (!existsSync(packageJsonPath)) {
+    return {};
+  }
+  try {
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+    return {
+      ...(packageJson.dependencies || {}),
+      ...(packageJson.optionalDependencies || {}),
+    };
+  } catch (err) {
+    return {};
+  }
+}
+
+// Helper to find package path (sync version for dependency discovery)
+function findPackagePathSync(pkg) {
+  // Check local node_modules first
+  if (existsSync(localNodeModules)) {
+    const localPath = join(localNodeModules, pkg);
+    if (existsSync(localPath)) {
+      return localPath;
+    }
+    const scopedMatch = pkg.match(/^(@[^/]+)\/(.+)$/);
+    if (scopedMatch) {
+      const [, scope, pkgName] = scopedMatch;
+      const scopedPath = join(localNodeModules, scope, pkgName);
+      if (existsSync(scopedPath)) {
+        return scopedPath;
+      }
+    }
+  }
+
+  // Fall back to root node_modules
+  const rootPath = join(rootNodeModules, pkg);
+  if (existsSync(rootPath)) {
+    return rootPath;
+  }
+  const scopedMatch = pkg.match(/^(@[^/]+)\/(.+)$/);
+  if (scopedMatch) {
+    const [, scope, pkgName] = scopedMatch;
+    const scopedPath = join(rootNodeModules, scope, pkgName);
+    if (existsSync(scopedPath)) {
+      return scopedPath;
+    }
+  }
+
+  // Last resort: search in .pnpm store
+  return findInPnpmStore(pkg);
+}
+
+// Recursively collect all transitive dependencies
+const allPackagesToCopy = new Set(externalPackages);
+const processedPackages = new Set();
+const queue = [...externalPackages];
+
+while (queue.length > 0) {
+  const pkg = queue.shift();
+  if (processedPackages.has(pkg)) continue;
+  processedPackages.add(pkg);
+
+  const packagePath = findPackagePathSync(pkg);
+  if (!packagePath || !existsSync(packagePath)) continue;
+
+  try {
+    // Read dependencies synchronously (we'll resolve symlinks when copying)
+    const transitiveDeps = getPackageDependencies(packagePath);
+
+    // Add transitive dependencies to the queue
+    for (const [name, version] of Object.entries(transitiveDeps)) {
+      // Skip workspace packages and Node.js built-ins
+      if (
+        !name.startsWith("@rekon/") &&
+        !builtinModules.includes(name) &&
+        !name.startsWith("node:")
+      ) {
+        if (!allPackagesToCopy.has(name)) {
+          allPackagesToCopy.add(name);
+          queue.push(name);
+        }
+      }
+    }
+  } catch (err) {
+    // Ignore errors
+  }
+}
+
+// Copy all packages (direct + transitive)
+let copied = 0;
+const packagesToCopy = Array.from(allPackagesToCopy);
+for (const pkg of packagesToCopy) {
+  if (await copyPackage(pkg)) {
+    copied++;
+    if (copied % 5 === 0) {
+      process.stdout.write(".");
+    }
+  }
+}
+
+const directCount = externalPackages.length;
+const transitiveCount = packagesToCopy.length - directCount;
+console.log(
+  `\n✓ Copied ${copied} external packages (${directCount} direct${
+    transitiveCount > 0 ? ` + ${transitiveCount} transitive` : ""
+  })`
+);
 
 // Create main config.json with routing
 // This is REQUIRED for Build Output API v3
