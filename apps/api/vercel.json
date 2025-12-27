@@ -1,6 +1,5 @@
 {
   "framework": null,
   "installCommand": "cd ../.. && pnpm install",
-  "buildCommand": "cd ../.. && pnpm build:api && node apps/api/scripts/create-vercel-output.mjs",
-  "outputDirectory": ".vercel/output"
+  "buildCommand": "cd ../.. && pnpm build:api && node apps/api/scripts/create-vercel-output.mjs"
 }
