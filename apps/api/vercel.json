@@ -1,6 +1,4 @@
 {
-  "buildCommand": "cd ../.. && pnpm build:api",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/api" }
-  ]
+  "buildCommand": "cd ../.. && pnpm build:api && node apps/api/scripts/create-vercel-output.mjs",
+  "outputDirectory": ".vercel/output"
 }
