@@ -7,12 +7,7 @@
  * Build Output API: https://vercel.com/docs/build-output-api/v3
  */
 
-import {
-  mkdirSync,
-  writeFileSync,
-  copyFileSync,
-  existsSync,
-} from "fs";
+import { mkdirSync, writeFileSync, copyFileSync, existsSync } from "fs";
 import { dirname, join, resolve } from "path";
 import { fileURLToPath } from "url";
 
