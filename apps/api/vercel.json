@@ -1,6 +1,6 @@
 {
   "framework": null,
   "installCommand": "cd ../.. && pnpm install",
-  "buildCommand": "cd ../.. && pnpm build:api && echo '=== Build complete, checking output ===' && ls -la apps/api/api/ && echo '=== Running output script ===' && cd apps/api && pwd && node scripts/create-vercel-output.mjs && echo '=== Verifying output ===' && ls -la .vercel/output/functions/api.func/",
+  "buildCommand": "cd ../.. && pnpm build:api:vercel",
   "outputDirectory": ".vercel/output"
 }
