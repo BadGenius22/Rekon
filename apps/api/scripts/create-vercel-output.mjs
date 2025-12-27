@@ -7,7 +7,13 @@
  * Build Output API: https://vercel.com/docs/build-output-api/v3
  */
 
-import { mkdirSync, writeFileSync, copyFileSync, existsSync } from "fs";
+import {
+  mkdirSync,
+  writeFileSync,
+  copyFileSync,
+  existsSync,
+  readFileSync,
+} from "fs";
 import { dirname, join, resolve } from "path";
 import { fileURLToPath } from "url";
 
@@ -77,6 +83,37 @@ writeFileSync(
   JSON.stringify(vcConfig, null, 2)
 );
 console.log("✓ Created .vc-config.json");
+
+// Create package.json for external dependencies
+// Vercel will install these dependencies in the function directory
+const packageJsonPath = join(apiDir, "package.json");
+const packageJsonContent = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+
+// Extract all dependencies except workspace packages (@rekon/*)
+// These will be installed by Vercel in the function's node_modules
+const externalDependencies = {};
+for (const [name, version] of Object.entries(
+  packageJsonContent.dependencies || {}
+)) {
+  // Skip workspace packages (they're bundled)
+  if (!name.startsWith("@rekon/")) {
+    externalDependencies[name] = version;
+  }
+}
+
+const functionPackageJson = {
+  type: "module",
+  dependencies: externalDependencies,
+};
+
+writeFileSync(
+  join(apiFuncDir, "package.json"),
+  JSON.stringify(functionPackageJson, null, 2)
+);
+console.log("✓ Created package.json for external dependencies");
+console.log(
+  `  (${Object.keys(externalDependencies).length} external packages)`
+);
 
 // Create main config.json with routing
 // This is REQUIRED for Build Output API v3

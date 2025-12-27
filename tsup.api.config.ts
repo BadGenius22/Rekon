@@ -13,9 +13,10 @@ export default defineConfig({
   dts: false,
   splitting: false,
   bundle: true,
-  // Bundle everything except Node.js built-ins
-  noExternal: [/.*/],
-  external: [...builtinModules], // Automatically excludes all Node.js built-in modules
+  // Bundle workspace packages, keep npm packages external
+  noExternal: [/^@rekon\//],
+  // Keep Node.js built-ins and problematic packages external
+  external: [...builtinModules, "ws", "bufferutil", "utf-8-validate"],
   esbuildOptions(options) {
     options.mainFields = ["module", "main", "types"];
     return options;
