@@ -25,6 +25,8 @@ export default defineConfig({
     "ethers",
     // Keep fuse.js external (it's in root package.json, not apps/api/package.json)
     "fuse.js",
+    // CommonJS dependencies that ethers uses (CJS/ESM interop issues)
+    "aes-js",
   ],
   esbuildOptions(options) {
     options.mainFields = ["module", "main"];

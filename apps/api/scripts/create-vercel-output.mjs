@@ -120,6 +120,8 @@ const externalPackages = [
   "@ethersproject/signing-key",
   "@ethersproject/units", // Used by @ethersproject/wallet
   "fuse.js", // In root package.json, needs to be copied
+  // CommonJS dependencies that ethers uses (CJS/ESM interop issues)
+  "aes-js",
 ];
 
 // Helper to find a package in .pnpm store
