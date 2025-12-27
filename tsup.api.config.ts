@@ -1,8 +1,9 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  // Bundle the Vercel handler as the entry point (includes hono/vercel)
-  entry: { handler: "apps/api/src/vercel-handler.ts" },
+  // Bundle the Vercel serverless function entry point
+  // This exports the Hono app directly - Vercel has native Hono support
+  entry: { index: "apps/api/api/index.ts" },
   format: ["esm"],
   platform: "node",
   target: "node20",
@@ -14,33 +15,7 @@ export default defineConfig({
   splitting: false,
   bundle: true,
   // Bundle EVERYTHING into a single self-contained file for Vercel
-  noExternal: [/.*/],
-  // Only mark Node.js built-ins as external
-  external: [
-    "node:*",
-    "fs",
-    "path",
-    "os",
-    "crypto",
-    "stream",
-    "util",
-    "events",
-    "buffer",
-    "http",
-    "https",
-    "url",
-    "querystring",
-    "zlib",
-    "net",
-    "tls",
-    "child_process",
-    "worker_threads",
-    "async_hooks",
-    "perf_hooks",
-    "dns",
-    "assert",
-    "timers",
-    "tty",
-    "readline",
-  ],
+  // This is critical for monorepo workspace packages - they must be bundled
+  // Using external: [] ensures ALL dependencies (including workspace packages) are bundled
+  external: [],
 });
