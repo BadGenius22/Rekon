@@ -1,7 +1,8 @@
 {
   "installCommand": "cd ../.. && pnpm install",
   "buildCommand": "cd ../.. && pnpm build:api",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/api/handler" }
-  ]
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/handler" }],
+  "git": {
+    "deploymentEnabled": false
+  }
 }
