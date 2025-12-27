@@ -66,32 +66,14 @@ async function main() {
     )
   );
 
-  // Root config with CORS headers for preflight requests
-  // Vercel edge routing happens BEFORE the handler, so OPTIONS must be handled here
+  // Root config - route all requests to API handler
+  // CORS is handled by Hono middleware (including OPTIONS preflight)
   await writeFile(
     join(outputDir, "config.json"),
     JSON.stringify(
       {
         version: 3,
-        routes: [
-          // Handle CORS preflight (OPTIONS) at edge level
-          {
-            src: "/(.*)",
-            methods: ["OPTIONS"],
-            headers: {
-              "Access-Control-Allow-Origin": "*",
-              "Access-Control-Allow-Methods":
-                "GET, POST, PUT, DELETE, OPTIONS",
-              "Access-Control-Allow-Headers":
-                "Content-Type, Authorization, x-demo-mode, x-payment, x-wallet-address",
-              "Access-Control-Expose-Headers":
-                "x-payment-response, x-payment-receipt, x-premium-access, x-premium-expires",
-              "Access-Control-Max-Age": "86400",
-            },
-          },
-          // All other requests go to API handler
-          { src: "/(.*)", dest: "/api" },
-        ],
+        routes: [{ src: "/(.*)", dest: "/api" }],
       },
       null,
       2
@@ -103,7 +85,6 @@ async function main() {
   console.log(`✓ Build Output API v3 structure created`);
   console.log(`  - Runtime: nodejs20.x`);
   console.log(`  - Bundle size: ${bundleSize} MB`);
-  console.log(`  - CORS preflight: enabled`);
 }
 
 main().catch((err) => {

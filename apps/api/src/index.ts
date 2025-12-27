@@ -1,4 +1,4 @@
-import { Hono, type Context } from "hono";
+import { Hono } from "hono";
 
 // App context type with session variable
 type AppEnv = {
