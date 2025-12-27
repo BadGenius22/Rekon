@@ -88,14 +88,38 @@ console.log("✓ Created .vc-config.json");
 
 // Create package.json for external dependencies
 // Vercel will install these dependencies in the function directory
-const packageJsonPath = join(apiDir, "package.json");
-const packageJsonContent = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+const apiPackageJsonPath = join(apiDir, "package.json");
+const apiPackageJsonContent = JSON.parse(
+  readFileSync(apiPackageJsonPath, "utf-8")
+);
+
+// Also check root package.json for dependencies (e.g., fuse.js)
+const repoRoot = resolve(apiDir, "..", "..");
+const rootPackageJsonPath = join(repoRoot, "package.json");
+let rootPackageJsonContent = { dependencies: {} };
+if (existsSync(rootPackageJsonPath)) {
+  rootPackageJsonContent = JSON.parse(
+    readFileSync(rootPackageJsonPath, "utf-8")
+  );
+}
 
 // Extract all dependencies except workspace packages (@rekon/*)
-// These will be installed by Vercel in the function's node_modules
+// Merge dependencies from both API package.json and root package.json
 const externalDependencies = {};
+
+// First, add dependencies from root package.json
 for (const [name, version] of Object.entries(
-  packageJsonContent.dependencies || {}
+  rootPackageJsonContent.dependencies || {}
+)) {
+  // Skip workspace packages (they're bundled)
+  if (!name.startsWith("@rekon/")) {
+    externalDependencies[name] = version;
+  }
+}
+
+// Then, add dependencies from API package.json (these override root if same name)
+for (const [name, version] of Object.entries(
+  apiPackageJsonContent.dependencies || {}
 )) {
   // Skip workspace packages (they're bundled)
   if (!name.startsWith("@rekon/")) {
@@ -137,7 +161,7 @@ console.log(
 console.log("\n📦 Copying node_modules dependencies...");
 
 // Determine paths - check local node_modules first (pnpm workspace)
-const repoRoot = resolve(apiDir, "..", "..");
+// repoRoot is already defined above
 const localNodeModules = join(apiDir, "node_modules");
 const rootNodeModules = join(repoRoot, "node_modules");
 const funcNodeModules = join(apiFuncDir, "node_modules");
