@@ -1,4 +1,11 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
+
+// App context type with session variable
+type AppEnv = {
+  Variables: {
+    sessionId?: string;
+  };
+};
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { compress } from "hono/compress";
@@ -10,7 +17,7 @@ import { initSentry, captureError, trackFailedRequest } from "./utils/sentry.js"
 // Initialize Sentry for error tracking
 initSentry();
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 // Global error handler
 app.onError((err, c) => {
@@ -22,9 +29,7 @@ app.onError((err, c) => {
   console.error("API Error:", err);
 
   // Track failed request
-  // Use type assertion to access sessionId from context
-  const sessionId =
-    (c.get("sessionId" as never) as string | undefined) || undefined;
+  const sessionId = c.get("sessionId");
   trackFailedRequest(path, method, statusCode, err, {
     sessionId,
   });
