@@ -2,10 +2,9 @@
  * Vercel Serverless Function Entry Point
  *
  * Pre-bundled by tsup with all dependencies.
- * Uses handle() from hono/vercel for proper Vercel integration.
+ * Export app directly - Vercel auto-adapts Hono apps.
  */
 
-import { handle } from "hono/vercel";
 import app from "../src/index.js";
 
-export default handle(app);
+export default app;
