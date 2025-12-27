@@ -40,11 +40,12 @@ copyFileSync(handlerSrc, handlerDest);
 console.log('Copied handler.js');
 
 // Create function config
+// Using Web API fetch handler format with default export
 const vcConfig = {
   runtime: 'nodejs20.x',
-  handler: 'handler.js',
+  handler: 'handler.default',
   launcherType: 'Nodejs',
-  shouldAddHelpers: true,
+  shouldAddHelpers: false,
   shouldAddSourcemapSupport: false,
 };
 
