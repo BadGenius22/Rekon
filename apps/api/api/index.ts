@@ -1,12 +1,14 @@
 /**
- * Vercel Serverless Function Handler
+ * Vercel Serverless Function Handler (Build Output API v3)
  *
- * Entry point for Vercel serverless functions.
- * This file is bundled by tsup with all dependencies included.
- * Vercel serves the bundled output (api/index.js).
+ * Uses @hono/node-server for Node.js runtime compatibility.
+ * Build Output API v3 passes Node.js IncomingMessage/ServerResponse,
+ * not Web Request objects, so we need the node-server adapter.
  */
 
-import { handle } from "hono/vercel";
+import { getRequestListener } from "@hono/node-server";
 import app from "../src/index.js";
 
-export default handle(app);
+const handler = getRequestListener(app.fetch);
+
+export default handler;
