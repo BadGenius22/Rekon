@@ -13,7 +13,9 @@ import {
   copyFileSync,
   existsSync,
   readFileSync,
+  readdirSync,
 } from "fs";
+import { cp, mkdir, realpath } from "fs/promises";
 import { dirname, join, resolve } from "path";
 import { fileURLToPath } from "url";
 
@@ -101,6 +103,21 @@ for (const [name, version] of Object.entries(
   }
 }
 
+// Explicitly add transitive dependencies that are marked as external in tsup
+// These are needed at runtime but might not be in package.json dependencies
+const requiredTransitiveDeps = {
+  ws: "^8.17.1", // Used by @polymarket/clob-client
+  bufferutil: "^4.0.9", // Optional dependency of ws
+  "utf-8-validate": "^5.0.10", // Optional dependency of ws
+};
+
+// Merge transitive deps (don't override if already present)
+for (const [name, version] of Object.entries(requiredTransitiveDeps)) {
+  if (!externalDependencies[name]) {
+    externalDependencies[name] = version;
+  }
+}
+
 const functionPackageJson = {
   type: "module",
   dependencies: externalDependencies,
@@ -113,6 +130,146 @@ writeFileSync(
 console.log("✓ Created package.json for external dependencies");
 console.log(
   `  (${Object.keys(externalDependencies).length} external packages)`
+);
+
+// Copy node_modules dependencies
+// Build Output API v3 includes files recursively, so we need to copy dependencies manually
+console.log("\n📦 Copying node_modules dependencies...");
+
+// Determine paths - check local node_modules first (pnpm workspace)
+const repoRoot = resolve(apiDir, "..", "..");
+const localNodeModules = join(apiDir, "node_modules");
+const rootNodeModules = join(repoRoot, "node_modules");
+const funcNodeModules = join(apiFuncDir, "node_modules");
+
+// Create node_modules directory in the function
+mkdirSync(funcNodeModules, { recursive: true });
+
+// Helper function to find a dependency in .pnpm store
+function findInPnpmStore(dep) {
+  const pnpmStore = join(rootNodeModules, ".pnpm");
+  if (!existsSync(pnpmStore)) {
+    return null;
+  }
+
+  try {
+    const pnpmEntries = readdirSync(pnpmStore, { withFileTypes: true });
+
+    for (const entry of pnpmEntries) {
+      if (entry.isDirectory() && entry.name.includes(dep)) {
+        const packagePath = join(pnpmStore, entry.name, "node_modules", dep);
+        if (existsSync(packagePath)) {
+          return packagePath;
+        }
+        // Check scoped packages
+        const scopedMatch = dep.match(/^(@[^/]+)\/(.+)$/);
+        if (scopedMatch) {
+          const [, scope, packageName] = scopedMatch;
+          const scopedPath = join(
+            pnpmStore,
+            entry.name,
+            "node_modules",
+            scope,
+            packageName
+          );
+          if (existsSync(scopedPath)) {
+            return scopedPath;
+          }
+        }
+      }
+    }
+  } catch (err) {
+    // Ignore errors
+  }
+
+  return null;
+}
+
+// Helper function to find a dependency
+function findDependency(dep) {
+  // Check local node_modules first (pnpm workspace)
+  if (existsSync(localNodeModules)) {
+    const localPath = join(localNodeModules, dep);
+    if (existsSync(localPath)) {
+      return localPath;
+    }
+    // Check scoped packages
+    const scopedMatch = dep.match(/^(@[^/]+)\/(.+)$/);
+    if (scopedMatch) {
+      const [, scope, packageName] = scopedMatch;
+      const scopedPath = join(localNodeModules, scope, packageName);
+      if (existsSync(scopedPath)) {
+        return scopedPath;
+      }
+    }
+  }
+
+  // Fall back to root node_modules
+  const rootPath = join(rootNodeModules, dep);
+  if (existsSync(rootPath)) {
+    return rootPath;
+  }
+  // Check scoped packages in root
+  const scopedMatch = dep.match(/^(@[^/]+)\/(.+)$/);
+  if (scopedMatch) {
+    const [, scope, packageName] = scopedMatch;
+    const scopedPath = join(rootNodeModules, scope, packageName);
+    if (existsSync(scopedPath)) {
+      return scopedPath;
+    }
+  }
+
+  // Last resort: search in .pnpm store (for transitive dependencies)
+  return findInPnpmStore(dep);
+}
+
+// Copy each external dependency
+const dependenciesToCopy = Object.keys(externalDependencies);
+let copiedCount = 0;
+let skippedCount = 0;
+
+for (const dep of dependenciesToCopy) {
+  const sourcePath = findDependency(dep);
+
+  if (!sourcePath || !existsSync(sourcePath)) {
+    console.warn(`⚠ Could not find ${dep} in node_modules`);
+    skippedCount++;
+    continue;
+  }
+
+  try {
+    // Determine destination path
+    const scopedMatch = dep.match(/^(@[^/]+)\/(.+)$/);
+    let dest;
+    if (scopedMatch) {
+      // Scoped package
+      const [, scope, packageName] = scopedMatch;
+      const scopeDest = join(funcNodeModules, scope);
+      await mkdir(scopeDest, { recursive: true });
+      dest = join(scopeDest, packageName);
+    } else {
+      // Regular package
+      dest = join(funcNodeModules, dep);
+    }
+
+    // Resolve symlinks to get the actual package directory
+    // Then copy with dereference to follow all symlinks
+    const realSource = await realpath(sourcePath);
+    await cp(realSource, dest, { recursive: true, dereference: true });
+    copiedCount++;
+    if (copiedCount % 5 === 0) {
+      process.stdout.write(".");
+    }
+  } catch (err) {
+    console.warn(`\n⚠ Could not copy ${dep}:`, err.message);
+    skippedCount++;
+  }
+}
+
+console.log(
+  `\n✓ Copied ${copiedCount} dependencies${
+    skippedCount > 0 ? ` (${skippedCount} skipped)` : ""
+  }`
 );
 
 // Create main config.json with routing
