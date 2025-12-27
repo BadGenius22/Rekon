@@ -8,30 +8,30 @@
  */
 
 import { mkdirSync, writeFileSync, copyFileSync, existsSync } from "fs";
-import { dirname, join } from "path";
+import { dirname, join, resolve } from "path";
 import { fileURLToPath } from "url";
 
-// Use process.cwd() to respect Vercel's Root Directory setting
-// This will be the monorepo root if Root Directory is not set,
-// or apps/api if Root Directory is set to apps/api
-const rootDir = process.cwd();
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const apiDir = join(__dirname, "..");
+// Use script location (__dirname) as reference point for absolute paths
+// This makes the script work regardless of current working directory
+// Script is at: apps/api/scripts/create-vercel-output.mjs
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-// Determine if we're in apps/api or monorepo root
-const isApiRoot = rootDir.endsWith("apps/api") || rootDir.endsWith("apps\\api");
-const handlerSourceDir = isApiRoot 
-  ? join(rootDir, "api") 
-  : join(rootDir, "apps", "api", "api");
+// API directory is the parent of scripts directory
+const apiDir = resolve(__dirname, "..");
 
-// Output directories - must be relative to Vercel's Root Directory
-const outputDir = join(rootDir, ".vercel", "output");
+// Output directories - always relative to apps/api when Root Directory is apps/api
+// This works because the script is always in apps/api/scripts/
+const outputDir = resolve(apiDir, ".vercel", "output");
 const functionsDir = join(outputDir, "functions");
 const apiFuncDir = join(functionsDir, "api.func");
 const staticDir = join(outputDir, "static");
 
-console.log("🔍 Current working directory:", rootDir);
-console.log("🔍 Script location:", __dirname);
+// Handler is always in apps/api/api/index.js (relative to script's parent)
+const handlerSourceDir = resolve(apiDir, "api");
+
+console.log("🔍 Script directory:", __dirname);
+console.log("🔍 API directory:", apiDir);
 console.log("🔍 Creating output at:", outputDir);
 console.log("🔍 Handler source:", handlerSourceDir);
 console.log("\nCreating Vercel Build Output API v3 structure...");
