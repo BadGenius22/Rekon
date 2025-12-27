@@ -353,17 +353,61 @@ console.log(
   })`
 );
 
-// Create package.json in function directory to help with module resolution
-// This ensures Node.js can properly resolve CommonJS modules like aes-js
+// Create package.json in function directory
 const funcPackageJson = {
   type: "module",
-  // This helps Node.js handle CJS/ESM interop better
 };
 writeFileSync(
   join(apiFuncDir, "package.json"),
   JSON.stringify(funcPackageJson, null, 2)
 );
 console.log("✓ Created package.json for module resolution");
+
+// After copying packages, replace aes-js entry point with ESM wrapper
+// This ensures ethers can import aes-js with ESM syntax
+const aesJsPath = join(funcNodeModules, "aes-js");
+if (existsSync(aesJsPath)) {
+  // Read the original package.json
+  const aesPackageJsonPath = join(aesJsPath, "package.json");
+  if (existsSync(aesPackageJsonPath)) {
+    const aesPackageJson = JSON.parse(
+      readFileSync(aesPackageJsonPath, "utf-8")
+    );
+
+    // Create ESM wrapper that re-exports the CommonJS module
+    const wrapperContent = `import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const aesjs = require("./index.js");
+export const CTR = aesjs.CTR;
+export const CBC = aesjs.CBC;
+export const CFB = aesjs.CFB;
+export const OFB = aesjs.OFB;
+export const ECB = aesjs.ECB;
+export const ModeOfOperation = aesjs.ModeOfOperation;
+export const utils = aesjs.utils;
+export const padding = aesjs.padding;
+export default aesjs;
+`;
+
+    // Write the wrapper as the main entry point
+    writeFileSync(join(aesJsPath, "index.mjs"), wrapperContent);
+
+    // Update package.json to use the ESM wrapper
+    aesPackageJson.type = "module";
+    aesPackageJson.main = "index.js"; // Keep original for require()
+    aesPackageJson.module = "index.mjs"; // Use ESM wrapper for import
+    aesPackageJson.exports = {
+      ".": {
+        require: "./index.js",
+        import: "./index.mjs",
+        default: "./index.js",
+      },
+    };
+
+    writeFileSync(aesPackageJsonPath, JSON.stringify(aesPackageJson, null, 2));
+    console.log("✓ Patched aes-js package.json for ESM compatibility");
+  }
+}
 
 // Create main config.json with routing
 // This is REQUIRED for Build Output API v3
