@@ -1,56 +1,29 @@
 /**
  * Vercel Serverless Function Entry Point for Hono API
  *
- * Vercel requires named exports for each HTTP method.
- * The handle() adapter wraps the Hono app for Vercel's serverless runtime.
- *
- * Note: This file imports from ../dist/index.js which is created during build.
- * It's excluded from TypeScript compilation but used by Vercel at runtime.
+ * This file loads the bundled Hono app from ../dist/index.js
+ * and adapts it to Vercel's serverless runtime.
  */
 
 import { handle } from "hono/vercel";
+import type { Hono } from "hono";
 
-// Dynamically import the app to catch bundling errors gracefully
-let app: Awaited<ReturnType<typeof import("../dist/index.js")>>["default"];
+// --- load bundled app (build artifact) ---
+const mod = await import("../dist/index.js");
 
-try {
-  const appModule = await import("../dist/index.js");
-  app = appModule.default;
-  if (!app) {
-    throw new Error("App default export is undefined");
-  }
-} catch (error) {
-  console.error("❌ Failed to import bundled app from dist/index.js:", error);
-  console.error("Error details:", {
-    message: error instanceof Error ? error.message : String(error),
-    code: (error as { code?: string })?.code,
-    stack: error instanceof Error ? error.stack : undefined,
-  });
+const app = mod.default as Hono;
 
-  // Create a minimal error app as fallback to provide helpful error message
-  const { Hono } = await import("hono");
-  const errorApp = new Hono();
-  errorApp.all("*", (c) => {
-    return c.json(
-      {
-        error: "Bundle not found or failed to load",
-        message:
-          error instanceof Error
-            ? error.message
-            : "dist/index.js was not created during build or failed to import",
-        hint: "Check Vercel build logs to ensure 'pnpm build:api' succeeded",
-        errorCode: (error as { code?: string })?.code,
-      },
-      500
-    );
-  });
-  app = errorApp;
+if (!app) {
+  throw new Error("❌ dist/index.js has no default export");
 }
 
-// Export named handlers for each HTTP method (required by Vercel)
-export const GET = handle(app);
-export const POST = handle(app);
-export const PUT = handle(app);
-export const DELETE = handle(app);
-export const PATCH = handle(app);
-export const OPTIONS = handle(app);
+// --- create handler once ---
+const handler = handle(app);
+
+// --- re-export for Vercel ---
+export const GET = handler;
+export const POST = handler;
+export const PUT = handler;
+export const DELETE = handler;
+export const PATCH = handler;
+export const OPTIONS = handler;
