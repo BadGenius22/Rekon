@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import { z } from "zod";
-import { getMarketFull } from "../services/market-full";
+import { getMarketFull } from "../services/market-full.js";
 
 /**
  * Market Full Controllers

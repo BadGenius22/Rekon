@@ -1,4 +1,4 @@
-import { initSentry, captureError, captureMessage } from "../utils/sentry";
+import { initSentry, captureError, captureMessage } from "../utils/sentry.js";
 
 /**
  * Sentry Smoke Test (DISABLED)

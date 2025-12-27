@@ -3,8 +3,8 @@ import {
   fetchDualPriceHistory,
   type PriceHistoryPoint,
   type PriceHistoryInterval,
-} from "../adapters/polymarket";
-import { priceHistoryCacheService } from "./cache";
+} from "../adapters/polymarket/index.js";
+import { priceHistoryCacheService } from "./cache.js";
 
 /**
  * Price History Service

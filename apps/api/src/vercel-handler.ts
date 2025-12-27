@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 
 import { handle } from "hono/vercel";
 // Import directly from source - tsup bundles everything together
-import app from "../src/index";
+import app from "./index.js";
 
 // Create the Vercel handler from the Hono app
 const handler = handle(app);

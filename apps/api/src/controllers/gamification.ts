@@ -1,10 +1,10 @@
 import type { Context } from "hono";
 import { z } from "zod";
-import { getGamificationProfile } from "../services/gamification";
-import { generateDemoGamificationProfile } from "../services/demo-portfolio";
-import { getSessionFromContext } from "../middleware/session";
-import { getPortfolioBySession } from "../services/portfolio";
-import { isDemoModeEnabled } from "../middleware/demo-mode";
+import { getGamificationProfile } from "../services/gamification.js";
+import { generateDemoGamificationProfile } from "../services/demo-portfolio.js";
+import { getSessionFromContext } from "../middleware/session.js";
+import { getPortfolioBySession } from "../services/portfolio.js";
+import { isDemoModeEnabled } from "../middleware/demo-mode.js";
 
 /**
  * Gamification Controllers

@@ -1,8 +1,8 @@
 import {
   getClobOrder,
   type ClobOrderResponse,
-} from "../adapters/polymarket/orders";
-import { orderConfirmationCacheService } from "./cache";
+} from "../adapters/polymarket/orders.js";
+import { orderConfirmationCacheService } from "./cache.js";
 import type { Order } from "@rekon/types";
 
 /**

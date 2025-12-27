@@ -1,4 +1,4 @@
-import { getSql } from "../db/client";
+import { getSql } from "../db/client.js";
 
 /**
  * Neon DB Smoke Test

@@ -4,10 +4,10 @@ import type {
   MarketResolution,
   Order,
 } from "@rekon/types";
-import { getMarketById } from "./markets";
-import { placeOrder } from "./orders";
-import { postUserOrder } from "./user-orders";
-import { BadRequest, NotFound } from "../utils/http-errors";
+import { getMarketById } from "./markets.js";
+import { placeOrder } from "./orders.js";
+import { postUserOrder } from "./user-orders.js";
+import { BadRequest, NotFound } from "../utils/http-errors.js";
 import type { UserSession } from "@rekon/types";
 
 /**

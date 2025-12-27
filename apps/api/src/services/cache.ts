@@ -1,5 +1,5 @@
 import type { Market, OrderBook, Trade, OHLCV, Order } from "@rekon/types";
-import type { PriceHistoryPoint } from "../adapters/polymarket";
+import type { PriceHistoryPoint } from "../adapters/polymarket/index.js";
 import { HybridCache } from "../adapters/redis/cache.js";
 
 /**

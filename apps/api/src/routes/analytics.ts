@@ -3,8 +3,8 @@ import {
   getAnalyticsVolumeController,
   getActiveTradersController,
   getUserMarketsTradedController,
-} from "../controllers/analytics";
-import { sessionMiddleware } from "../middleware/session";
+} from "../controllers/analytics.js";
+import { sessionMiddleware } from "../middleware/session.js";
 
 /**
  * Analytics Routes

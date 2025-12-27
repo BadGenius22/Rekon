@@ -13,8 +13,8 @@ import {
   getTotalPremiumStats,
   type LeaderboardEntry,
   type PremiumPurchase,
-} from "../db/premium-leaderboard";
-import { HybridCache } from "../adapters/redis/cache";
+} from "../db/premium-leaderboard.js";
+import { HybridCache } from "../adapters/redis/cache.js";
 
 // Check if demo mode is enabled
 const isDemoMode =

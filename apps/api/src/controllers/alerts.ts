@@ -5,8 +5,8 @@ import {
   getAlertsBySession,
   updateAlert,
   deleteAlert,
-} from "../services/alerts";
-import { getSessionFromContext } from "../middleware/session";
+} from "../services/alerts.js";
+import { getSessionFromContext } from "../middleware/session.js";
 import type { CreateAlertRequest, UpdateAlertRequest } from "@rekon/types";
 
 /**

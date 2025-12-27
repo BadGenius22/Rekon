@@ -18,8 +18,8 @@ import {
   getPremiumAccess,
   getActivePremiumAccessForWallet,
   type PremiumAccessRecord,
-} from "../db/premium-access";
-import { getMarketById } from "./markets";
+} from "../db/premium-access.js";
+import { getMarketById } from "./markets.js";
 
 // ============================================================================
 // Types

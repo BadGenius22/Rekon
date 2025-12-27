@@ -1,5 +1,5 @@
 import { POLYMARKET_CONFIG } from "@rekon/config";
-import { getClobClient } from "./clob-client";
+import { getClobClient } from "./clob-client.js";
 import {
   ClobClient,
   Side,

@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { publicSearchController } from "../controllers/search";
-import { sessionMiddleware } from "../middleware/session";
+import { publicSearchController } from "../controllers/search.js";
+import { sessionMiddleware } from "../middleware/session.js";
 
 /**
  * Search Routes

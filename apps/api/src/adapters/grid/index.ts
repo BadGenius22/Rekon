@@ -18,7 +18,7 @@ export {
   fetchGridTeamRoster,
   fetchHeadToHeadHistory,
   type H2HMatchResult,
-} from "./client";
+} from "./client.js";
 
 // Mapper functions
 export {
@@ -28,7 +28,7 @@ export {
   mapGridLiveStateToRekon,
   extractGridTeamId,
   findBestGridTeamMatch,
-} from "./mappers";
+} from "./mappers.js";
 
 // Cache utilities
 export {
@@ -40,10 +40,10 @@ export {
   clearAllCache,
   getCacheStats,
   type CacheType,
-} from "./cache";
+} from "./cache.js";
 
 // Enums (exported as values for runtime access)
-export { GridTimeWindow } from "./types";
+export { GridTimeWindow } from "./types.js";
 
 // Types (exported for use in services, but prefer @rekon/types)
 export type {
@@ -67,7 +67,7 @@ export type {
   GridLiveGameFilter,
   GridStatAggregate,
   GridRateStatistic,
-} from "./types";
+} from "./types.js";
 
 // Queries (exported for testing/debugging)
 export {
@@ -86,7 +86,7 @@ export {
   GET_TOURNAMENT,
   GET_SERIES_FORMATS,
   GET_HEAD_TO_HEAD_SERIES,
-} from "./queries";
+} from "./queries.js";
 
 // Team Index (fuzzy search for team name resolution)
 export {
@@ -96,4 +96,4 @@ export {
   searchTeamIndex,
   type TeamIndexEntry,
   type TeamSearchResult,
-} from "./team-index";
+} from "./team-index.js";

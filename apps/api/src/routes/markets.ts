@@ -10,7 +10,7 @@ import {
   getMarketsByEventSlugController,
   getMarketTradesController,
   getMarketChartController,
-} from "../controllers/markets";
+} from "../controllers/markets.js";
 
 /**
  * Markets Routes

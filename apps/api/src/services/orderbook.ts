@@ -2,9 +2,9 @@ import type { OrderBook, Market } from "@rekon/types";
 import {
   fetchPolymarketOrderBook,
   mapPolymarketOrderBook,
-} from "../adapters/polymarket";
-import { getMarketById } from "./markets";
-import { orderBookCacheService } from "./cache";
+} from "../adapters/polymarket/index.js";
+import { getMarketById } from "./markets.js";
+import { orderBookCacheService } from "./cache.js";
 
 /**
  * Order Book Service

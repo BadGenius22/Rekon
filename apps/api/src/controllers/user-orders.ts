@@ -1,8 +1,8 @@
 import type { Context } from "hono";
 import { z } from "zod";
-import { postUserOrder } from "../services/user-orders";
-import { getSessionFromContext } from "../middleware/session";
-import { BadRequest } from "../utils/http-errors";
+import { postUserOrder } from "../services/user-orders.js";
+import { getSessionFromContext } from "../middleware/session.js";
+import { BadRequest } from "../utils/http-errors.js";
 
 /**
  * User Order Controllers

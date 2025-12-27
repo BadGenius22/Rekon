@@ -17,14 +17,14 @@ import {
   resolveTeamName,
   type ResolvedTeam,
   type SupportedGame,
-} from "./team-resolution";
+} from "./team-resolution.js";
 import {
   fetchGridTeamStatistics,
   fetchGridTeamRoster,
   mapGridTeamStatisticsToEsportsStats,
-} from "../adapters/grid";
-import { GridTimeWindow } from "../adapters/grid/types";
-import { withCache, getCacheKey } from "../adapters/grid/cache";
+} from "../adapters/grid/index.js";
+import { GridTimeWindow } from "../adapters/grid/types.js";
+import { withCache, getCacheKey } from "../adapters/grid/cache.js";
 
 // =============================================================================
 // Types

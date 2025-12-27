@@ -12,9 +12,9 @@ import {
   normalizeTeamName,
   getAllCS2TeamNames,
 } from "@rekon/utils";
-import type { GridTeam } from "./types";
-import { withCache, getCacheKey } from "./cache";
-import { searchGridTeamsByName } from "./client";
+import type { GridTeam } from "./types.js";
+import { withCache, getCacheKey } from "./cache.js";
+import { searchGridTeamsByName } from "./client.js";
 
 // =============================================================================
 // Types

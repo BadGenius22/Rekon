@@ -1,6 +1,6 @@
 import { POLYMARKET_CONFIG } from "@rekon/config";
-import { getClobApiHeaders } from "./headers";
-import { trackPolymarketApiFailure } from "../../utils/sentry";
+import { getClobApiHeaders } from "./headers.js";
+import { trackPolymarketApiFailure } from "../../utils/sentry.js";
 
 /**
  * Price History Adapter

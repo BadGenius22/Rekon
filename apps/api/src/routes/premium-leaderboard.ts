@@ -15,7 +15,7 @@ import {
   getLeaderboardController,
   getUserStatsController,
   getPurchaseHistoryController,
-} from "../controllers/premium-leaderboard";
+} from "../controllers/premium-leaderboard.js";
 
 const premiumLeaderboardRoutes = new Hono()
   .get("/leaderboard", getLeaderboardController)

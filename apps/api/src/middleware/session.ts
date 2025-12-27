@@ -1,6 +1,6 @@
 import type { Context, Next } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
-import { getSession, createSession } from "../services/sessions";
+import { getSession, createSession } from "../services/sessions.js";
 import type { UserSession } from "@rekon/types";
 
 /**

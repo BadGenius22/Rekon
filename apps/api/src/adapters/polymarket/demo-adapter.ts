@@ -5,7 +5,7 @@ import type {
   PolymarketOrderBook,
   PolymarketTrade,
   PolymarketImageOptimized,
-} from "./types";
+} from "./types.js";
 import {
   getDemoMarkets,
   getDemoEvents,
@@ -14,7 +14,7 @@ import {
   getDemoPrice,
   hasDemoData,
   getDemoMetadata,
-} from "../demo-data/storage";
+} from "../demo-data/storage.js";
 
 // ============================================================================
 // Demo Data Type Helpers

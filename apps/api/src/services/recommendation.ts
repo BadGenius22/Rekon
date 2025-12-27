@@ -25,11 +25,11 @@ import type {
   RecentMatchesComparison,
 } from "@rekon/types";
 import { RECOMMENDATION_CONFIG } from "@rekon/config";
-import { getMarketById } from "./markets";
+import { getMarketById } from "./markets.js";
 import {
   getMarketEsportsStats,
   type MarketEsportsStats,
-} from "./esports-stats";
+} from "./esports-stats.js";
 import {
   computeRecommendation,
   generateFallbackReasoning,
@@ -37,17 +37,17 @@ import {
   generateStatisticalInsights,
   type TeamData,
   type RecommendationInput,
-} from "./recommendation-engine";
-import { generateRecommendationExplanation } from "./llm-explainer";
+} from "./recommendation-engine.js";
+import { generateRecommendationExplanation } from "./llm-explainer.js";
 import {
   fetchGridLiveSeriesState,
   findSeriesByTeamNames,
   mapGridLiveStateToRekon,
   fetchHeadToHeadHistory,
   type H2HMatchResult,
-} from "../adapters/grid";
-import { withCache, getCacheKey } from "../adapters/grid/cache";
-import { NotFound, BadRequest } from "../utils/http-errors";
+} from "../adapters/grid/index.js";
+import { withCache, getCacheKey } from "../adapters/grid/cache.js";
+import { NotFound, BadRequest } from "../utils/http-errors.js";
 
 /**
  * Recommendation Service

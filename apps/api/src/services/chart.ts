@@ -2,9 +2,9 @@ import type { ChartData, OHLCV } from "@rekon/types";
 import {
   fetchPolymarketTrades,
   mapPolymarketTrades,
-} from "../adapters/polymarket";
-import { getTradesByMarketId } from "./trades";
-import { chartCacheService } from "./cache";
+} from "../adapters/polymarket/index.js";
+import { getTradesByMarketId } from "./trades.js";
+import { chartCacheService } from "./cache.js";
 
 /**
  * Chart Service

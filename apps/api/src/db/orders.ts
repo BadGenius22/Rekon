@@ -1,5 +1,5 @@
 import type { Order } from "@rekon/types";
-import { getSql } from "./client";
+import { getSql } from "./client.js";
 
 /**
  * Order Persistence (Neon / Postgres)

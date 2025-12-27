@@ -3,8 +3,8 @@ import {
   getPortfolioController,
   getPortfolioHistoryController,
   getPnLHistoryController,
-} from "../controllers/portfolio";
-import { sessionMiddleware } from "../middleware/session";
+} from "../controllers/portfolio.js";
+import { sessionMiddleware } from "../middleware/session.js";
 
 /**
  * Portfolio Routes

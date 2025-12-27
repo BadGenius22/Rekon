@@ -42,7 +42,7 @@ export type {
   // API types
   PandascorePaginatedResponse,
   PandascoreApiError,
-} from "./types";
+} from "./types.js";
 
 // ============================================================================
 // Client Exports (API fetcher functions)
@@ -68,7 +68,7 @@ export {
   fetchPandascoreCSTeamStats,
   // Stats calculation helper
   calculateTeamStatsFromMatches,
-} from "./client";
+} from "./client.js";
 
 // ============================================================================
 // Mapper Exports (Type conversion functions)
@@ -87,4 +87,4 @@ export {
   // Team search helpers
   extractTeamId,
   findBestTeamMatch,
-} from "./mappers";
+} from "./mappers.js";

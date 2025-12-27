@@ -3,11 +3,11 @@ import { z } from "zod";
 import {
   getPositionsBySession,
   getRawPolymarketPositions,
-} from "../services/positions";
-import { generateDemoPositions } from "../services/demo-portfolio";
-import { getSessionFromContext } from "../middleware/session";
-import { isEsportsPosition } from "../services/portfolio";
-import { isDemoModeEnabled } from "../middleware/demo-mode";
+} from "../services/positions.js";
+import { generateDemoPositions } from "../services/demo-portfolio.js";
+import { getSessionFromContext } from "../middleware/session.js";
+import { isEsportsPosition } from "../services/portfolio.js";
+import { isDemoModeEnabled } from "../middleware/demo-mode.js";
 
 /**
  * Positions Controllers

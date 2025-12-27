@@ -1,4 +1,4 @@
-import { getSql } from "../db/client";
+import { getSql } from "../db/client.js";
 
 /**
  * Creates the premium_access table for tracking paid recommendation access.

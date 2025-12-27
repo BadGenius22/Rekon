@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { getFillsController } from "../controllers/fills";
-import { sessionMiddleware } from "../middleware/session";
+import { getFillsController } from "../controllers/fills.js";
+import { sessionMiddleware } from "../middleware/session.js";
 
 /**
  * Fills Routes

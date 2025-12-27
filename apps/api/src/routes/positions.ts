@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { getPositionsController } from "../controllers/positions";
-import { sessionMiddleware } from "../middleware/session";
+import { getPositionsController } from "../controllers/positions.js";
+import { sessionMiddleware } from "../middleware/session.js";
 
 /**
  * Positions Routes

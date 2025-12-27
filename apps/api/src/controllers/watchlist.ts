@@ -5,9 +5,9 @@ import {
   addToWatchlist,
   removeFromWatchlist,
   clearWatchlist,
-} from "../services/watchlist";
-import { getSessionFromContext } from "../middleware/session";
-import { BadRequest } from "../utils/http-errors";
+} from "../services/watchlist.js";
+import { getSessionFromContext } from "../middleware/session.js";
+import { BadRequest } from "../utils/http-errors.js";
 import type {
   AddToWatchlistRequest,
   RemoveFromWatchlistRequest,

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { placeTradeController } from "../controllers/trade-placement";
-import { sessionMiddleware } from "../middleware/session";
-import { polymarketRateLimiter } from "../middleware/rate-limit";
+import { placeTradeController } from "../controllers/trade-placement.js";
+import { sessionMiddleware } from "../middleware/session.js";
+import { polymarketRateLimiter } from "../middleware/rate-limit.js";
 
 /**
  * Trade Routes

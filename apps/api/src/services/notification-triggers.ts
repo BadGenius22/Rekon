@@ -1,8 +1,8 @@
-import { enqueueNotification } from "./notifications";
-import { getAlertsByMarketId, updateAlert } from "./alerts";
-import { getWatchlist } from "./watchlist";
-import { getMarketById } from "./markets";
-import { getSession } from "./sessions";
+import { enqueueNotification } from "./notifications.js";
+import { getAlertsByMarketId, updateAlert } from "./alerts.js";
+import { getWatchlist } from "./watchlist.js";
+import { getMarketById } from "./markets.js";
+import { getSession } from "./sessions.js";
 import type { PriceAlert } from "@rekon/types";
 
 /**

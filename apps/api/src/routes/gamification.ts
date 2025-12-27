@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { getGamificationProfileController } from "../controllers/gamification";
-import { sessionMiddleware } from "../middleware/session";
+import { getGamificationProfileController } from "../controllers/gamification.js";
+import { sessionMiddleware } from "../middleware/session.js";
 
 /**
  * Gamification Routes

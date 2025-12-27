@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import { z } from "zod";
-import { simulateOrder } from "../services/simulation";
-import { BadRequest } from "../utils/http-errors";
+import { simulateOrder } from "../services/simulation.js";
+import { BadRequest } from "../utils/http-errors.js";
 
 /**
  * Simulation Controllers

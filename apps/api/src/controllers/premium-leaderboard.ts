@@ -12,7 +12,7 @@ import {
   getLeaderboard,
   getUserStats,
   getPurchaseHistory,
-} from "../services/premium-leaderboard";
+} from "../services/premium-leaderboard.js";
 
 // Validation schemas
 const LeaderboardQuerySchema = z.object({

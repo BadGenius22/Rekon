@@ -19,14 +19,14 @@ import {
   findTeamByAlias,
   CS2_TEAM_ALIASES,
 } from "@rekon/utils";
-import { searchTeamIndex } from "../adapters/grid/team-index";
-import { searchGridTeamsByName } from "../adapters/grid/client";
-import { withCache, getCacheKey } from "../adapters/grid/cache";
+import { searchTeamIndex } from "../adapters/grid/team-index.js";
+import { searchGridTeamsByName } from "../adapters/grid/client.js";
+import { withCache, getCacheKey } from "../adapters/grid/cache.js";
 import {
   searchTeamsByName,
   searchTeamsByNameBasic,
   type TeamSearchResult as NeonTeamSearchResult,
-} from "../db/teams";
+} from "../db/teams.js";
 
 // =============================================================================
 // Types

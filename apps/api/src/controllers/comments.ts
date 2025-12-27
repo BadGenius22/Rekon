@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { getComments, getCommentById } from "../services/comments";
+import { getComments, getCommentById } from "../services/comments.js";
 
 export async function getCommentsController(c: Context) {
   const url = new URL(c.req.url);

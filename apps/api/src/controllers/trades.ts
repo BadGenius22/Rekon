@@ -4,8 +4,8 @@ import {
   getTradesByMarketId,
   getTradesByTokenId,
   getRecentTradesByConditionId,
-} from "../services/trades";
-import { NotFound } from "../utils/http-errors";
+} from "../services/trades.js";
+import { NotFound } from "../utils/http-errors.js";
 
 /**
  * Trades Controllers

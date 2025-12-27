@@ -9,9 +9,9 @@ import {
   mapPolymarketMarket,
   type FetchMarketsParams,
   type FetchGammaEventsParams,
-} from "../adapters/polymarket";
-import type { PolymarketMarket } from "../adapters/polymarket/types";
-import { marketsListCacheService, marketCacheService } from "./cache";
+} from "../adapters/polymarket/index.js";
+import type { PolymarketMarket } from "../adapters/polymarket/types.js";
+import { marketsListCacheService, marketCacheService } from "./cache.js";
 
 /**
  * Markets Service

@@ -2,10 +2,10 @@ import type { Trade, Market } from "@rekon/types";
 import {
   fetchPolymarketTrades,
   mapPolymarketTrades,
-} from "../adapters/polymarket";
-import type { PolymarketDataTrade } from "../adapters/polymarket/misc";
-import { getMarketById } from "./markets";
-import { tradesCacheService } from "./cache";
+} from "../adapters/polymarket/index.js";
+import type { PolymarketDataTrade } from "../adapters/polymarket/misc.js";
+import { getMarketById } from "./markets.js";
+import { tradesCacheService } from "./cache.js";
 
 /**
  * Trades Service

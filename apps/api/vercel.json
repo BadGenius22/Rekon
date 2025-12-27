@@ -1,6 +1,11 @@
 {
   "installCommand": "cd ../.. && pnpm install",
   "buildCommand": "cd ../.. && pnpm build:api",
+  "functions": {
+    "api/handler.js": {
+      "includeFiles": "api/handler.js"
+    }
+  },
   "rewrites": [
     {
       "source": "/(.*)",

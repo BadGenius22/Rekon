@@ -6,10 +6,10 @@ import {
   convertOrderToClobRequest,
   convertClobResponseToOrder,
   type ClobOrderRequest,
-} from "../adapters/polymarket/orders";
-import { getMarketById } from "./markets";
-import { orderConfirmationCacheService } from "./cache";
-import { BadRequest, NotFound } from "../utils/http-errors";
+} from "../adapters/polymarket/orders.js";
+import { getMarketById } from "./markets.js";
+import { orderConfirmationCacheService } from "./cache.js";
+import { BadRequest, NotFound } from "../utils/http-errors.js";
 import type { UserSession } from "@rekon/types";
 
 /**

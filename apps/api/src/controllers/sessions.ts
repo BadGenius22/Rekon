@@ -11,9 +11,9 @@ import {
   getSessionStats,
   createWalletChallenge,
   verifyWalletSignature,
-} from "../services/sessions";
-import { getSessionFromContext } from "../middleware/session";
-import { BadRequest, NotFound } from "../utils/http-errors";
+} from "../services/sessions.js";
+import { getSessionFromContext } from "../middleware/session.js";
+import { BadRequest, NotFound } from "../utils/http-errors.js";
 import type { CreateSessionRequest, TradingPreferences } from "@rekon/types";
 
 /**

@@ -4,8 +4,8 @@ import {
   getSignalPreviewController,
   getSignalPricingController,
   getSignalStatusController,
-} from "../controllers/signal";
-import { x402Middleware } from "../middleware/x402";
+} from "../controllers/signal.js";
+import { x402Middleware } from "../middleware/x402.js";
 
 /**
  * Signal Routes

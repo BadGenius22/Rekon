@@ -24,7 +24,7 @@ import type {
   GridSeries,
   GridSeriesState,
   GridLiveGame,
-} from "./types";
+} from "./types.js";
 
 // ============================================================================
 // Team Statistics Mappers

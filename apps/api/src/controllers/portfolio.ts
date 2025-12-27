@@ -4,10 +4,10 @@ import {
   getPortfolioBySession,
   getPortfolioHistory,
   getPnLHistory,
-} from "../services/portfolio";
-import { generateDemoPortfolio } from "../services/demo-portfolio";
-import { getSessionFromContext } from "../middleware/session";
-import { isDemoModeEnabled } from "../middleware/demo-mode";
+} from "../services/portfolio.js";
+import { generateDemoPortfolio } from "../services/demo-portfolio.js";
+import { getSessionFromContext } from "../middleware/session.js";
+import { isDemoModeEnabled } from "../middleware/demo-mode.js";
 
 /**
  * Portfolio Controllers

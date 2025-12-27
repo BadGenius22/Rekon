@@ -2,7 +2,7 @@ import {
   fetchGammaComments,
   fetchGammaCommentById,
   fetchGammaCommentsByUserAddress,
-} from "../adapters/polymarket";
+} from "../adapters/polymarket/index.js";
 
 export interface GetCommentsParams {
   limit?: number;

@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { getGamesController, getGameIconsController } from "../controllers/games";
+import { getGamesController, getGameIconsController } from "../controllers/games.js";
 
 /**
  * Games Routes

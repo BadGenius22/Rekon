@@ -4,8 +4,8 @@ import type {
   OrderSimulationFill,
   OrderBook,
 } from "@rekon/types";
-import { getOrderBookByTokenId } from "./orderbook";
-import { BadRequest, NotFound } from "../utils/http-errors";
+import { getOrderBookByTokenId } from "./orderbook.js";
+import { BadRequest, NotFound } from "../utils/http-errors.js";
 
 /**
  * Simulation Service

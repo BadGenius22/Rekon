@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import { z } from "zod";
-import { getFillsBySession } from "../services/fills";
-import { getSessionFromContext } from "../middleware/session";
+import { getFillsBySession } from "../services/fills.js";
+import { getSessionFromContext } from "../middleware/session.js";
 
 /**
  * Fills Controllers

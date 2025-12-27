@@ -3,7 +3,7 @@ import {
   getBuilderVolumeAnalytics,
   getActiveTradersAnalytics,
   getUserMarketsTraded,
-} from "../services/analytics";
+} from "../services/analytics.js";
 
 /**
  * GET /analytics/volume

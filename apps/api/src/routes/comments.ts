@@ -2,8 +2,8 @@ import { Hono } from "hono";
 import {
   getCommentsController,
   getCommentByIdController,
-} from "../controllers/comments";
-import { sessionMiddleware } from "../middleware/session";
+} from "../controllers/comments.js";
+import { sessionMiddleware } from "../middleware/session.js";
 
 /**
  * Comments Routes

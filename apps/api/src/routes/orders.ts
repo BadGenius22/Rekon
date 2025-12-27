@@ -2,13 +2,13 @@ import { Hono } from "hono";
 import {
   placeOrderController,
   getOrderStatusController,
-} from "../controllers/orders";
-import { postUserOrderController } from "../controllers/user-orders";
+} from "../controllers/orders.js";
+import { postUserOrderController } from "../controllers/user-orders.js";
 import {
   getOrderStatusController as getOrderStatusControllerNew,
   pollOrderStatusController,
   getBatchOrderStatusController,
-} from "../controllers/order-status";
+} from "../controllers/order-status.js";
 
 /**
  * Orders Routes

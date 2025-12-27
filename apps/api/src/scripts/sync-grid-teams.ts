@@ -29,7 +29,7 @@ import {
   getTeamCount,
   getLastSyncTime,
   type CreateTeamRecordInput,
-} from "../db/teams";
+} from "../db/teams.js";
 
 // ============================================================================
 // Configuration

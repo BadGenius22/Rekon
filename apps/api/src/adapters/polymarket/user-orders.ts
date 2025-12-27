@@ -1,8 +1,8 @@
 import { POLYMARKET_CONFIG } from "@rekon/config";
 import { ClobClient } from "@polymarket/clob-client";
-import { createBuilderConfig } from "./builder-signing";
+import { createBuilderConfig } from "./builder-signing.js";
 import type { Order } from "@rekon/types";
-import { trackPolymarketApiFailure } from "../../utils/sentry";
+import { trackPolymarketApiFailure } from "../../utils/sentry.js";
 
 /**
  * User Order Placement Adapter

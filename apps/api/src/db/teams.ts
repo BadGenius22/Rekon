@@ -38,7 +38,7 @@
  * ```
  */
 
-import { getSql } from "./client";
+import { getSql } from "./client.js";
 
 // ============================================================================
 // Types

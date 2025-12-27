@@ -1,6 +1,6 @@
 import { POLYMARKET_CONFIG } from "@rekon/config";
 import type { Fill } from "@rekon/types";
-import { trackPolymarketApiFailure } from "../../utils/sentry";
+import { trackPolymarketApiFailure } from "../../utils/sentry.js";
 
 /**
  * Raw Polymarket Fill Response

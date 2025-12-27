@@ -5,7 +5,7 @@
  * Uses the premium_access table to aggregate spending data.
  */
 
-import { getSql } from "./client";
+import { getSql } from "./client.js";
 
 export interface LeaderboardEntry {
   walletAddress: string;

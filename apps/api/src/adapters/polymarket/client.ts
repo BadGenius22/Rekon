@@ -1,8 +1,8 @@
 import { POLYMARKET_CONFIG } from "@rekon/config";
-import type { PolymarketEvent, PolymarketMarket, PolymarketTag } from "./types";
-import { getBuilderApiHeaders, getClobApiHeaders } from "./headers";
-import { trackPolymarketApiFailure } from "../../utils/sentry";
-import { isDemoModeEnabled } from "../../middleware/demo-mode";
+import type { PolymarketEvent, PolymarketMarket, PolymarketTag } from "./types.js";
+import { getBuilderApiHeaders, getClobApiHeaders } from "./headers.js";
+import { trackPolymarketApiFailure } from "../../utils/sentry.js";
+import { isDemoModeEnabled } from "../../middleware/demo-mode.js";
 import {
   fetchDemoMarkets,
   fetchDemoMarketById,
@@ -12,7 +12,7 @@ import {
   fetchDemoOrderBook,
   fetchDemoTrades,
   fetchDemoPrice,
-} from "./demo-adapter";
+} from "./demo-adapter.js";
 
 /**
  * Polymarket API Client

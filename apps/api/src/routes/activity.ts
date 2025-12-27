@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { getActivityHandler } from "../controllers/activity";
+import { getActivityHandler } from "../controllers/activity.js";
 
 export const activityRoutes = new Hono();
 

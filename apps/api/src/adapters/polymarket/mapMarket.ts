@@ -1,6 +1,6 @@
 import type { Market, MarketOutcome } from "@rekon/types";
 import slugify from "@sindresorhus/slugify";
-import type { PolymarketMarket } from "./types";
+import type { PolymarketMarket } from "./types.js";
 
 /**
  * Maps a raw Polymarket API market response to the normalized Market type.

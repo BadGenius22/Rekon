@@ -3,8 +3,8 @@ import {
   listNotificationsController,
   markNotificationReadController,
   markAllNotificationsReadController,
-} from "../controllers/notifications";
-import { sessionMiddleware } from "../middleware/session";
+} from "../controllers/notifications.js";
+import { sessionMiddleware } from "../middleware/session.js";
 
 /**
  * Notifications Routes

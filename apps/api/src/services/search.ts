@@ -1,4 +1,4 @@
-import { fetchGammaPublicSearch } from "../adapters/polymarket";
+import { fetchGammaPublicSearch } from "../adapters/polymarket/index.js";
 
 export interface PublicSearchParams {
   query: string;

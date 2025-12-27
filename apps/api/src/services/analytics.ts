@@ -1,5 +1,5 @@
-import { fetchMyBuilderStats } from "../adapters/polymarket/builder";
-import { fetchTotalMarketsTraded } from "../adapters/polymarket";
+import { fetchMyBuilderStats } from "../adapters/polymarket/builder.js";
+import { fetchTotalMarketsTraded } from "../adapters/polymarket/index.js";
 
 /**
  * Analytics Service

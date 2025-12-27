@@ -4,8 +4,8 @@ import {
   createAlertController,
   updateAlertController,
   deleteAlertController,
-} from "../controllers/alerts";
-import { sessionMiddleware } from "../middleware/session";
+} from "../controllers/alerts.js";
+import { sessionMiddleware } from "../middleware/session.js";
 
 /**
  * Alerts Routes

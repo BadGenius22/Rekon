@@ -20,8 +20,8 @@ import type {
   PandascoreMatch,
   PandascoreTeamStats,
   PandascoreCSPlayerMatchStats,
-} from "./types";
-import { trackPandascoreApiFailure } from "../../utils/sentry";
+} from "./types.js";
+import { trackPandascoreApiFailure } from "../../utils/sentry.js";
 
 // ============================================================================
 // Configuration

@@ -1,10 +1,10 @@
 import { Context } from "hono";
 import { z } from "zod";
 import { HTTPException } from "hono/http-exception";
-import { getActivity } from "../services/activity";
-import { generateDemoActivity } from "../services/demo-portfolio";
-import { getSessionFromContext } from "../middleware/session";
-import { isDemoModeEnabled } from "../middleware/demo-mode";
+import { getActivity } from "../services/activity.js";
+import { generateDemoActivity } from "../services/demo-portfolio.js";
+import { getSessionFromContext } from "../middleware/session.js";
+import { isDemoModeEnabled } from "../middleware/demo-mode.js";
 
 /**
  * Activity Controller

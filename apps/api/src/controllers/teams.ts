@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import { z } from "zod";
-import { fetchGammaTeams, fetchGammaTeamByName } from "../adapters/polymarket";
+import { fetchGammaTeams, fetchGammaTeamByName } from "../adapters/polymarket/index.js";
 
 interface NormalizedTeam {
   name: string;

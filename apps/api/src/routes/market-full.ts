@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { getMarketFullController } from "../controllers/market-full";
-import { sessionMiddleware } from "../middleware/session";
-import { polymarketRateLimiter } from "../middleware/rate-limit";
+import { getMarketFullController } from "../controllers/market-full.js";
+import { sessionMiddleware } from "../middleware/session.js";
+import { polymarketRateLimiter } from "../middleware/rate-limit.js";
 
 /**
  * Market Full Routes

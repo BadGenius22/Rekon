@@ -5,8 +5,8 @@ import type {
   RemoveFromWatchlistRequest,
 } from "@rekon/types";
 import { LRUCache } from "lru-cache";
-import { getMarketById } from "./markets";
-import { BadRequest, NotFound } from "../utils/http-errors";
+import { getMarketById } from "./markets.js";
+import { BadRequest, NotFound } from "../utils/http-errors.js";
 
 /**
  * Watchlist Service

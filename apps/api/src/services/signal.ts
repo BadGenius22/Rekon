@@ -17,16 +17,16 @@
  */
 
 import type { SignalResult, MarketSnapshot } from "@rekon/types";
-import { getMarketById } from "./markets";
-import { getOrderBookForMarket } from "./orderbook";
-import { getTradesForMarket } from "./trades";
+import { getMarketById } from "./markets.js";
+import { getOrderBookForMarket } from "./orderbook.js";
+import { getTradesForMarket } from "./trades.js";
 import {
   computeSignalMetrics,
   computeBias,
   generateFallbackExplanation,
-} from "./signal-engine";
-import { generateExplanation } from "./llm-explainer";
-import { NotFound } from "../utils/http-errors";
+} from "./signal-engine.js";
+import { generateExplanation } from "./llm-explainer.js";
+import { NotFound } from "../utils/http-errors.js";
 
 /**
  * Signal Service

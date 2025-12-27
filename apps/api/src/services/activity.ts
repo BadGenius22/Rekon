@@ -2,7 +2,7 @@ import {
   fetchPolymarketActivity,
   mapPolymarketActivity,
   type PolymarketActivityItem,
-} from "../adapters/polymarket/activity";
+} from "../adapters/polymarket/activity.js";
 import type { Activity } from "@rekon/types";
 
 /**

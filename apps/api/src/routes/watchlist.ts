@@ -3,8 +3,8 @@ import {
   getWatchlistController,
   addToWatchlistController,
   removeFromWatchlistController,
-} from "../controllers/watchlist";
-import { sessionMiddleware } from "../middleware/session";
+} from "../controllers/watchlist.js";
+import { sessionMiddleware } from "../middleware/session.js";
 
 /**
  * Watchlist Routes

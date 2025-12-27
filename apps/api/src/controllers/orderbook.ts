@@ -3,8 +3,8 @@ import { z } from "zod";
 import {
   getOrderBookByMarketId,
   getOrderBookByTokenId,
-} from "../services/orderbook";
-import { NotFound } from "../utils/http-errors";
+} from "../services/orderbook.js";
+import { NotFound } from "../utils/http-errors.js";
 
 /**
  * Orderbook Controllers

@@ -21,10 +21,10 @@ import {
   generateRecommendation,
   generateRecommendationPreview,
   isRecommendationAvailable,
-} from "../services/recommendation";
-import { getPremiumAccessStatus, checkPremiumAccess } from "../services/premium-access";
-import { getX402PricingInfo, isX402Enabled } from "../middleware/x402";
-import { getPremiumAccess, hasValidPremiumAccess } from "../db/premium-access";
+} from "../services/recommendation.js";
+import { getPremiumAccessStatus, checkPremiumAccess } from "../services/premium-access.js";
+import { getX402PricingInfo, isX402Enabled } from "../middleware/x402.js";
+import { getPremiumAccess, hasValidPremiumAccess } from "../db/premium-access.js";
 
 /**
  * Recommendation Controllers

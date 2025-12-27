@@ -14,7 +14,7 @@
  * - Only fetch from API as last resort, with limited pagination (max 2 pages)
  */
 
-import type { GridTeam } from "./types";
+import type { GridTeam } from "./types.js";
 
 // ============================================================================
 // KNOWN TEAM MAPPINGS

@@ -1,16 +1,16 @@
 import type { Portfolio, Position, GameExposure } from "@rekon/types";
 import type { Fill } from "@rekon/types";
-import { getPositionsBySession } from "./positions";
-import { fetchUserFills } from "../adapters/polymarket/fills";
+import { getPositionsBySession } from "./positions.js";
+import { fetchUserFills } from "../adapters/polymarket/fills.js";
 import {
   fetchPolymarketPositions,
   fetchPolymarketPortfolioValue,
   fetchPolymarketClosedPositions,
   type PolymarketPosition,
   type PolymarketClosedPosition,
-} from "../adapters/polymarket/positions";
-import { fetchPolymarketActivity } from "../adapters/polymarket/activity";
-import { isEsportsActivity } from "./activity";
+} from "../adapters/polymarket/positions.js";
+import { fetchPolymarketActivity } from "../adapters/polymarket/activity.js";
+import { isEsportsActivity } from "./activity.js";
 
 /**
  * Checks if a Polymarket position (open or closed) is one of the 4 main esports games:

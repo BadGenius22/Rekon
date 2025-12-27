@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import {
   getPriceHistoryByTokenController,
   getDualPriceHistoryController,
-} from "../controllers/price-history";
+} from "../controllers/price-history.js";
 
 /**
  * Price History Routes

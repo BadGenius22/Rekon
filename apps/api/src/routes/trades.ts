@@ -3,7 +3,7 @@ import {
   getTradesByMarketIdController,
   getTradesByTokenIdController,
   getRecentTradesController,
-} from "../controllers/trades";
+} from "../controllers/trades.js";
 
 /**
  * Trades Routes

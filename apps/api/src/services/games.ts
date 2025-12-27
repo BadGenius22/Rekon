@@ -5,7 +5,7 @@
  * Maps raw sports data to esports game icons and metadata.
  */
 
-import { fetchGammaSports } from "../adapters/polymarket";
+import { fetchGammaSports } from "../adapters/polymarket/index.js";
 
 /**
  * Game metadata with icon URL from Polymarket

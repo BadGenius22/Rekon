@@ -6,10 +6,10 @@ import type {
   Trade,
   OrderBookEntry,
 } from "@rekon/types";
-import { getMarketById, getMarketBySlug } from "./markets";
-import { getOrderBookForMarket } from "./orderbook";
-import { getTradesForMarket } from "./trades";
-import { NotFound } from "../utils/http-errors";
+import { getMarketById, getMarketBySlug } from "./markets.js";
+import { getOrderBookForMarket } from "./orderbook.js";
+import { getTradesForMarket } from "./trades.js";
+import { NotFound } from "../utils/http-errors.js";
 
 /**
  * Market Full Service

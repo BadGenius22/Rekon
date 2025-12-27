@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import { z } from "zod";
-import { getOHLCVByTokenId } from "../services/chart";
-import { NotFound } from "../utils/http-errors";
+import { getOHLCVByTokenId } from "../services/chart.js";
+import { NotFound } from "../utils/http-errors.js";
 
 /**
  * Chart Controllers

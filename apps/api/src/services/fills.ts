@@ -1,5 +1,5 @@
 import type { Fill } from "@rekon/types";
-import { fetchUserFills } from "../adapters/polymarket/fills";
+import { fetchUserFills } from "../adapters/polymarket/fills.js";
 
 /**
  * Fills Service

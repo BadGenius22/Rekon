@@ -11,12 +11,12 @@ export type {
   PolymarketOrderBook,
   PolymarketOrderBookEntry,
   PolymarketTrade,
-} from "./types";
+} from "./types.js";
 
 // Export mapper functions
-export { mapPolymarketMarket } from "./mapMarket";
-export { mapPolymarketOrderBook } from "./mapOrderbook";
-export { mapPolymarketTrades } from "./mapTrades";
+export { mapPolymarketMarket } from "./mapMarket.js";
+export { mapPolymarketOrderBook } from "./mapOrderbook.js";
+export { mapPolymarketTrades } from "./mapTrades.js";
 
 // Export API client functions
 export {
@@ -41,14 +41,14 @@ export {
   fetchPolymarketPrices,
   type FetchMarketsParams,
   type FetchGammaEventsParams,
-} from "./client";
+} from "./client.js";
 
 // Export header utilities
 export {
   getBuilderApiHeaders,
   getClobApiHeaders,
   getDataApiHeaders,
-} from "./headers";
+} from "./headers.js";
 
 // Export Builder Program API functions
 export {
@@ -57,7 +57,7 @@ export {
   fetchMyBuilderStats,
   type BuilderLeaderboardEntry,
   type BuilderVolumeData,
-} from "./builder";
+} from "./builder.js";
 
 // Export misc Data-API functions
 export {
@@ -65,7 +65,7 @@ export {
   fetchDataApiTrades,
   type TotalMarketsTradedResponse,
   type PolymarketDataTrade,
-} from "./misc";
+} from "./misc.js";
 
 // Export order placement functions
 export {
@@ -75,13 +75,13 @@ export {
   convertClobResponseToOrder,
   type ClobOrderRequest,
   type ClobOrderResponse,
-} from "./orders";
+} from "./orders.js";
 
 // Export CLOB client factory
-export { getClobClient, resetClobClient } from "./clob-client";
+export { getClobClient, resetClobClient } from "./clob-client.js";
 
 // Export user order placement functions
-export { postUserSignedOrder, type UserSignedOrder } from "./user-orders";
+export { postUserSignedOrder, type UserSignedOrder } from "./user-orders.js";
 
 // Export builder signing utilities
 export {
@@ -93,10 +93,10 @@ export {
   getRemoteSigningServerToken,
   type BuilderApiKeyCreds,
   type RemoteBuilderConfig,
-} from "./builder-signing";
+} from "./builder-signing.js";
 
 // Export fills functions
-export { fetchUserFills } from "./fills";
+export { fetchUserFills } from "./fills.js";
 
 // Export activity functions
 export {
@@ -104,14 +104,14 @@ export {
   mapPolymarketActivity,
   type PolymarketActivityItem,
   type PolymarketActivityResponse,
-} from "./activity";
+} from "./activity.js";
 
 // Export positions functions
 export {
   fetchPolymarketPositions,
   fetchPolymarketPortfolioValue,
   type PolymarketPosition,
-} from "./positions";
+} from "./positions.js";
 
 // Export price history functions
 export {
@@ -120,4 +120,4 @@ export {
   type PriceHistoryPoint,
   type PriceHistoryInterval,
   type FetchPriceHistoryParams,
-} from "./price-history";
+} from "./price-history.js";

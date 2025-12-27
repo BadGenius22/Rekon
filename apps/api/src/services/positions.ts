@@ -2,7 +2,7 @@ import type { Position } from "@rekon/types";
 import {
   fetchPolymarketPositions,
   type PolymarketPosition,
-} from "../adapters/polymarket/positions";
+} from "../adapters/polymarket/positions.js";
 
 /**
  * Positions Service

@@ -1,5 +1,5 @@
 import type { Trade } from "@rekon/types";
-import type { PolymarketTrade } from "./types";
+import type { PolymarketTrade } from "./types.js";
 
 /**
  * Maps raw Polymarket trade responses to normalized Trade[].

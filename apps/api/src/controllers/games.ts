@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { getEsportsGames, getGameIcons } from "../services/games";
+import { getEsportsGames, getGameIcons } from "../services/games.js";
 
 /**
  * Games Controllers

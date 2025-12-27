@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { getTeamsController } from "../controllers/teams";
-import { polymarketRateLimiter } from "../middleware/rate-limit";
+import { getTeamsController } from "../controllers/teams.js";
+import { polymarketRateLimiter } from "../middleware/rate-limit.js";
 
 /**
  * Teams Routes

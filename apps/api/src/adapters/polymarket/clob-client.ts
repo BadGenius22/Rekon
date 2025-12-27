@@ -1,7 +1,7 @@
 import { POLYMARKET_CONFIG } from "@rekon/config";
 import { ClobClient, ApiKeyCreds } from "@polymarket/clob-client";
 import { Wallet } from "@ethersproject/wallet";
-import { createBuilderConfig } from "./builder-signing";
+import { createBuilderConfig } from "./builder-signing.js";
 
 /**
  * CLOB Client Factory

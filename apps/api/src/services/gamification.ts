@@ -5,10 +5,10 @@ import type {
   BadgeId,
   GamificationProfile,
 } from "@rekon/types";
-import { fetchPolymarketClosedPositions } from "../adapters/polymarket/positions";
-import { fetchPolymarketActivity } from "../adapters/polymarket/activity";
-import { isEsportsActivity } from "./activity";
-import { isEsportsPosition } from "./portfolio";
+import { fetchPolymarketClosedPositions } from "../adapters/polymarket/positions.js";
+import { fetchPolymarketActivity } from "../adapters/polymarket/activity.js";
+import { isEsportsActivity } from "./activity.js";
+import { isEsportsPosition } from "./portfolio.js";
 
 /**
  * Gamification Service

@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import { z } from "zod";
-import { getPriceHistory, getDualPriceHistory } from "../services/price-history";
-import { NotFound, BadRequest } from "../utils/http-errors";
+import { getPriceHistory, getDualPriceHistory } from "../services/price-history.js";
+import { NotFound, BadRequest } from "../utils/http-errors.js";
 
 /**
  * Price History Controllers

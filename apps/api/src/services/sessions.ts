@@ -3,7 +3,7 @@ import type {
   CreateSessionRequest,
   TradingPreferences,
 } from "@rekon/types";
-import { getRedisClient } from "../adapters/redis";
+import { getRedisClient } from "../adapters/redis/index.js";
 import { randomBytes } from "crypto";
 import { verifyMessage } from "ethers";
 

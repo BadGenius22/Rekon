@@ -1,10 +1,10 @@
-import { getRedisClient, isRedisAvailable } from "../redis/client";
+import { getRedisClient, isRedisAvailable } from "../redis/client.js";
 import type {
   PolymarketMarket,
   PolymarketEvent,
   PolymarketOrderBook,
   PolymarketTrade,
-} from "../polymarket/types";
+} from "../polymarket/types.js";
 
 /**
  * Demo Data Storage

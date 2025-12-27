@@ -1,5 +1,5 @@
 import type { Context, Next } from "hono";
-import { addBreadcrumb, trackFailedRequest } from "../utils/sentry";
+import { addBreadcrumb, trackFailedRequest } from "../utils/sentry.js";
 
 /**
  * Request Logger Middleware

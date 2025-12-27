@@ -1,5 +1,5 @@
 import type { OrderBook, OrderBookEntry } from "@rekon/types";
-import type { PolymarketOrderBook, PolymarketOrderBookEntry } from "./types";
+import type { PolymarketOrderBook, PolymarketOrderBookEntry } from "./types.js";
 
 /**
  * Maps a raw Polymarket order book response to the normalized OrderBook type.

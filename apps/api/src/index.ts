@@ -3,9 +3,9 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { compress } from "hono/compress";
 import { HTTPException } from "hono/http-exception";
-import { polymarketRateLimiter } from "./middleware/rate-limit";
-import { demoModeMiddleware } from "./middleware/demo-mode";
-import { initSentry, captureError, trackFailedRequest } from "./utils/sentry";
+import { polymarketRateLimiter } from "./middleware/rate-limit.js";
+import { demoModeMiddleware } from "./middleware/demo-mode.js";
+import { initSentry, captureError, trackFailedRequest } from "./utils/sentry.js";
 
 // Initialize Sentry for error tracking
 initSentry();
@@ -149,7 +149,7 @@ app.get("/health", (c) => {
 
 // Apply session middleware to all API routes (except health)
 // This ensures every request has a session for attribution
-import { sessionMiddleware } from "./middleware/session";
+import { sessionMiddleware } from "./middleware/session.js";
 app.use("/markets/*", sessionMiddleware);
 app.use("/orderbook/*", sessionMiddleware);
 app.use("/market/*", sessionMiddleware);
@@ -176,33 +176,33 @@ app.use("/premium/*", sessionMiddleware);
 // Webhooks don't use session middleware (called by external services)
 
 // API routes (with rate limiting to protect Polymarket API)
-import { marketsRoutes } from "./routes/markets";
-import { orderbookRoutes } from "./routes/orderbook";
-import { marketFullRoutes } from "./routes/market-full";
-import { tradesRoutes } from "./routes/trades";
-import { chartRoutes } from "./routes/chart";
-import { ordersRoutes } from "./routes/orders";
-import { sessionsRoutes } from "./routes/sessions";
-import { tradeRoutes } from "./routes/trade";
-import { webhooksRoutes } from "./routes/webhooks";
-import { portfolioRoutes } from "./routes/portfolio";
-import { positionsRoutes } from "./routes/positions";
-import { fillsRoutes } from "./routes/fills";
-import { simulationRoutes } from "./routes/simulation";
-import { watchlistRoutes } from "./routes/watchlist";
-import { alertsRoutes } from "./routes/alerts";
-import { analyticsRoutes } from "./routes/analytics";
-import { notificationsRoutes } from "./routes/notifications";
-import { teamsRoutes } from "./routes/teams";
-import { commentsRoutes } from "./routes/comments";
-import { searchRoutes } from "./routes/search";
-import { activityRoutes } from "./routes/activity";
-import { gamificationRoutes } from "./routes/gamification";
-import { gamesRoutes } from "./routes/games";
-import { priceHistoryRoutes } from "./routes/price-history";
-import { signalRoutes } from "./routes/signal";
-import { recommendationRoutes } from "./routes/recommendation";
-import { premiumLeaderboardRoutes } from "./routes/premium-leaderboard";
+import { marketsRoutes } from "./routes/markets.js";
+import { orderbookRoutes } from "./routes/orderbook.js";
+import { marketFullRoutes } from "./routes/market-full.js";
+import { tradesRoutes } from "./routes/trades.js";
+import { chartRoutes } from "./routes/chart.js";
+import { ordersRoutes } from "./routes/orders.js";
+import { sessionsRoutes } from "./routes/sessions.js";
+import { tradeRoutes } from "./routes/trade.js";
+import { webhooksRoutes } from "./routes/webhooks.js";
+import { portfolioRoutes } from "./routes/portfolio.js";
+import { positionsRoutes } from "./routes/positions.js";
+import { fillsRoutes } from "./routes/fills.js";
+import { simulationRoutes } from "./routes/simulation.js";
+import { watchlistRoutes } from "./routes/watchlist.js";
+import { alertsRoutes } from "./routes/alerts.js";
+import { analyticsRoutes } from "./routes/analytics.js";
+import { notificationsRoutes } from "./routes/notifications.js";
+import { teamsRoutes } from "./routes/teams.js";
+import { commentsRoutes } from "./routes/comments.js";
+import { searchRoutes } from "./routes/search.js";
+import { activityRoutes } from "./routes/activity.js";
+import { gamificationRoutes } from "./routes/gamification.js";
+import { gamesRoutes } from "./routes/games.js";
+import { priceHistoryRoutes } from "./routes/price-history.js";
+import { signalRoutes } from "./routes/signal.js";
+import { recommendationRoutes } from "./routes/recommendation.js";
+import { premiumLeaderboardRoutes } from "./routes/premium-leaderboard.js";
 
 // Apply rate limiting to all API routes that call Polymarket
 // Rate limiter is applied to each route group

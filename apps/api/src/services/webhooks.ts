@@ -1,6 +1,6 @@
 import type { Order } from "@rekon/types";
-import { orderConfirmationCacheService } from "./cache";
-import { getOrderStatus } from "./order-status";
+import { orderConfirmationCacheService } from "./cache.js";
+import { getOrderStatus } from "./order-status.js";
 
 /**
  * Webhook Service

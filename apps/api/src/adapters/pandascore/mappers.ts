@@ -19,7 +19,7 @@ import type {
   PandascoreTeamSearchResult,
   PandascoreMatch,
   PandascoreTeamStats,
-} from "./types";
+} from "./types.js";
 
 // ============================================================================
 // Team Mappers

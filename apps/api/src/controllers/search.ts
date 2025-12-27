@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { publicSearch } from "../services/search";
+import { publicSearch } from "../services/search.js";
 
 export async function publicSearchController(c: Context) {
   const url = new URL(c.req.url);

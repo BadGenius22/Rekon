@@ -210,10 +210,10 @@ export interface Activity {
 }
 
 // Fill types
-export type { Fill } from "./fill";
+export type { Fill } from "./fill.js";
 
 // Market full types
-export type { MarketFullResponse, MarketSpread } from "./market-full";
+export type { MarketFullResponse, MarketSpread } from "./market-full.js";
 
 // ============================================================================
 // Gamification Types
@@ -303,12 +303,12 @@ export interface GamificationProfile {
 export type {
   Transaction,
   RelayerTransaction,
-} from "./polymarket";
+} from "./polymarket.js";
 
 export {
   RelayerTxType,
   RelayerTransactionState,
-} from "./polymarket";
+} from "./polymarket.js";
 
 // ============================================================================
 // AI Signal Types
@@ -319,7 +319,7 @@ export type {
   SignalMetrics,
   MarketSnapshot,
   SignalPricing,
-} from "./signal";
+} from "./signal.js";
 
 // ============================================================================
 // AI Recommendation Types (Esports-focused with GRID data)
@@ -365,7 +365,7 @@ export type {
   LiveMatchState,
   LiveGameState,
   LiveTeamStats,
-} from "./recommendation";
+} from "./recommendation.js";
 
 // ============================================================================
 // Session Types
@@ -377,7 +377,7 @@ export type {
   AttributionContext,
   CreateSessionRequest,
   SessionResponse,
-} from "./session";
+} from "./session.js";
 
 // ============================================================================
 // Watchlist Types
@@ -388,7 +388,7 @@ export type {
   WatchlistEntry,
   AddToWatchlistRequest,
   RemoveFromWatchlistRequest,
-} from "./watchlist";
+} from "./watchlist.js";
 
 // ============================================================================
 // Simulation Types
@@ -398,7 +398,7 @@ export type {
   OrderSimulationRequest,
   OrderSimulationResponse,
   OrderSimulationFill,
-} from "./simulation";
+} from "./simulation.js";
 
 // ============================================================================
 // Trade Placement Types
@@ -408,7 +408,7 @@ export type {
   TradePlacementRequest,
   TradePlacementResponse,
   MarketResolution,
-} from "./trade";
+} from "./trade.js";
 
 // ============================================================================
 // Alert Types
@@ -421,13 +421,13 @@ export type {
   PriceAlert,
   CreateAlertRequest,
   UpdateAlertRequest,
-} from "./alert";
+} from "./alert.js";
 
 // ============================================================================
 // Chart Types
 // ============================================================================
 
-export type { OHLCV, ChartData } from "./chart";
+export type { OHLCV, ChartData } from "./chart.js";
 
 // ============================================================================
 // Notification Types
@@ -437,4 +437,4 @@ export type {
   NotificationType,
   NotificationStatus,
   Notification,
-} from "./notification";
+} from "./notification.js";

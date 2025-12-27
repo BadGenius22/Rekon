@@ -10,8 +10,8 @@ import {
   getSessionStatsController,
   createWalletChallengeController,
   verifyWalletController,
-} from "../controllers/sessions";
-import { sessionMiddleware } from "../middleware/session";
+} from "../controllers/sessions.js";
+import { sessionMiddleware } from "../middleware/session.js";
 
 /**
  * Sessions Routes

@@ -22,11 +22,11 @@ import { X402_CONFIG } from "@rekon/config";
 import {
   checkPremiumAccess,
   recordPremiumAccessForMarket,
-} from "../services/premium-access";
+} from "../services/premium-access.js";
 import {
   verifyWalletSignature,
   extractSignatureHeaders,
-} from "../utils/wallet-auth";
+} from "../utils/wallet-auth.js";
 
 // Network mapping: Rekon config → EIP-155 chain ID
 const NETWORK_TO_CHAIN_ID: Record<string, number> = {

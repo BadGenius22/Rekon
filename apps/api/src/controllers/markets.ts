@@ -10,9 +10,9 @@ import {
   getMarketsByCategory,
   getMarketsByEventSlug,
   type GetMarketsParams,
-} from "../services/markets";
-import { getTradesByMarketId } from "../services/trades";
-import { getChartData } from "../services/chart";
+} from "../services/markets.js";
+import { getTradesByMarketId } from "../services/trades.js";
+import { getChartData } from "../services/chart.js";
 
 /**
  * Markets Controllers

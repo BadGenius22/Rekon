@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import {
   getOrderBookByMarketIdController,
   getOrderBookByTokenIdController,
-} from "../controllers/orderbook";
+} from "../controllers/orderbook.js";
 
 /**
  * Orderbook Routes

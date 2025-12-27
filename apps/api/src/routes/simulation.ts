@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { simulateOrderController } from "../controllers/simulation";
-import { sessionMiddleware } from "../middleware/session";
-import { polymarketRateLimiter } from "../middleware/rate-limit";
+import { simulateOrderController } from "../controllers/simulation.js";
+import { sessionMiddleware } from "../middleware/session.js";
+import { polymarketRateLimiter } from "../middleware/rate-limit.js";
 
 /**
  * Simulation Routes

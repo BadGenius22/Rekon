@@ -1,6 +1,6 @@
 import { POLYMARKET_CONFIG } from "@rekon/config";
-import { getDataApiHeaders } from "./headers";
-import { trackPolymarketApiFailure } from "../../utils/sentry";
+import { getDataApiHeaders } from "./headers.js";
+import { trackPolymarketApiFailure } from "../../utils/sentry.js";
 
 /**
  * Misc Data-API endpoints

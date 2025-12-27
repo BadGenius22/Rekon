@@ -1,6 +1,6 @@
 import type { Context } from "hono";
-import { generateSignal, generateSignalWithoutLLM } from "../services/signal";
-import { getX402PricingInfo, isX402Enabled } from "../middleware/x402";
+import { generateSignal, generateSignalWithoutLLM } from "../services/signal.js";
+import { getX402PricingInfo, isX402Enabled } from "../middleware/x402.js";
 
 /**
  * Signal Controllers

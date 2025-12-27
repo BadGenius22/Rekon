@@ -17,7 +17,7 @@ import type {
   PolymarketEvent,
   PolymarketOrderBook,
   PolymarketTrade,
-} from "../adapters/polymarket/types";
+} from "../adapters/polymarket/types.js";
 import {
   saveDemoMarkets,
   saveDemoEvents,
@@ -28,7 +28,7 @@ import {
   isDemoStorageAvailable,
   getDemoMetadata,
   type DemoMetadata,
-} from "../adapters/demo-data/storage";
+} from "../adapters/demo-data/storage.js";
 
 const GAMMA_API_URL = POLYMARKET_CONFIG.gammaApiUrl;
 const CLOB_API_URL = POLYMARKET_CONFIG.clobApiUrl;

@@ -2,9 +2,9 @@ import type { Order, UserSession } from "@rekon/types";
 import {
   postUserSignedOrder,
   type UserSignedOrder,
-} from "../adapters/polymarket/user-orders";
-import { orderConfirmationCacheService } from "./cache";
-import { BadRequest } from "../utils/http-errors";
+} from "../adapters/polymarket/user-orders.js";
+import { orderConfirmationCacheService } from "./cache.js";
+import { BadRequest } from "../utils/http-errors.js";
 
 /**
  * User Order Service

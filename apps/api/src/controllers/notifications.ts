@@ -4,9 +4,9 @@ import {
   listNotifications,
   markNotificationRead,
   markAllNotificationsRead,
-} from "../services/notifications";
-import { checkWatchlistUpdates } from "../services/notification-triggers";
-import { getSessionFromContext } from "../middleware/session";
+} from "../services/notifications.js";
+import { checkWatchlistUpdates } from "../services/notification-triggers.js";
+import { getSessionFromContext } from "../middleware/session.js";
 
 /**
  * Notifications Controllers

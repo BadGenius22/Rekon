@@ -11,20 +11,20 @@
 
 import { GraphQLClient, type RequestDocument } from "graphql-request";
 import { GRID_CONFIG } from "@rekon/config";
-import { trackGridApiFailure } from "../../utils/sentry";
-import { withCache, getCacheKey } from "./cache";
+import { trackGridApiFailure } from "../../utils/sentry.js";
+import { withCache, getCacheKey } from "./cache.js";
 import {
   lookupKnownTeamId,
   lookupCachedTeam,
   cacheTeams,
   normalizeTeamName,
-} from "./team-cache";
+} from "./team-cache.js";
 import {
   searchTeamsByName as searchTeamsInDb,
   searchTeamsByNameBasic,
   getTeamCount,
   upsertTeamRecord,
-} from "../../db/teams";
+} from "../../db/teams.js";
 import {
   GET_LIVE_SERIES_STATE,
   GET_TEAMS,
@@ -36,7 +36,7 @@ import {
   GET_SERIES_STATISTICS,
   GET_GAME_STATISTICS,
   GET_HEAD_TO_HEAD_SERIES,
-} from "./queries";
+} from "./queries.js";
 import type {
   GridSeriesState,
   GridLiveGameFilter,
@@ -55,8 +55,8 @@ import type {
   GridGameStatistics,
   GridGameStatisticsFilter,
   GridPageInfo,
-} from "./types";
-import { GridTimeWindow } from "./types";
+} from "./types.js";
+import { GridTimeWindow } from "./types.js";
 
 // Helper to get API key (with fallback to process.env for tests)
 // Trims whitespace to handle trailing spaces in .env files

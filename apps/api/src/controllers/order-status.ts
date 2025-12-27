@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import { z } from "zod";
-import { getOrderStatus, pollOrderStatus, getBatchOrderStatus } from "../services/order-status";
-import { NotFound } from "../utils/http-errors";
+import { getOrderStatus, pollOrderStatus, getBatchOrderStatus } from "../services/order-status.js";
+import { NotFound } from "../utils/http-errors.js";
 
 /**
  * Order Status Controllers

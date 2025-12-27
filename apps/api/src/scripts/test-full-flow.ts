@@ -2,7 +2,7 @@
  * Test full flow: DB lookup → GRID API stats
  * Tests direct GraphQL call to understand the schema
  */
-import { searchTeamsByNameBasic } from "../db/teams";
+import { searchTeamsByNameBasic } from "../db/teams.js";
 import { GraphQLClient } from "graphql-request";
 import { GRID_CONFIG } from "@rekon/config";
 

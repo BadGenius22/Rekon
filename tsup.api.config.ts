@@ -2,7 +2,7 @@ import { defineConfig } from "tsup";
 
 export default defineConfig({
   // Bundle the Vercel handler as the entry point (includes hono/vercel)
-  entry: ["apps/api/api/handler.ts"],
+  entry: { handler: "apps/api/src/vercel-handler.ts" },
   format: ["esm"],
   platform: "node",
   target: "node20",

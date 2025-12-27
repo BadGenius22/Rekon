@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { getOHLCVByTokenIdController } from "../controllers/chart";
+import { getOHLCVByTokenIdController } from "../controllers/chart.js";
 
 /**
  * Chart Routes

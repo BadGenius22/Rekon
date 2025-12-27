@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { orderWebhookController, webhookHealthController } from "../controllers/webhooks";
+import { orderWebhookController, webhookHealthController } from "../controllers/webhooks.js";
 
 /**
  * Webhooks Routes

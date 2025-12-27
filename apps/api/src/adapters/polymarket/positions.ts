@@ -1,6 +1,6 @@
 import { POLYMARKET_CONFIG } from "@rekon/config";
 import type { Position } from "@rekon/types";
-import { trackPolymarketApiFailure } from "../../utils/sentry";
+import { trackPolymarketApiFailure } from "../../utils/sentry.js";
 
 /**
  * Polymarket Positions Adapter

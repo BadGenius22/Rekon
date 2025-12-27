@@ -1,8 +1,8 @@
 import type { Context } from "hono";
 import { z } from "zod";
-import { processOrderWebhook, verifyWebhookSignature } from "../services/webhooks";
-import type { OrderWebhookPayload } from "../services/webhooks";
-import { BadRequest } from "../utils/http-errors";
+import { processOrderWebhook, verifyWebhookSignature } from "../services/webhooks.js";
+import type { OrderWebhookPayload } from "../services/webhooks.js";
+import { BadRequest } from "../utils/http-errors.js";
 
 /**
  * Webhook Controllers

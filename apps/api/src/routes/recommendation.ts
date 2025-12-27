@@ -25,8 +25,8 @@ import {
   getRecommendationPricingController,
   getRecommendationStatusController,
   debugPremiumAccessController,
-} from "../controllers/recommendation";
-import { x402Middleware } from "../middleware/x402";
+} from "../controllers/recommendation.js";
+import { x402Middleware } from "../middleware/x402.js";
 
 /**
  * Recommendation Routes

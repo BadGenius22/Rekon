@@ -1,5 +1,5 @@
 import type { Notification, NotificationType } from "@rekon/types";
-import { getRedisClient } from "../adapters/redis";
+import { getRedisClient } from "../adapters/redis/index.js";
 import { randomBytes } from "crypto";
 
 /**

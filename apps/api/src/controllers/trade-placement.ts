@@ -1,8 +1,8 @@
 import type { Context } from "hono";
 import { z } from "zod";
-import { placeTrade } from "../services/trade-placement";
-import { getSessionFromContext } from "../middleware/session";
-import { BadRequest } from "../utils/http-errors";
+import { placeTrade } from "../services/trade-placement.js";
+import { getSessionFromContext } from "../middleware/session.js";
+import { BadRequest } from "../utils/http-errors.js";
 import type { TradePlacementRequest } from "@rekon/types";
 
 /**
