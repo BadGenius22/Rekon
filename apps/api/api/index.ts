@@ -9,6 +9,7 @@
 import { getRequestListener } from "@hono/node-server";
 import app from "../src/index.js";
 
-const handler = getRequestListener(app.fetch);
+// Bind fetch to preserve 'this' context
+const handler = getRequestListener(app.fetch.bind(app));
 
 export default handler;
