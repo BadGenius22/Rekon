@@ -2,5 +2,10 @@
   "framework": null,
   "installCommand": "cd ../.. && pnpm install",
   "buildCommand": "cd ../.. && pnpm build:api:vercel",
-  "outputDirectory": ".vercel/output"
+  "outputDirectory": ".vercel/output",
+  "functions": {
+    "api.func": {
+      "excludeFiles": "{**/*.test.*,**/*.spec.*,**/tests/**,**/test/**,**/__tests__/**,**/docs/**,**/doc/**,**/examples/**,**/example/**,**/*.md,**/README*,**/CHANGELOG*,**/LICENSE*,**/.github/**,**/coverage/**,**/.nyc_output/**}"
+    }
+  }
 }

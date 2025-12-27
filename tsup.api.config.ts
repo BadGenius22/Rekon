@@ -13,6 +13,7 @@ export default defineConfig({
   dts: false,
   splitting: false,
   bundle: true,
+  minify: true, // Minify to reduce bundle size
   // Bundle workspace packages, keep npm packages external
   noExternal: [/^@rekon\//],
   // Only keep Node.js built-ins and problematic packages external

@@ -111,17 +111,15 @@ if (existsSync(rootPackageJsonPath)) {
   rootPackageJson = JSON.parse(readFileSync(rootPackageJsonPath, "utf-8"));
 }
 
-// Get list of external packages to copy (all npm packages, not workspace)
-// Merge dependencies from both API and root package.json
-const allDependencies = {
-  ...(rootPackageJson.dependencies || {}),
-  ...(apiPackageJson.dependencies || {}),
-};
-
-// Start with direct dependencies
-const externalPackages = Object.keys(allDependencies).filter(
-  (name) => !name.startsWith("@rekon/")
-);
+// Only copy packages that MUST be external (ethers packages due to pnpm resolution issues)
+// Everything else should be bundled by tsup
+// This prevents copying 500+ transitive dependencies and exceeding 250MB limit
+const externalPackages = [
+  "ethers",
+  "@ethersproject/wallet",
+  "@ethersproject/signing-key",
+  "@ethersproject/units", // Used by @ethersproject/wallet
+];
 
 // Helper to find a package in .pnpm store
 function findInPnpmStore(packageName) {
@@ -242,114 +240,18 @@ async function copyPackage(packageName) {
   }
 }
 
-// Helper to read package.json and get dependencies
-function getPackageDependencies(packagePath) {
-  const packageJsonPath = join(packagePath, "package.json");
-  if (!existsSync(packageJsonPath)) {
-    return {};
-  }
-  try {
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
-    return {
-      ...(packageJson.dependencies || {}),
-      ...(packageJson.optionalDependencies || {}),
-    };
-  } catch (err) {
-    return {};
-  }
-}
-
-// Helper to find package path (sync version for dependency discovery)
-function findPackagePathSync(pkg) {
-  // Check local node_modules first
-  if (existsSync(localNodeModules)) {
-    const localPath = join(localNodeModules, pkg);
-    if (existsSync(localPath)) {
-      return localPath;
-    }
-    const scopedMatch = pkg.match(/^(@[^/]+)\/(.+)$/);
-    if (scopedMatch) {
-      const [, scope, pkgName] = scopedMatch;
-      const scopedPath = join(localNodeModules, scope, pkgName);
-      if (existsSync(scopedPath)) {
-        return scopedPath;
-      }
-    }
-  }
-
-  // Fall back to root node_modules
-  const rootPath = join(rootNodeModules, pkg);
-  if (existsSync(rootPath)) {
-    return rootPath;
-  }
-  const scopedMatch = pkg.match(/^(@[^/]+)\/(.+)$/);
-  if (scopedMatch) {
-    const [, scope, pkgName] = scopedMatch;
-    const scopedPath = join(rootNodeModules, scope, pkgName);
-    if (existsSync(scopedPath)) {
-      return scopedPath;
-    }
-  }
-
-  // Last resort: search in .pnpm store
-  return findInPnpmStore(pkg);
-}
-
-// Recursively collect all transitive dependencies
-const allPackagesToCopy = new Set(externalPackages);
-const processedPackages = new Set();
-const queue = [...externalPackages];
-
-while (queue.length > 0) {
-  const pkg = queue.shift();
-  if (processedPackages.has(pkg)) continue;
-  processedPackages.add(pkg);
-
-  const packagePath = findPackagePathSync(pkg);
-  if (!packagePath || !existsSync(packagePath)) continue;
-
-  try {
-    // Read dependencies synchronously (we'll resolve symlinks when copying)
-    const transitiveDeps = getPackageDependencies(packagePath);
-
-    // Add transitive dependencies to the queue
-    for (const [name, version] of Object.entries(transitiveDeps)) {
-      // Skip workspace packages and Node.js built-ins
-      if (
-        !name.startsWith("@rekon/") &&
-        !builtinModules.includes(name) &&
-        !name.startsWith("node:")
-      ) {
-        if (!allPackagesToCopy.has(name)) {
-          allPackagesToCopy.add(name);
-          queue.push(name);
-        }
-      }
-    }
-  } catch (err) {
-    // Ignore errors
-  }
-}
-
-// Copy all packages (direct + transitive)
+// Copy only the minimal set of external packages
+// We don't copy transitive dependencies - they should be bundled by tsup
+// This keeps the function size under 250MB
 let copied = 0;
-const packagesToCopy = Array.from(allPackagesToCopy);
-for (const pkg of packagesToCopy) {
+for (const pkg of externalPackages) {
   if (await copyPackage(pkg)) {
     copied++;
-    if (copied % 5 === 0) {
-      process.stdout.write(".");
-    }
+    process.stdout.write(".");
   }
 }
 
-const directCount = externalPackages.length;
-const transitiveCount = packagesToCopy.length - directCount;
-console.log(
-  `\n✓ Copied ${copied} external packages (${directCount} direct${
-    transitiveCount > 0 ? ` + ${transitiveCount} transitive` : ""
-  })`
-);
+console.log(`\n✓ Copied ${copied} external packages (ethers packages only)`);
 
 // Create main config.json with routing
 // This is REQUIRED for Build Output API v3
