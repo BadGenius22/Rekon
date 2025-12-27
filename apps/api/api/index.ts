@@ -1,14 +1,11 @@
 /**
- * Vercel Serverless Function Handler
+ * Vercel Serverless Function Entry Point (Build Output API v3)
  *
- * This file is the entry point for Vercel serverless functions.
- * It exports the Hono app directly - Vercel has native support for Hono.
- *
- * The app is bundled by tsup into api/index.js with all dependencies included.
+ * Pre-bundled by tsup with all dependencies.
+ * Uses @hono/node-server to handle Node.js request/response.
  */
 
-// Import the Hono app - tsup will bundle everything together
+import { getRequestListener } from "@hono/node-server";
 import app from "../src/index.js";
 
-// Export the app directly - Vercel handles Hono apps natively
-export default app;
+export default getRequestListener(app.fetch.bind(app));

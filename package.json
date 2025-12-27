@@ -6,7 +6,6 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "build:api": "tsup --config tsup.api.config.ts",
-    "build:api:vercel": "pnpm build:api && cd apps/api && node scripts/create-vercel-output.mjs",
     "dev:api": "tsup --config tsup.api.config.ts --watch",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
@@ -30,6 +29,7 @@
     "pnpm": ">=10.0.0"
   },
   "dependencies": {
+    "@hono/node-server": "^1.19.6",
     "fuse.js": "^7.1.0"
   }
 }

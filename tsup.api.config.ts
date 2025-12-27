@@ -13,23 +13,15 @@ export default defineConfig({
   dts: false,
   splitting: false,
   bundle: true,
-  minify: true, // Minify to reduce bundle size
-  // Bundle workspace packages, keep npm packages external
-  noExternal: [/^@rekon\//],
-  // Only keep Node.js built-ins and problematic packages external
-  external: [
-    ...builtinModules,
-    ...builtinModules.map((m) => `node:${m}`),
-    // Keep ethers packages external (pnpm resolution issues - packages in .pnpm not symlinked)
-    /^@ethersproject\//,
-    "ethers",
-    // Keep fuse.js external (it's in root package.json, not apps/api/package.json)
-    "fuse.js",
-    // CommonJS dependencies that ethers uses (CJS/ESM interop issues)
-    "aes-js",
-  ],
+  minify: true,
+  // Bundle EVERYTHING - workspace packages AND external deps
+  // This eliminates runtime dependency resolution issues on Vercel
+  noExternal: [/.*/],
+  // Only keep Node.js built-ins external
+  external: [...builtinModules, ...builtinModules.map((m) => `node:${m}`)],
   esbuildOptions(options) {
     options.mainFields = ["module", "main"];
+    // Add require() polyfill for any CJS dependencies that get bundled
     options.banner = {
       js: 'import { createRequire } from "module"; const require = createRequire(import.meta.url);',
     };
