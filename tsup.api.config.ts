@@ -15,10 +15,30 @@ export default defineConfig({
   bundle: true,
   // Bundle workspace packages, keep npm packages external
   noExternal: [/^@rekon\//],
-  // Keep Node.js built-ins and problematic packages external
-  external: [...builtinModules, "ws", "bufferutil", "utf-8-validate"],
+  // Keep Node.js built-ins external - they're available at runtime
+  external: [
+    ...builtinModules,
+    ...builtinModules.map((m) => `node:${m}`),
+    // Keep these npm packages external (they have dynamic requires or native deps)
+    "ws",
+    "bufferutil",
+    "utf-8-validate",
+    "@polymarket/clob-client",
+    "fuse.js",
+    "openai",
+    "ethers",
+    /^@ethersproject\//, // All ethers packages
+    "thirdweb",
+    "@neondatabase/serverless",
+    "@upstash/redis",
+    "hono",
+    "graphql-request",
+    "lru-cache",
+    "hono-rate-limiter",
+    "@sentry/node",
+  ],
   esbuildOptions(options) {
-    options.mainFields = ["module", "main", "types"];
+    options.mainFields = ["module", "main"];
     return options;
   },
 });
