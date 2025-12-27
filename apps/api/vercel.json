@@ -1,8 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd ../.. && pnpm build:api",
-  "outputDirectory": ".",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/api/index" }
-  ]
+  "buildCommand": "cd ../.. && pnpm build:api && node apps/api/scripts/create-vercel-output.mjs",
+  "outputDirectory": ".vercel/output"
 }
