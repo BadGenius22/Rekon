@@ -11,17 +11,30 @@ import { mkdirSync, writeFileSync, copyFileSync, existsSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
+// Use process.cwd() to respect Vercel's Root Directory setting
+// This will be the monorepo root if Root Directory is not set,
+// or apps/api if Root Directory is set to apps/api
+const rootDir = process.cwd();
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const apiDir = join(__dirname, "..");
-const repoRoot = join(apiDir, "..", "..");
 
-// Output directories - must be at repo root for Build Output API
-const outputDir = join(repoRoot, ".vercel", "output");
+// Determine if we're in apps/api or monorepo root
+const isApiRoot = rootDir.endsWith("apps/api") || rootDir.endsWith("apps\\api");
+const handlerSourceDir = isApiRoot 
+  ? join(rootDir, "api") 
+  : join(rootDir, "apps", "api", "api");
+
+// Output directories - must be relative to Vercel's Root Directory
+const outputDir = join(rootDir, ".vercel", "output");
 const functionsDir = join(outputDir, "functions");
 const apiFuncDir = join(functionsDir, "api.func");
 const staticDir = join(outputDir, "static");
 
-console.log("Creating Vercel Build Output API v3 structure...");
+console.log("🔍 Current working directory:", rootDir);
+console.log("🔍 Script location:", __dirname);
+console.log("🔍 Creating output at:", outputDir);
+console.log("🔍 Handler source:", handlerSourceDir);
+console.log("\nCreating Vercel Build Output API v3 structure...");
 
 // Create directory structure
 mkdirSync(apiFuncDir, { recursive: true });
@@ -29,11 +42,12 @@ mkdirSync(staticDir, { recursive: true });
 
 // Copy the bundled handler
 // Build Output API v3 spec requires the file to be named "handler.js"
-const handlerSrc = join(apiDir, "api", "index.js");
+const handlerSrc = join(handlerSourceDir, "index.js");
 const handlerDest = join(apiFuncDir, "handler.js");
 
 if (!existsSync(handlerSrc)) {
-  console.error("Error: api/index.js not found. Run pnpm build:api first.");
+  console.error(`❌ Error: Handler not found at ${handlerSrc}`);
+  console.error("   Run pnpm build:api first.");
   process.exit(1);
 }
 
@@ -41,7 +55,7 @@ copyFileSync(handlerSrc, handlerDest);
 console.log("✓ Copied bundled handler to api.func/handler.js");
 
 // Copy source map if it exists (optional, for debugging)
-const sourceMapSrc = join(apiDir, "api", "index.js.map");
+const sourceMapSrc = join(handlerSourceDir, "index.js.map");
 if (existsSync(sourceMapSrc)) {
   copyFileSync(sourceMapSrc, join(apiFuncDir, "handler.js.map"));
   console.log("✓ Copied source map");
