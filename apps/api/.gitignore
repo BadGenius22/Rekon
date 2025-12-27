@@ -1,1 +1,7 @@
 .vercel
+
+# Bundled handler output (built on Vercel)
+api/handler.cjs
+api/handler.cjs.map
+api/handler.js
+api/handler.js.map

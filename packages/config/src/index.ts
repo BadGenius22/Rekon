@@ -147,7 +147,7 @@ export const REDIS_CONFIG = {
 } as const;
 
 // x402 Payment Protocol Configuration
-export { X402_CONFIG } from "./x402.js";
+export { X402_CONFIG } from "./x402";
 
 // Pandascore Esports API Configuration
 // Used for historical team stats, match history, and head-to-head data

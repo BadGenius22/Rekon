@@ -1,38 +1,7 @@
 {
   "installCommand": "cd ../.. && pnpm install",
   "buildCommand": "cd ../.. && pnpm build:api",
-  "functions": {
-    "api/handler.js": {
-      "includeFiles": "api/handler.js"
-    }
-  },
   "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/api/handler"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Credentials",
-          "value": "true"
-        },
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "GET, POST, PUT, DELETE, OPTIONS"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization, x-demo-mode, x-payment, x-wallet-address"
-        }
-      ]
-    }
+    { "source": "/(.*)", "destination": "/api/handler" }
   ]
 }

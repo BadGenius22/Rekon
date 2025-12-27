@@ -5,7 +5,7 @@ import app from "./app.js";
  * Starts the Express server on the configured port
  */
 
-const port = Number(process.env.PORT) || 3000;
+const port = Number(process.env.PORT) || 3002;
 
 const server = app.listen(port, () => {
   console.log(`🔐 Builder signing server running on http://localhost:${port}`);

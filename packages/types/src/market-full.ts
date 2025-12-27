@@ -4,7 +4,7 @@
  * Types for the unified market aggregator endpoint.
  */
 
-import type { Market, OrderBook, Trade, OrderBookEntry } from "./index.js";
+import type { Market, OrderBook, Trade, OrderBookEntry } from "./index";
 
 /**
  * Market Spread

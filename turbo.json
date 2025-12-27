@@ -1,6 +1,20 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": ["**/.env.*local"],
+  "globalEnv": [
+    "NODE_ENV",
+    "POLYMARKET_*",
+    "UPSTASH_*",
+    "REDIS_*",
+    "THIRDWEB_*",
+    "GRID_*",
+    "PANDASCORE_*",
+    "X402_*",
+    "NEON_*",
+    "LLM_*",
+    "FRONTEND_URL",
+    "ENABLE_GRID_LIVE_DATA"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

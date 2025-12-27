@@ -268,12 +268,15 @@ const isMainModule =
 // 1. Not in Vercel environment (serverless functions don't need servers)
 // 2. This is the main module (not imported by another module)
 if (!isVercel && isMainModule) {
-  const { serve } = await import("@hono/node-server");
-  serve({
-    fetch: app.fetch,
-    port,
-  });
-  console.log(`🚀 Rekon API server running on http://localhost:${port}`);
+  // Use async IIFE to avoid top-level await (required for CJS compatibility)
+  (async () => {
+    const { serve } = await import("@hono/node-server");
+    serve({
+      fetch: app.fetch,
+      port,
+    });
+    console.log(`🚀 Rekon API server running on http://localhost:${port}`);
+  })();
 }
 
 export default app;

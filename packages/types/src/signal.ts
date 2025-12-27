@@ -18,7 +18,7 @@
 
 // Types for x402-powered AI market signal service
 
-import type { Market, OrderBook, Trade } from "./index.js";
+import type { Market, OrderBook, Trade } from "./index";
 
 /**
  * Signal result returned to users after payment

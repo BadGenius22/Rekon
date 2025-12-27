@@ -94,5 +94,5 @@ export {
   getAllCS2TeamNames,
   CS2_TEAM_ALIASES,
   type TeamAliasEntry,
-} from "./team-names.js";
+} from "./team-names";
 
