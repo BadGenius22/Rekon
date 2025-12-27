@@ -1,11 +1,6 @@
 {
   "installCommand": "cd ../.. && pnpm install",
   "buildCommand": "cd ../.. && pnpm build:api",
-  "functions": {
-    "api/handler.js": {
-      "runtime": "@vercel/node@3"
-    }
-  },
   "rewrites": [
     {
       "source": "/(.*)",
