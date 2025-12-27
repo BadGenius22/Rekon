@@ -1,8 +1,5 @@
 {
   "framework": null,
   "installCommand": "cd ../.. && pnpm install",
-  "buildCommand": "cd ../.. && pnpm build:api && cd apps/api && node scripts/create-vercel-output.mjs",
-  "git": {
-    "deploymentEnabled": false
-  }
+  "buildCommand": "cd ../.. && pnpm build:api && cd apps/api && node scripts/create-vercel-output.mjs"
 }
