@@ -33,6 +33,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@ethersproject/signing-key':
+        specifier: ^5.8.0
+        version: 5.8.0
       '@ethersproject/wallet':
         specifier: ^5.8.0
         version: 5.8.0
