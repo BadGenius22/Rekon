@@ -1,5 +1,7 @@
 {
   "installCommand": "cd ../.. && pnpm install",
+  "buildCommand": "",
+  "framework": "hono",
   "headers": [
     {
       "source": "/(.*)",
