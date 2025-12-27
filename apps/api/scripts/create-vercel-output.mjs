@@ -3,7 +3,7 @@
  * Creates the required structure for Vercel deployment
  */
 
-import { mkdir, writeFile, copyFile, readFile } from "fs/promises";
+import { mkdir, writeFile, readFile } from "fs/promises";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
@@ -23,12 +23,15 @@ async function main() {
   // Write function file with proper ESM format
   await writeFile(join(funcDir, "index.mjs"), bundledCode);
 
-  // Function config - use Edge runtime for Web API compatibility
+  // Function config - Node.js runtime with proper handler
   await writeFile(
     join(funcDir, ".vc-config.json"),
     JSON.stringify({
-      runtime: "edge",
-      entrypoint: "index.mjs",
+      runtime: "nodejs20.x",
+      handler: "index.mjs",
+      launcherType: "Nodejs",
+      shouldAddHelpers: false,
+      shouldAddSourcemapSupport: false,
     })
   );
 
@@ -41,7 +44,7 @@ async function main() {
     })
   );
 
-  console.log("✓ Build Output API v3 structure created (Edge runtime)");
+  console.log("✓ Build Output API v3 structure created (Node.js runtime)");
 }
 
 main().catch((err) => {
