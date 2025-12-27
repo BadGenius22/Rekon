@@ -13,32 +13,30 @@ export default defineConfig({
   dts: false,
   splitting: false,
   bundle: true,
-  // Bundle workspace packages, keep npm packages external
+  // Bundle workspace packages only, keep npm packages external
   noExternal: [/^@rekon\//],
-  // Keep Node.js built-ins external - they're available at runtime
+  // Keep Node.js built-ins and problematic packages external
   external: [
     ...builtinModules,
     ...builtinModules.map((m) => `node:${m}`),
-    // Keep these npm packages external (they have dynamic requires or native deps)
-    "ws",
-    "bufferutil",
-    "utf-8-validate",
-    "@polymarket/clob-client",
-    "fuse.js",
-    "openai",
+    // Keep ethers packages external (pnpm resolution issues)
+    /^@ethersproject\//,
     "ethers",
-    /^@ethersproject\//, // All ethers packages
-    "thirdweb",
-    "@neondatabase/serverless",
-    "@upstash/redis",
-    "hono",
-    "graphql-request",
-    "lru-cache",
-    "hono-rate-limiter",
-    "@sentry/node",
   ],
   esbuildOptions(options) {
-    options.mainFields = ["module", "main"];
+    options.mainFields = ["module", "main", "types"];
+    // Help esbuild resolve pnpm packages
+    // Add node_modules paths for pnpm workspace resolution
+    const nodeModulesPaths = [
+      "node_modules",
+      "apps/api/node_modules",
+      ...(options.nodePaths || []),
+    ];
+    options.nodePaths = nodeModulesPaths;
+    // Add shim for dynamic requires in ESM
+    options.banner = {
+      js: 'import { createRequire } from "module"; const require = createRequire(import.meta.url);',
+    };
     return options;
   },
 });
