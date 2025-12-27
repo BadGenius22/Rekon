@@ -1,19 +1,19 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["apps/api/src/index.ts"],
+  // Bundle the Vercel handler as the entry point (includes hono/vercel)
+  entry: ["apps/api/api/handler.ts"],
   format: ["esm"],
   platform: "node",
   target: "node20",
-  outDir: "apps/api/dist",
+  outDir: "apps/api/api",
   outExtension: () => ({ js: ".js" }),
   sourcemap: true,
-  clean: true,
+  clean: false, // Don't clean - keep .ts files
   dts: false,
   splitting: false,
   bundle: true,
   // Bundle EVERYTHING into a single self-contained file for Vercel
-  // This ensures all dependencies are included and no module resolution issues occur
   noExternal: [/.*/],
   // Only mark Node.js built-ins as external
   external: [

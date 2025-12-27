@@ -12,6 +12,10 @@ out/
 build
 dist
 
+# API build output
+apps/api/api/*.js
+apps/api/api/*.js.map
+
 # Production
 *.log
 *.pid
