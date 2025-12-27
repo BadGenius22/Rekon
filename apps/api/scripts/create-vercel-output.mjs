@@ -119,6 +119,7 @@ const externalPackages = [
   "@ethersproject/wallet",
   "@ethersproject/signing-key",
   "@ethersproject/units", // Used by @ethersproject/wallet
+  "fuse.js", // In root package.json, needs to be copied
 ];
 
 // Helper to find a package in .pnpm store

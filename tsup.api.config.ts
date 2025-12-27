@@ -23,6 +23,8 @@ export default defineConfig({
     // Keep ethers packages external (pnpm resolution issues - packages in .pnpm not symlinked)
     /^@ethersproject\//,
     "ethers",
+    // Keep fuse.js external (it's in root package.json, not apps/api/package.json)
+    "fuse.js",
   ],
   esbuildOptions(options) {
     options.mainFields = ["module", "main"];
