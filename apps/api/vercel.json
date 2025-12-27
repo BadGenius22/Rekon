@@ -1,6 +1,5 @@
 {
-  "framework": null,
-  "installCommand": "cd ../.. && pnpm install",
-  "buildCommand": "cd ../.. && pnpm build:api:vercel",
-  "outputDirectory": ".vercel/output"
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api" }
+  ]
 }
