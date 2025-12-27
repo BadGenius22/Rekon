@@ -353,6 +353,18 @@ console.log(
   })`
 );
 
+// Create package.json in function directory to help with module resolution
+// This ensures Node.js can properly resolve CommonJS modules like aes-js
+const funcPackageJson = {
+  type: "module",
+  // This helps Node.js handle CJS/ESM interop better
+};
+writeFileSync(
+  join(apiFuncDir, "package.json"),
+  JSON.stringify(funcPackageJson, null, 2)
+);
+console.log("✓ Created package.json for module resolution");
+
 // Create main config.json with routing
 // This is REQUIRED for Build Output API v3
 const config = {
