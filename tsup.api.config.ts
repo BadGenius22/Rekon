@@ -6,33 +6,41 @@ export default defineConfig({
   platform: "node",
   target: "node20",
   outDir: "apps/api/dist",
-  outExtension: () => ({ js: ".js" }), // Force .js extension instead of .mjs
+  outExtension: () => ({ js: ".js" }),
   sourcemap: true,
   clean: true,
   dts: false,
   splitting: false,
-  bundle: true, // CRITICAL: Actually bundle dependencies, not just transpile
-  noExternal: [
-    // Bundle workspace packages (monorepo dependencies)
-    "@rekon/config",
-    "@rekon/types",
-    "@rekon/utils",
-  ],
-  // Explicitly mark all node_modules as external to avoid bundling issues
-  // This includes ethers ecosystem and other complex dependency trees
+  bundle: true,
+  // Bundle EVERYTHING into a single self-contained file for Vercel
+  // This ensures all dependencies are included and no module resolution issues occur
+  noExternal: [/.*/],
+  // Only mark Node.js built-ins as external
   external: [
-    // All node_modules packages (regex patterns)
-    /^[^./]|^\.[^./]|^\.\.[^/]/, // Matches any package (not relative paths)
-    // Specific problematic packages
-    /^@ethersproject\//,
-    /^@polymarket\//,
-    /^@sentry\//,
-    /^@neondatabase\//,
-    /^@upstash\//,
-    "ethers",
-    "hono",
-    "zod",
-    "openai",
-    "thirdweb",
+    "node:*",
+    "fs",
+    "path",
+    "os",
+    "crypto",
+    "stream",
+    "util",
+    "events",
+    "buffer",
+    "http",
+    "https",
+    "url",
+    "querystring",
+    "zlib",
+    "net",
+    "tls",
+    "child_process",
+    "worker_threads",
+    "async_hooks",
+    "perf_hooks",
+    "dns",
+    "assert",
+    "timers",
+    "tty",
+    "readline",
   ],
 });
