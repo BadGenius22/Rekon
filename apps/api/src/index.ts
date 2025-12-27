@@ -142,6 +142,16 @@ app.use(
 // Also wraps requests in AsyncLocalStorage for deep adapter access
 app.use("*", demoModeMiddleware);
 
+// Root route - API info
+app.get("/", (c) => {
+  return c.json({
+    service: "rekon-api",
+    version: "0.1.0",
+    docs: "https://rekon.gg/docs",
+    health: "/health",
+  });
+});
+
 // Health check (no rate limiting, no session)
 app.get("/health", (c) => {
   return c.json({ status: "ok", service: "rekon-api" });
