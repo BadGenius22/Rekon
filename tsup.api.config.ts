@@ -14,8 +14,16 @@ export default defineConfig({
   dts: false,
   splitting: false,
   bundle: true,
-  // Bundle EVERYTHING into a single self-contained file for Vercel
-  // This is critical for monorepo workspace packages - they must be bundled
-  // Using external: [] ensures ALL dependencies (including workspace packages) are bundled
-  external: [],
+  // CRITICAL: Bundle workspace packages (@rekon/*) - they point to .ts files
+  // Workspace packages have "main": "./src/index.ts" which won't work at runtime
+  // By bundling them, tsup compiles their TypeScript into the output bundle
+  noExternal: [/^@rekon\//],
+  // npm packages stay external (in node_modules) - Vercel installs them
+  // This avoids resolution issues with peer dependencies
+  // The key: workspace packages get bundled (TypeScript compiled), npm packages stay external
+  esbuildOptions(options) {
+    // Help esbuild resolve workspace packages correctly
+    options.mainFields = ["module", "main", "types"];
+    return options;
+  },
 });

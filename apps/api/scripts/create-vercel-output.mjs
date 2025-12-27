@@ -28,8 +28,9 @@ mkdirSync(apiFuncDir, { recursive: true });
 mkdirSync(staticDir, { recursive: true });
 
 // Copy the bundled handler
+// Build Output API v3 spec requires the file to be named "handler.js"
 const handlerSrc = join(apiDir, "api", "index.js");
-const handlerDest = join(apiFuncDir, "index.js");
+const handlerDest = join(apiFuncDir, "handler.js");
 
 if (!existsSync(handlerSrc)) {
   console.error("Error: api/index.js not found. Run pnpm build:api first.");
@@ -37,22 +38,20 @@ if (!existsSync(handlerSrc)) {
 }
 
 copyFileSync(handlerSrc, handlerDest);
-console.log("✓ Copied bundled handler to api.func/index.js");
+console.log("✓ Copied bundled handler to api.func/handler.js");
 
-// Copy source map if it exists
+// Copy source map if it exists (optional, for debugging)
 const sourceMapSrc = join(apiDir, "api", "index.js.map");
 if (existsSync(sourceMapSrc)) {
-  copyFileSync(sourceMapSrc, join(apiFuncDir, "index.js.map"));
+  copyFileSync(sourceMapSrc, join(apiFuncDir, "handler.js.map"));
   console.log("✓ Copied source map");
 }
 
 // Create function config (.vc-config.json)
-// Using Web API fetch handler format - Hono exports the app directly
-// For ESM default exports: "index.default" (file is index.js, export is default)
-// Alternative: If using named export, use "index.handler"
+// Build Output API v3: handler file is "handler.js", Hono app is exported as default
 const vcConfig = {
   runtime: "nodejs20.x",
-  handler: "index.default", // ESM default export: file is index.js, export is default
+  handler: "handler.default", // File is handler.js, export is default (Hono app)
   launcherType: "Nodejs",
   shouldAddHelpers: false,
   shouldAddSourcemapSupport: false,
@@ -102,5 +101,5 @@ console.log("  ├── config.json (version: 3)");
 console.log("  ├── functions/");
 console.log("  │   └── api.func/");
 console.log("  │       ├── .vc-config.json");
-console.log("  │       └── index.js");
+console.log("  │       └── handler.js");
 console.log("  └── static/");
