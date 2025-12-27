@@ -4,7 +4,7 @@ export default defineConfig({
   entry: ["apps/api/src/index.ts"],
   format: ["esm"],
   platform: "node",
-  target: "node24",
+  target: "node20",
   outDir: "apps/api/dist",
   outExtension: () => ({ js: ".js" }), // Force .js extension instead of .mjs
   sourcemap: true,

@@ -1,26 +1,11 @@
-/**
- * Vercel Serverless Function Entry Point for Hono API
- *
- * This file loads the bundled Hono app from ../dist/index.js
- * and adapts it to Vercel's serverless runtime.
- */
+export const runtime = "nodejs";
 
 import { handle } from "hono/vercel";
 import type { Hono } from "hono";
+import app from "../dist/index.js";
 
-// --- load bundled app (build artifact) ---
-const mod = await import("../dist/index.js");
+const handler = handle(app as Hono);
 
-const app = mod.default as Hono;
-
-if (!app) {
-  throw new Error("❌ dist/index.js has no default export");
-}
-
-// --- create handler once ---
-const handler = handle(app);
-
-// --- re-export for Vercel ---
 export const GET = handler;
 export const POST = handler;
 export const PUT = handler;

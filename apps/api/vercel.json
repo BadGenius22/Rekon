@@ -1,12 +1,6 @@
 {
   "installCommand": "cd ../.. && pnpm install",
   "buildCommand": "cd ../.. && pnpm build:api",
-  "functions": {
-    "apps/api/api/[[...route]].ts": {
-      "runtime": "nodejs24.x",
-      "includeFiles": "apps/api/dist/**"
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",
