@@ -15,7 +15,10 @@ import {
   type RecommendationAvailabilityResponse,
   type RecommendationAccessResponse,
 } from "../lib/api-client";
-import { signAccessRequest, type SignedAccessHeaders } from "../lib/wallet-signature";
+import {
+  signAccessRequest,
+  type SignedAccessHeaders,
+} from "../lib/wallet-signature";
 
 // Production mode: require wallet signature for access check
 // Set to true when X402_REQUIRE_SIGNATURE_FOR_ACCESS=true on backend
@@ -148,9 +151,20 @@ export function useRecommendation(): UseRecommendationReturn {
       stopRefresh();
 
       refreshIntervalRef.current = setInterval(async () => {
+        // Guard: Check if marketId changed (prevents stale refreshes)
+        if (currentMarketIdRef.current !== marketId) {
+          stopRefresh();
+          return;
+        }
+
         try {
           // Fetch updated preview (free endpoint, safe to poll)
           const updated = await getRecommendationPreview(marketId);
+
+          // Guard: Double-check marketId after async operation
+          if (currentMarketIdRef.current !== marketId) {
+            return;
+          }
 
           // Only update if still in success/preview state
           setState((prev: RecommendationState) => {
@@ -195,9 +209,17 @@ export function useRecommendation(): UseRecommendationReturn {
 
   const fetchAvailability = useCallback(async (marketId: string) => {
     setState({ status: "checking" });
+    currentMarketIdRef.current = marketId;
 
     try {
       const available = await getRecommendationAvailability(marketId);
+
+      // Guard: Only update state if this is still the current market
+      // Prevents race conditions when marketId changes during async operation
+      if (currentMarketIdRef.current !== marketId) {
+        return;
+      }
+
       setAvailability(available);
 
       if (!available.available) {
@@ -207,9 +229,16 @@ export function useRecommendation(): UseRecommendationReturn {
             available.reason || "Recommendation not available for this market",
         });
       } else {
+        // Availability check passed - set state to idle
+        // Component effect will handle fetching preview
         setState({ status: "idle" });
       }
     } catch (err) {
+      // Guard: Only update state if this is still the current market
+      if (currentMarketIdRef.current !== marketId) {
+        return;
+      }
+
       const message =
         err instanceof Error ? err.message : "Failed to check availability";
       setState({ status: "error", error: message });
@@ -219,16 +248,63 @@ export function useRecommendation(): UseRecommendationReturn {
   const fetchPreview = useCallback(
     async (marketId: string) => {
       setState({ status: "loading" });
+      currentMarketIdRef.current = marketId; // Set ref early for race condition protection
+
+      // Guard: Check marketId before async operations
       await ensurePricing();
-      currentMarketIdRef.current = marketId;
+      if (currentMarketIdRef.current !== marketId) {
+        return;
+      }
 
       try {
+        console.log(
+          "[useRecommendation] Fetching preview for market:",
+          marketId
+        );
         const preview = await getRecommendationPreview(marketId);
+        console.log("[useRecommendation] Preview fetched successfully");
+
+        // Guard: Only update state if this is still the current market
+        // Prevents race conditions when marketId changes during async operation
+        if (currentMarketIdRef.current !== marketId) {
+          console.log(
+            "[useRecommendation] Market changed during fetch, ignoring preview"
+          );
+          return;
+        }
+
+        console.log("[useRecommendation] Setting preview state");
         setState({ status: "preview", data: preview });
+        // Store preview data for potential restoration
+        lastPreviewDataRef.current = preview;
       } catch (err) {
+        // Guard: Only update state if this is still the current market
+        if (currentMarketIdRef.current !== marketId) {
+          return;
+        }
+
         const message =
           err instanceof Error ? err.message : "Failed to fetch preview";
-        setState({ status: "error", error: message });
+
+        // Check if this is a 400 Bad Request (unsupported game)
+        // This happens when the market is an esports market but the game isn't supported by GRID API
+        const is400Error =
+          message.includes("400") ||
+          message.includes("Bad Request") ||
+          message.includes("not an esports market") ||
+          message.includes("not supported");
+
+        if (is400Error) {
+          // Map to unavailable state with friendly message
+          setState({
+            status: "unavailable",
+            reason:
+              "Recommendations are currently available for CS2 & DOTA2 markets only.",
+          });
+        } else {
+          // For other errors, show error state
+          setState({ status: "error", error: message });
+        }
       }
     },
     [ensurePricing]
@@ -254,9 +330,14 @@ export function useRecommendation(): UseRecommendationReturn {
         if (REQUIRE_SIGNATURE_FOR_ACCESS && walletClient) {
           try {
             signatureHeaders = await signAccessRequest(walletClient, marketId);
-            console.log("[useRecommendation] Signed access request for production mode");
+            console.log(
+              "[useRecommendation] Signed access request for production mode"
+            );
           } catch (signErr) {
-            console.warn("[useRecommendation] Failed to sign access request:", signErr);
+            console.warn(
+              "[useRecommendation] Failed to sign access request:",
+              signErr
+            );
             // Continue without signature - backend will require payment
           }
         }
@@ -269,7 +350,10 @@ export function useRecommendation(): UseRecommendationReturn {
         setPremiumAccess(accessInfo);
         return accessInfo.hasAccess;
       } catch (err) {
-        console.warn("[useRecommendation] Failed to check premium access:", err);
+        console.warn(
+          "[useRecommendation] Failed to check premium access:",
+          err
+        );
         setPremiumAccess(null);
         return false;
       }
@@ -328,7 +412,9 @@ export function useRecommendation(): UseRecommendationReturn {
         let result: RecommendationResult;
 
         if (hasAccess) {
-          console.log("[useRecommendation] User has premium access, fetching directly");
+          console.log(
+            "[useRecommendation] User has premium access, fetching directly"
+          );
           // User already paid - fetch with wallet address header to skip x402
           // Use proper headers including Content-Type
           const response = await fetch(recommendationUrl, {
@@ -342,7 +428,9 @@ export function useRecommendation(): UseRecommendationReturn {
             // For premium users, provide specific error message
             const errorText = await response.text().catch(() => "");
             throw new Error(
-              `Failed to load premium content: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ""}`
+              `Failed to load premium content: ${response.status} ${
+                response.statusText
+              }${errorText ? ` - ${errorText}` : ""}`
             );
           }
 
@@ -350,7 +438,10 @@ export function useRecommendation(): UseRecommendationReturn {
         } else {
           console.log("[useRecommendation] Fetching with x402 payment");
           console.log("[useRecommendation] URL:", recommendationUrl);
-          console.log("[useRecommendation] Wallet client ready:", !!walletClient);
+          console.log(
+            "[useRecommendation] Wallet client ready:",
+            !!walletClient
+          );
 
           // Use manual x402 implementation - uses wagmi wallet directly, NO thirdweb modal!
           // This will:
@@ -393,7 +484,10 @@ export function useRecommendation(): UseRecommendationReturn {
         // PREMIUM ACCESS ERRORS (user already paid - different handling)
         // =====================================================================
         if (userHasPremiumAccess) {
-          console.log("[useRecommendation] Error fetching premium content:", err instanceof Error ? err.message : String(err));
+          console.log(
+            "[useRecommendation] Error fetching premium content:",
+            err instanceof Error ? err.message : String(err)
+          );
 
           // For users with premium access, network/server errors should trigger retry
           const isNetworkError =
@@ -404,7 +498,9 @@ export function useRecommendation(): UseRecommendationReturn {
 
           if (isNetworkError) {
             // Retry once automatically for network errors
-            console.log("[useRecommendation] Network error for premium user, retrying...");
+            console.log(
+              "[useRecommendation] Network error for premium user, retrying..."
+            );
             try {
               const recommendationUrl = `${API_CONFIG.baseUrl}/recommendation/market/${marketId}`;
               const retryResponse = await fetch(recommendationUrl, {
@@ -416,9 +512,16 @@ export function useRecommendation(): UseRecommendationReturn {
 
               if (retryResponse.ok) {
                 const retryResult = await retryResponse.json();
-                if (retryResult && typeof retryResult === "object" && "recommendedPick" in retryResult) {
+                if (
+                  retryResult &&
+                  typeof retryResult === "object" &&
+                  "recommendedPick" in retryResult
+                ) {
                   console.log("[useRecommendation] Retry successful");
-                  setState({ status: "success", data: retryResult as RecommendationResult });
+                  setState({
+                    status: "success",
+                    data: retryResult as RecommendationResult,
+                  });
                   setIsPaying(false);
                   return;
                 }
@@ -430,7 +533,8 @@ export function useRecommendation(): UseRecommendationReturn {
             // Retry failed - show error but with helpful message
             setState({
               status: "error",
-              error: "Unable to load your premium content. Please refresh the page or try again later. Your access is still valid.",
+              error:
+                "Unable to load your premium content. Please refresh the page or try again later. Your access is still valid.",
             });
             setIsPaying(false);
             return;
@@ -439,7 +543,8 @@ export function useRecommendation(): UseRecommendationReturn {
           // For other errors (server errors, etc.), show clear message
           setState({
             status: "error",
-            error: "Failed to load premium content. Please refresh the page. Your access is still valid.",
+            error:
+              "Failed to load premium content. Please refresh the page. Your access is still valid.",
           });
           setIsPaying(false);
           return;
@@ -459,14 +564,19 @@ export function useRecommendation(): UseRecommendationReturn {
           errMsg.includes("user canceled");
 
         if (isUserRejection) {
-          console.log("[useRecommendation] User cancelled signing, restoring preview");
+          console.log(
+            "[useRecommendation] User cancelled signing, restoring preview"
+          );
           if (lastPreviewDataRef.current) {
             setState({ status: "preview", data: lastPreviewDataRef.current });
             setIsPaying(false);
             return; // Don't set error state, silently restore preview
           }
           // Fallback if no preview data (shouldn't happen)
-          setState({ status: "error", error: "Transaction cancelled. You can try again when ready." });
+          setState({
+            status: "error",
+            error: "Transaction cancelled. You can try again when ready.",
+          });
           return;
         }
 
@@ -495,14 +605,20 @@ export function useRecommendation(): UseRecommendationReturn {
           let warningMessage = "Payment failed. Please try again.";
 
           if (isInsufficientBalance) {
-            warningMessage = "Insufficient USDC balance. Please add funds to your wallet and try again.";
+            warningMessage =
+              "Insufficient USDC balance. Please add funds to your wallet and try again.";
           } else if (isNetworkError) {
-            warningMessage = "Network error. Please check your connection and try again.";
+            warningMessage =
+              "Network error. Please check your connection and try again.";
           } else if (isPaymentFailure) {
-            warningMessage = "Payment failed. Please ensure you have enough USDC and try again.";
+            warningMessage =
+              "Payment failed. Please ensure you have enough USDC and try again.";
           }
 
-          console.log("[useRecommendation] Recoverable error, restoring preview with warning:", warningMessage);
+          console.log(
+            "[useRecommendation] Recoverable error, restoring preview with warning:",
+            warningMessage
+          );
 
           if (lastPreviewDataRef.current) {
             setWarning(warningMessage);
@@ -513,20 +629,21 @@ export function useRecommendation(): UseRecommendationReturn {
         }
 
         // Log unrecoverable errors
-        console.error("[useRecommendation] Payment error:", err instanceof Error ? err.message : String(err));
+        console.error(
+          "[useRecommendation] Payment error:",
+          err instanceof Error ? err.message : String(err)
+        );
 
         // Provide user-friendly error messages for unrecoverable errors
         let message = "Failed to fetch recommendation";
         if (err instanceof Error) {
           // Check for 402 errors
           if (errMsg.includes("402")) {
-            message = "Payment required but payment flow failed. Please try again.";
+            message =
+              "Payment required but payment flow failed. Please try again.";
           }
           // Generic wallet errors
-          else if (
-            errMsg.includes("wallet") ||
-            errMsg.includes("Wallet")
-          ) {
+          else if (errMsg.includes("wallet") || errMsg.includes("Wallet")) {
             message = "Wallet error: " + err.message;
           }
           // Keep original message for other errors but clean it up
@@ -561,7 +678,9 @@ export function useRecommendation(): UseRecommendationReturn {
     async (marketId: string) => {
       if (!isConnected || !address) {
         // Silently fail - user needs to connect wallet
-        console.log("[useRecommendation] fetchPremiumContent: wallet not connected");
+        console.log(
+          "[useRecommendation] fetchPremiumContent: wallet not connected"
+        );
         return;
       }
 
@@ -577,7 +696,9 @@ export function useRecommendation(): UseRecommendationReturn {
       try {
         const recommendationUrl = `${API_CONFIG.baseUrl}/recommendation/market/${marketId}`;
 
-        console.log("[useRecommendation] Fetching premium content for existing access");
+        console.log(
+          "[useRecommendation] Fetching premium content for existing access"
+        );
         console.log("[useRecommendation] Wallet address:", address);
 
         const response = await fetch(recommendationUrl, {
@@ -598,12 +719,21 @@ export function useRecommendation(): UseRecommendationReturn {
           });
 
           if (!retryResponse.ok) {
-            throw new Error(`Failed to load premium content: ${retryResponse.status}`);
+            throw new Error(
+              `Failed to load premium content: ${retryResponse.status}`
+            );
           }
 
           const retryResult = await retryResponse.json();
-          if (retryResult && typeof retryResult === "object" && "recommendedPick" in retryResult) {
-            setState({ status: "success", data: retryResult as RecommendationResult });
+          if (
+            retryResult &&
+            typeof retryResult === "object" &&
+            "recommendedPick" in retryResult
+          ) {
+            setState({
+              status: "success",
+              data: retryResult as RecommendationResult,
+            });
             setPremiumLoadFailed(false);
             return;
           }
@@ -612,37 +742,58 @@ export function useRecommendation(): UseRecommendationReturn {
 
         const result = await response.json();
 
-        if (result && typeof result === "object" && "recommendedPick" in result) {
-          console.log("[useRecommendation] Premium content loaded successfully");
+        if (
+          result &&
+          typeof result === "object" &&
+          "recommendedPick" in result
+        ) {
+          console.log(
+            "[useRecommendation] Premium content loaded successfully"
+          );
           setState({ status: "success", data: result as RecommendationResult });
           setPremiumLoadFailed(false);
         } else {
           throw new Error("Invalid recommendation response format");
         }
       } catch (err) {
-        console.error("[useRecommendation] Error fetching premium content:", err);
+        console.error(
+          "[useRecommendation] Error fetching premium content:",
+          err
+        );
 
         // Fall back to preview with warning instead of showing error
         if (lastPreviewDataRef.current) {
-          console.log("[useRecommendation] Falling back to preview with warning");
+          console.log(
+            "[useRecommendation] Falling back to preview with warning"
+          );
           setPremiumLoadFailed(true);
-          setWarning("Premium content temporarily unavailable. Showing preview data. Tap to retry.");
+          setWarning(
+            "Premium content temporarily unavailable. Showing preview data. Tap to retry."
+          );
           setState({ status: "preview", data: lastPreviewDataRef.current });
         } else {
           // No preview data available - try to fetch it
-          console.log("[useRecommendation] No preview data, fetching preview as fallback");
+          console.log(
+            "[useRecommendation] No preview data, fetching preview as fallback"
+          );
           try {
             const preview = await getRecommendationPreview(marketId);
             lastPreviewDataRef.current = preview;
             setPremiumLoadFailed(true);
-            setWarning("Premium content temporarily unavailable. Showing preview data. Tap to retry.");
+            setWarning(
+              "Premium content temporarily unavailable. Showing preview data. Tap to retry."
+            );
             setState({ status: "preview", data: preview });
           } catch (previewErr) {
             // Can't even fetch preview - show error
-            console.error("[useRecommendation] Preview fallback also failed:", previewErr);
+            console.error(
+              "[useRecommendation] Preview fallback also failed:",
+              previewErr
+            );
             setState({
               status: "error",
-              error: "Unable to load content. Please refresh the page. Your premium access is still valid.",
+              error:
+                "Unable to load content. Please refresh the page. Your premium access is still valid.",
             });
           }
         }
@@ -672,6 +823,7 @@ export function useRecommendation(): UseRecommendationReturn {
   const reset = useCallback(() => {
     setState({ status: "idle" });
     setWarning(null);
+    setAvailability(null);
     setPremiumAccess(null);
     setPremiumLoadFailed(false);
     currentMarketIdRef.current = null;

@@ -111,20 +111,54 @@ function FreeTierContent({
   isWalletReady: boolean;
 }) {
   const recommendation = state.data;
+
+  // Ensure we have recommendation data
+  if (!recommendation) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8 text-center">
+        <AlertCircle className="h-6 w-6 text-amber-400 mb-2" />
+        <p className="text-sm text-white/70">
+          No recommendation data available
+        </p>
+      </div>
+    );
+  }
+
   const team1Stats = recommendation.teamStats?.recommended;
   const team2Stats = recommendation.teamStats?.opponent;
 
-  const team1Display = mapTeamToDisplayData(team1Stats);
-  const team2Display = mapTeamToDisplayData(team2Stats);
+  // Always create display data, even if stats are missing, to maintain consistent UI design
+  const team1Display = mapTeamToDisplayData(team1Stats) || {
+    name: recommendation.recommendedPick || "Team 1",
+    winRate: 50,
+    kdRatio: 1.0,
+    form: "neutral" as const,
+    streak: 0,
+    totalSeries: 0,
+  };
+  const team2Display = mapTeamToDisplayData(team2Stats) || {
+    name: recommendation.otherTeam || "Team 2",
+    winRate: 50,
+    kdRatio: 1.0,
+    form: "neutral" as const,
+    streak: 0,
+    totalSeries: 0,
+  };
+
+  // Check if stats are actually available (not just default placeholders)
+  const team1HasStats = !!team1Stats;
+  const team2HasStats = !!team2Stats;
+  const hasRealStats = team1Stats || team2Stats;
 
   // Build compact stat comparisons from team data
+  // Only show stats if we have real data (not just placeholders)
   const compactStats: Array<{
     label: string;
     value1: number;
     value2: number;
     format?: (v: number) => string;
   }> = [];
-  if (team1Display && team2Display) {
+  if (team1HasStats && team2HasStats) {
     compactStats.push(
       {
         label: "Win Rate",
@@ -155,14 +189,27 @@ function FreeTierContent({
 
   return (
     <div className="space-y-5">
-      {/* Section 1: Team Face-Off Visual (Primary Focus) */}
-      {team1Display && team2Display && (
+      {/* Section 1: Team Face-Off Visual (Primary Focus) - Always show for consistent design */}
+      <div className="relative">
         <TeamFaceOff
           team1={team1Display}
           team2={team2Display}
           recommendedTeamName={recommendation.recommendedPick}
         />
-      )}
+        {/* Show "Stats unavailable" indicator if stats are missing */}
+        {hasRealStats && (!team1HasStats || !team2HasStats) && (
+          <div className="absolute top-4 right-4 flex items-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-1.5">
+            <AlertCircle className="h-3.5 w-3.5 text-amber-400" />
+            <span className="text-xs text-amber-400/90 font-medium">
+              {!team1HasStats && !team2HasStats
+                ? "Stats unavailable for both teams"
+                : !team1HasStats
+                ? `Stats unavailable for ${team1Display.name}`
+                : `Stats unavailable for ${team2Display.name}`}
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* Section 2: Stat Comparison Bars */}
       {compactStats.length > 0 && <CompactStatBars stats={compactStats} />}
@@ -385,8 +432,11 @@ function StateRenderer({
     case "unavailable":
       return (
         <ErrorState
-          message={state.reason}
-          subMessage="Recommendations available for esports markets only"
+          message={
+            state.reason ||
+            "Recommendations are currently available for CS2 & Dota2 only."
+          }
+          subMessage="Stay tuned for updates!"
         />
       );
 
@@ -466,31 +516,72 @@ export function RecommendationCard({
   const {
     state,
     pricing,
+    availability,
     isPaying,
     isLive,
     isWalletConnected,
     isWalletReady,
     premiumLoadFailed,
     warning,
+    fetchAvailability,
     fetchPreview,
     fetchRecommendation,
     fetchPremiumContent,
     retryPremiumContent,
     checkPremiumAccess,
     clearWarning,
+    reset,
   } = useRecommendation();
 
   const { connect, isConnecting } = useWallet();
 
   // Track if we've checked for existing access
   const [hasCheckedAccess, setHasCheckedAccess] = useState(false);
+  // Track if we've checked availability
+  const [hasCheckedAvailability, setHasCheckedAvailability] = useState(false);
+  // Track if we've fetched preview (prevents double-fetching)
+  const [hasFetchedPreview, setHasFetchedPreview] = useState(false);
 
-  // Auto-fetch preview on mount
+  // Reset state when market changes (must run FIRST to clear stale state)
   useEffect(() => {
-    if (state.status === "idle") {
+    reset(); // Reset hook state (clears availability, preview, etc.)
+    setHasCheckedAccess(false);
+    setHasCheckedAvailability(false);
+    setHasFetchedPreview(false);
+  }, [marketId, reset]);
+
+  // Initial availability check when component mounts
+  useEffect(() => {
+    if (state.status === "idle" && !hasCheckedAvailability) {
+      setHasCheckedAvailability(true);
+      fetchAvailability(marketId);
+    }
+  }, [marketId, state.status, hasCheckedAvailability, fetchAvailability]);
+
+  // Fetch preview when availability is confirmed
+  // This separate effect ensures preview is fetched immediately when availability changes
+  useEffect(() => {
+    if (
+      availability?.available === true &&
+      state.status === "idle" &&
+      hasCheckedAvailability &&
+      !hasFetchedPreview
+    ) {
+      console.log(
+        "[RecommendationCard] Availability confirmed, fetching preview for:",
+        marketId
+      );
+      setHasFetchedPreview(true);
       fetchPreview(marketId);
     }
-  }, [marketId, state.status, fetchPreview]);
+  }, [
+    availability,
+    state.status,
+    hasCheckedAvailability,
+    hasFetchedPreview,
+    marketId,
+    fetchPreview,
+  ]);
 
   // Check for existing premium access when wallet connects
   useEffect(() => {
@@ -520,11 +611,6 @@ export function RecommendationCard({
     fetchPremiumContent,
   ]);
 
-  // Reset access check when market changes
-  useEffect(() => {
-    setHasCheckedAccess(false);
-  }, [marketId]);
-
   const handlePay = () => {
     if (!isWalletConnected || !isWalletReady) return;
     fetchRecommendation(marketId);
@@ -533,6 +619,24 @@ export function RecommendationCard({
   const handleConnect = () => {
     connect();
   };
+
+  // Debug: Log state changes
+  useEffect(() => {
+    console.log("[RecommendationCard] State changed:", {
+      status: state.status,
+      hasAvailability: !!availability,
+      availabilityValue: availability?.available,
+      hasCheckedAvailability,
+      hasFetchedPreview,
+      marketId,
+    });
+  }, [
+    state.status,
+    availability,
+    hasCheckedAvailability,
+    hasFetchedPreview,
+    marketId,
+  ]);
 
   return (
     <div

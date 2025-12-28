@@ -113,8 +113,11 @@ export async function resolveTeamName(
   game: SupportedGame = "cs2"
 ): Promise<ResolvedTeam | null> {
   if (!polymarketName || polymarketName.trim().length === 0) {
+    console.warn(`[GRID] resolveTeamName: Empty team name provided for game ${game}`);
     return null;
   }
+  
+  console.log(`[GRID] Resolving team: "${polymarketName}" for game: ${game}`);
 
   // Check cache first
   const cacheKey = getCacheKey("team-resolution", {
@@ -207,11 +210,15 @@ export async function resolveMarketTeams(
   team1: ResolvedTeam | null;
   team2: ResolvedTeam | null;
 }> {
+  console.log(`[GRID] resolveMarketTeams: Resolving "${team1Name}" vs "${team2Name}" for game: ${game}`);
+  
   // Resolve both teams in parallel
   const [team1, team2] = await Promise.all([
     resolveTeamName(team1Name, game),
     resolveTeamName(team2Name, game),
   ]);
+
+  console.log(`[GRID] resolveMarketTeams: Results - team1: ${team1 ? `found (${team1.gridName})` : "not found"}, team2: ${team2 ? `found (${team2.gridName})` : "not found"}`);
 
   return { team1, team2 };
 }

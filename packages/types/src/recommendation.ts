@@ -386,10 +386,10 @@ export interface ConfidenceBreakdown {
  * Team stats comparison for premium content
  */
 export interface TeamStatsComparison {
-  /** Recommended team stats */
-  recommended: EsportsTeamStats;
-  /** Opponent team stats */
-  opponent: EsportsTeamStats;
+  /** Recommended team stats (null if unavailable) */
+  recommended: EsportsTeamStats | null;
+  /** Opponent team stats (null if unavailable) */
+  opponent: EsportsTeamStats | null;
 
   // ==========================================================================
   // Premium: Detailed comparison metrics (x402 gated)

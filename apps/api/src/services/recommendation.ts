@@ -277,36 +277,76 @@ async function fetchLiveStateIfOngoing(
 
 /**
  * Builds comparison data for premium content.
+ * Maps team stats based on which team is recommended by the AI.
  */
 function buildTeamStatsComparison(
-  esportsStats: MarketEsportsStats
+  esportsStats: MarketEsportsStats,
+  recommendedTeamName: string
 ): TeamStatsComparison | undefined {
-  if (!esportsStats.hasStats) {
-    return undefined;
-  }
-
   const t1 = esportsStats.team1.stats;
   const t2 = esportsStats.team2.stats;
 
-  if (!t1 || !t2) {
-    return undefined;
+  // Determine which team is recommended based on team name
+  const team1Name = esportsStats.team1.polymarketName || esportsStats.team1.gridName || "";
+  const team2Name = esportsStats.team2.polymarketName || esportsStats.team2.gridName || "";
+  
+  const isTeam1Recommended = 
+    recommendedTeamName.toLowerCase() === team1Name.toLowerCase() ||
+    recommendedTeamName.toLowerCase() === esportsStats.team1.gridName?.toLowerCase();
+
+  // Map stats based on which team is recommended
+  const recommendedStats = isTeam1Recommended ? t1 : t2;
+  const opponentStats = isTeam1Recommended ? t2 : t1;
+
+  // If both teams have stats, return full comparison
+  if (recommendedStats && opponentStats) {
+    return {
+      recommended: recommendedStats,
+      opponent: opponentStats,
+      winRateDifferential: recommendedStats.winRate - opponentStats.winRate,
+      formComparison: {
+        recommended: recommendedStats.recentForm > 60 ? "hot" : recommendedStats.recentForm < 40 ? "cold" : "neutral",
+        opponent: opponentStats.recentForm > 60 ? "hot" : opponentStats.recentForm < 40 ? "cold" : "neutral",
+        advantage:
+          recommendedStats.recentForm > opponentStats.recentForm + 10
+            ? "recommended"
+            : opponentStats.recentForm > recommendedStats.recentForm + 10
+            ? "opponent"
+            : "even",
+      },
+    };
   }
 
-  return {
-    recommended: t1,
-    opponent: t2,
-    winRateDifferential: t1.winRate - t2.winRate,
-    formComparison: {
-      recommended: t1.recentForm > 60 ? "hot" : t1.recentForm < 40 ? "cold" : "neutral",
-      opponent: t2.recentForm > 60 ? "hot" : t2.recentForm < 40 ? "cold" : "neutral",
-      advantage:
-        t1.recentForm > t2.recentForm + 10
-          ? "recommended"
-          : t2.recentForm > t1.recentForm + 10
-          ? "opponent"
-          : "even",
-    },
-  };
+  // If only recommended team has stats, still return partial data
+  if (recommendedStats) {
+    return {
+      recommended: recommendedStats,
+      opponent: opponentStats || null,
+      winRateDifferential: opponentStats ? recommendedStats.winRate - opponentStats.winRate : 0,
+      formComparison: {
+        recommended: recommendedStats.recentForm > 60 ? "hot" : recommendedStats.recentForm < 40 ? "cold" : "neutral",
+        opponent: opponentStats ? (opponentStats.recentForm > 60 ? "hot" : opponentStats.recentForm < 40 ? "cold" : "neutral") : "neutral",
+        advantage: "recommended", // Default to recommended if opponent stats missing
+      },
+    };
+  }
+
+  // If only opponent has stats (unlikely but possible)
+  if (opponentStats) {
+    return {
+      recommended: null,
+      opponent: opponentStats,
+      winRateDifferential: 0,
+      formComparison: {
+        recommended: "neutral",
+        opponent: opponentStats.recentForm > 60 ? "hot" : opponentStats.recentForm < 40 ? "cold" : "neutral",
+        advantage: "opponent",
+      },
+    };
+  }
+
+  // No stats available
+  return undefined;
 }
 
 /**
@@ -492,7 +532,8 @@ export async function generateRecommendation(
       );
 
       // 13. Build premium content
-      const teamStats = buildTeamStatsComparison(esportsStats);
+      // Map stats based on which team is recommended
+      const teamStats = buildTeamStatsComparison(esportsStats, computed.recommendedPick);
 
       // Build H2H summary
       const recommendedH2HWins = h2hMatchHistory.filter((m) => {
@@ -655,7 +696,8 @@ export async function generateRecommendationPreview(
 
       // 10. Build team stats for free tier (includes series stats from GRID)
       // This allows users to see historical data before paying for full analysis
-      const teamStats = buildTeamStatsComparison(esportsStats);
+      // Map stats based on which team is recommended
+      const teamStats = buildTeamStatsComparison(esportsStats, computed.recommendedPick);
 
       // 11. Return preview result (free tier with team series stats)
       return {
@@ -684,7 +726,19 @@ export async function generateRecommendationPreview(
 }
 
 /**
+ * Games that GRID API actually supports for recommendations.
+ * Currently only CS2 and Dota 2 have full GRID API support for statistics and live data.
+ */
+const GRID_SUPPORTED_GAMES: SupportedGame[] = ["cs2", "dota2"];
+
+/**
  * Checks if recommendation service is available for a market.
+ *
+ * Validates:
+ * 1. Market exists
+ * 2. Market is an esports market
+ * 3. Market has valid team outcomes
+ * 4. Game is supported by GRID API (currently only CS2 and Dota 2)
  *
  * @param marketId - The market ID to check
  * @returns Whether recommendations are available
@@ -704,7 +758,10 @@ export async function isRecommendationAvailable(
     }
 
     if (!isEsportsMarket(market)) {
-      return { available: false, reason: "Not an esports market" };
+      return {
+        available: false,
+        reason: "Recommendations are currently available for CS2 & DOTA2 markets only.",
+      };
     }
 
     const teamNames = extractTeamNames(market);
@@ -713,6 +770,15 @@ export async function isRecommendationAvailable(
     }
 
     const game = extractGameFromMarket(market);
+
+    // Check if GRID API supports this game
+    if (!GRID_SUPPORTED_GAMES.includes(game)) {
+      return {
+        available: false,
+        reason: "Recommendations are currently available for CS2 & DOTA2 markets only.",
+        game,
+      };
+    }
 
     return { available: true, game };
   } catch (error) {
