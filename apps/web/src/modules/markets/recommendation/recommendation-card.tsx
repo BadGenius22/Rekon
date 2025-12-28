@@ -36,7 +36,7 @@ import { FactorBreakdown } from "./components/factor-breakdown";
 import { LiveMatchWidget } from "./components/live-match-widget";
 
 // Types and utilities
-import type { RecommendationCardProps } from "./types";
+import type { RecommendationCardProps, TeamDisplayData } from "./types";
 import { mapTeamToDisplayData } from "./types";
 import { ensureTeamOrder, matchesTeamName } from "@/lib/team-order";
 import type { RecommendationResult } from "@rekon/types";
@@ -111,6 +111,43 @@ function hasMeaningfulStats(
   const gameCount = stats.totalMatches ?? stats.gameStats?.count ?? 0;
   // Consider stats meaningful if there's at least 1 series or game
   return seriesCount > 0 || gameCount > 0;
+}
+
+/**
+ * Creates a default TeamDisplayData object with neutral values
+ * Industry standard: Extract defaults to avoid repetition and ensure consistency
+ */
+function createDefaultTeamDisplayData(name: string): TeamDisplayData {
+  return {
+    name,
+    winRate: 50,
+    kdRatio: 1.0,
+    form: "neutral" as const,
+    streak: 0,
+    totalSeries: 0,
+  };
+}
+
+/**
+ * Ensures we always get a TeamDisplayData, never null
+ * Industry standard: Type-safe helper that guarantees non-null return
+ */
+function ensureTeamDisplayData(
+  data: TeamDisplayData | null,
+  fallbackName: string
+): TeamDisplayData {
+  return data ?? createDefaultTeamDisplayData(fallbackName);
+}
+
+/**
+ * Creates TeamDisplayData with name override
+ * Industry standard: Single responsibility helper function
+ */
+function createTeamDisplayDataWithName(
+  data: TeamDisplayData | null,
+  name: string
+): TeamDisplayData {
+  return data ? { ...data, name } : createDefaultTeamDisplayData(name);
 }
 
 function computeTeamDisplayData(
@@ -209,43 +246,14 @@ function computeTeamDisplayData(
       : null;
 
     // Build display data - always use market team names (source of truth)
+    // Industry standard: Use helper functions for type safety and maintainability
     const team1Display = team1Match
-      ? {
-          ...team1Match.display,
-          name: team1Name, // Override with market name
-        }
-      : team1MappedDisplay
-      ? {
-          ...team1MappedDisplay,
-          name: team1Name, // Override with market name
-        }
-      : {
-          name: team1Name,
-          winRate: 50,
-          kdRatio: 1.0,
-          form: "neutral" as const,
-          streak: 0,
-          totalSeries: 0,
-        };
+      ? createTeamDisplayDataWithName(team1Match.display, team1Name)
+      : createTeamDisplayDataWithName(team1MappedDisplay, team1Name);
 
     const team2Display = team2Match
-      ? {
-          ...team2Match.display,
-          name: team2Name, // Override with market name
-        }
-      : team2MappedDisplay
-      ? {
-          ...team2MappedDisplay,
-          name: team2Name, // Override with market name
-        }
-      : {
-          name: team2Name,
-          winRate: 50,
-          kdRatio: 1.0,
-          form: "neutral" as const,
-          streak: 0,
-          totalSeries: 0,
-        };
+      ? createTeamDisplayDataWithName(team2Match.display, team2Name)
+      : createTeamDisplayDataWithName(team2MappedDisplay, team2Name);
 
     return {
       team1Display,
@@ -258,23 +266,9 @@ function computeTeamDisplayData(
     };
   } else {
     // No market team names - fallback to API team names
-    const team1Display = recTeam1Display || {
-      name: recTeam1Name,
-      winRate: 50,
-      kdRatio: 1.0,
-      form: "neutral" as const,
-      streak: 0,
-      totalSeries: 0,
-    };
-
-    const team2Display = recTeam2Display || {
-      name: recTeam2Name,
-      winRate: 50,
-      kdRatio: 1.0,
-      form: "neutral" as const,
-      streak: 0,
-      totalSeries: 0,
-    };
+    // Industry standard: Use helper function for consistency
+    const team1Display = ensureTeamDisplayData(recTeam1Display, recTeam1Name);
+    const team2Display = ensureTeamDisplayData(recTeam2Display, recTeam2Name);
 
     // Check if stats actually have meaningful data
     const team1HasStatsData = hasMeaningfulStats(team1Stats);
@@ -319,16 +313,16 @@ function buildCompactStats(
     compactStats.push(
       {
         label: "Win Rate",
-        value1: team1HasStats ? team1Display.winRate : 50,
-        value2: team2HasStats ? team2Display.winRate : 50,
+        value1: team1HasStats ? (team1Display.winRate ?? 50) : 50,
+        value2: team2HasStats ? (team2Display.winRate ?? 50) : 50,
         format: (v, hasData = true) => hasData ? `${Math.round(v)}%` : "N/A",
         team1HasData: team1HasStats,
         team2HasData: team2HasStats,
       },
       {
         label: "K/D Ratio",
-        value1: team1HasStats ? team1Display.kdRatio : 1.0,
-        value2: team2HasStats ? team2Display.kdRatio : 1.0,
+        value1: team1HasStats ? (team1Display.kdRatio ?? 1.0) : 1.0,
+        value2: team2HasStats ? (team2Display.kdRatio ?? 1.0) : 1.0,
         format: (v, hasData = true) => hasData ? v.toFixed(2) : "N/A",
         team1HasData: team1HasStats,
         team2HasData: team2HasStats,

@@ -72,11 +72,13 @@ export function TeamFaceOff({
   recommendedTeamName,
   league,
   className,
-  originalTeam1Name,
-  originalTeam2Name,
 }: TeamFaceOffProps & { league?: string }) {
-  const [team1Logo, setTeam1Logo] = useState<string | undefined>(team1.imageUrl);
-  const [team2Logo, setTeam2Logo] = useState<string | undefined>(team2.imageUrl);
+  const [team1Logo, setTeam1Logo] = useState<string | undefined>(
+    team1.imageUrl
+  );
+  const [team2Logo, setTeam2Logo] = useState<string | undefined>(
+    team2.imageUrl
+  );
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Reset and fetch team logos when team names change
@@ -279,7 +281,8 @@ function TeamCard({
                 <div className="space-y-1.5">
                   <div className="font-semibold text-sm">Win Rate</div>
                   <p className="text-xs text-white/70 leading-relaxed">
-                    Percentage of matches/series the team has won. Higher win rate indicates better overall performance.
+                    Percentage of matches/series the team has won. Higher win
+                    rate indicates better overall performance.
                   </p>
                   <p className="text-[10px] text-white/50 italic mt-1.5 pt-1.5 border-t border-white/10">
                     Data from GRID API (series win percentage)
@@ -325,7 +328,9 @@ function TeamCard({
                 <div className="space-y-1.5">
                   <div className="font-semibold text-sm">Kill/Death Ratio</div>
                   <p className="text-xs text-white/70 leading-relaxed">
-                    Average kills divided by average deaths. Ratio &gt;1.0 means team gets more kills than deaths (better combat performance).
+                    Average kills divided by average deaths. Ratio &gt;1.0 means
+                    team gets more kills than deaths (better combat
+                    performance).
                   </p>
                   <p className="text-[10px] text-white/50 italic mt-1.5 pt-1.5 border-t border-white/10">
                     Data from GRID API (combat statistics)
@@ -334,7 +339,9 @@ function TeamCard({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <span className={cn("font-mono font-bold text-sm tabular-nums", kdColor)}>
+          <span
+            className={cn("font-mono font-bold text-sm tabular-nums", kdColor)}
+          >
             {team.kdRatio.toFixed(2)}
           </span>
         </div>
@@ -361,7 +368,9 @@ function TeamCard({
                   <div className="space-y-1.5">
                     <div className="font-semibold text-sm">Losing Streak</div>
                     <p className="text-xs text-white/70 leading-relaxed">
-                      Team has lost {Math.abs(team.streak)} consecutive {Math.abs(team.streak) === 1 ? "match" : "matches"}. Indicates current struggles and poor form.
+                      Team has lost {Math.abs(team.streak)} consecutive{" "}
+                      {Math.abs(team.streak) === 1 ? "match" : "matches"}.
+                      Indicates current struggles and poor form.
                     </p>
                     <p className="text-[10px] text-white/50 italic mt-1.5 pt-1.5 border-t border-white/10">
                       Data from GRID API (current loss streak)
@@ -387,9 +396,7 @@ function TeamCard({
                   className={cn(
                     "px-1.5 py-0.5 text-[10px] font-medium rounded",
                     "bg-white/5 border border-white/10",
-                    isRecommended
-                      ? "text-emerald-300/80"
-                      : "text-white/60"
+                    isRecommended ? "text-emerald-300/80" : "text-white/60"
                   )}
                 >
                   {player.nickname}
