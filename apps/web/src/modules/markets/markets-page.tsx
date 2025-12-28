@@ -66,9 +66,11 @@ interface MarketsSearchParams {
   includeResolved?: string;
   game?: string;
   status?: string;
+  category?: string;
 }
 
 type MarketStatus = "live" | "resolved";
+type MarketCategory = "match" | "tournament" | "entertainment";
 
 export async function MarketsPage(props: {
   searchParams: Promise<MarketsSearchParams>;
@@ -79,12 +81,42 @@ export async function MarketsPage(props: {
   const status: MarketStatus = rawStatus === "resolved" ? "resolved" : "live";
 
   const game = searchParams.game;
+  const category = searchParams.category as MarketCategory | undefined;
 
   const includeResolvedForApi = status === "resolved";
 
   const marketsRaw = await getMarkets(includeResolvedForApi, game);
-  const markets =
+  let markets =
     status === "resolved" ? marketsRaw.filter((m) => m.isResolved) : marketsRaw;
+
+  // Filter by category if specified
+  if (category) {
+    markets = markets.filter((market) => {
+      // Use marketCategory if available, fallback to marketType for backwards compatibility
+      if (category === "match") {
+        return (
+          market.marketCategory === "match" ||
+          (!market.marketCategory && market.marketType === "game")
+        );
+      }
+      if (category === "tournament") {
+        return (
+          market.marketCategory === "tournament" ||
+          (!market.marketCategory && market.marketType === "outright")
+        );
+      }
+      if (category === "entertainment") {
+        const isMatch =
+          market.marketCategory === "match" ||
+          (!market.marketCategory && market.marketType === "game");
+        const isTournament =
+          market.marketCategory === "tournament" ||
+          (!market.marketCategory && market.marketType === "outright");
+        return !isMatch && !isTournament;
+      }
+      return true;
+    });
+  }
 
   // Calculate totals (same as home page)
   // Supported games for filtering
@@ -116,7 +148,7 @@ export async function MarketsPage(props: {
         <div className="max-w-7xl mx-auto w-full">
           {/* Markets summary bar with filters - BentoGrid Layout */}
           <BentoGrid className="mb-6">
-            {/* Title + Live Count + Description */}
+            {/* Title + Status Filter + Description */}
             <BentoGridItem className="col-span-12 lg:col-span-6" delay={0}>
               <div className="p-6">
                 <div className="flex items-center gap-4 mb-3">
@@ -130,9 +162,35 @@ export async function MarketsPage(props: {
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-white/65">
+                <p className="text-sm text-white/65 mb-4">
                   Trade esports prediction markets
                 </p>
+                {/* Status Filter - Moved to top for better visibility */}
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-medium uppercase tracking-[0.12em] text-white/45">
+                    Status
+                  </span>
+                  <div className="inline-flex rounded-lg bg-white/5 p-1">
+                    <StatusToggle
+                      label="Live"
+                      href={buildMarketsHref({
+                        status: "live",
+                        game,
+                        category,
+                      })}
+                      active={status === "live"}
+                    />
+                    <StatusToggle
+                      label="Resolved"
+                      href={buildMarketsHref({
+                        status: "resolved",
+                        game,
+                        category,
+                      })}
+                      active={status === "resolved"}
+                    />
+                  </div>
+                </div>
               </div>
             </BentoGridItem>
 
@@ -184,8 +242,57 @@ export async function MarketsPage(props: {
               </>
             )}
 
-            {/* Game Filter Chips */}
+            {/* Category Filter - Matches, Tournaments, Entertainment */}
             <BentoGridItem className="col-span-12" delay={0.15}>
+              <div className="p-5">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-xs font-medium uppercase tracking-[0.12em] text-white/45">
+                    Category
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    <FilterChip
+                      label="All"
+                      href={buildMarketsHref({
+                        status,
+                        game,
+                        category: undefined,
+                      })}
+                      active={!category}
+                    />
+                    <FilterChip
+                      label="Matches"
+                      href={buildMarketsHref({
+                        status,
+                        game,
+                        category: "match",
+                      })}
+                      active={category === "match"}
+                    />
+                    <FilterChip
+                      label="Tournaments"
+                      href={buildMarketsHref({
+                        status,
+                        game,
+                        category: "tournament",
+                      })}
+                      active={category === "tournament"}
+                    />
+                    <FilterChip
+                      label="Entertainment"
+                      href={buildMarketsHref({
+                        status,
+                        game,
+                        category: "entertainment",
+                      })}
+                      active={category === "entertainment"}
+                    />
+                  </div>
+                </div>
+              </div>
+            </BentoGridItem>
+
+            {/* Game Filter Chips */}
+            <BentoGridItem className="col-span-12" delay={0.2}>
               <div className="p-5">
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="text-xs font-medium uppercase tracking-[0.12em] text-white/45">
@@ -194,66 +301,55 @@ export async function MarketsPage(props: {
                   <div className="flex flex-wrap gap-2">
                     <FilterChip
                       label="All"
-                      href={buildMarketsHref({ status })}
+                      href={buildMarketsHref({
+                        status,
+                        category,
+                        game: undefined,
+                      })}
                       active={!game}
                     />
                     <FilterChip
                       label="CS2"
-                      href={buildMarketsHref({ status, game: "cs2" })}
+                      href={buildMarketsHref({ status, category, game: "cs2" })}
                       active={game === "cs2"}
                     />
                     <FilterChip
                       label="LoL"
-                      href={buildMarketsHref({ status, game: "lol" })}
+                      href={buildMarketsHref({ status, category, game: "lol" })}
                       active={game === "lol"}
                     />
                     <FilterChip
                       label="Dota 2"
-                      href={buildMarketsHref({ status, game: "dota2" })}
+                      href={buildMarketsHref({
+                        status,
+                        category,
+                        game: "dota2",
+                      })}
                       active={game === "dota2"}
                     />
                     <FilterChip
                       label="Valorant"
-                      href={buildMarketsHref({ status, game: "valorant" })}
+                      href={buildMarketsHref({
+                        status,
+                        category,
+                        game: "valorant",
+                      })}
                       active={game === "valorant"}
                     />
                     <FilterChip
                       label="COD"
-                      href={buildMarketsHref({ status, game: "cod" })}
+                      href={buildMarketsHref({ status, category, game: "cod" })}
                       active={game === "cod"}
                     />
                     <FilterChip
                       label="Rainbow Six"
-                      href={buildMarketsHref({ status, game: "r6" })}
+                      href={buildMarketsHref({ status, category, game: "r6" })}
                       active={game === "r6"}
                     />
                     <FilterChip
                       label="HoK"
-                      href={buildMarketsHref({ status, game: "hok" })}
+                      href={buildMarketsHref({ status, category, game: "hok" })}
                       active={game === "hok"}
-                    />
-                  </div>
-                </div>
-              </div>
-            </BentoGridItem>
-
-            {/* Status Toggles */}
-            <BentoGridItem className="col-span-12" delay={0.2}>
-              <div className="p-5">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-medium uppercase tracking-[0.12em] text-white/45">
-                    Status
-                  </span>
-                  <div className="inline-flex rounded-lg bg-white/5 p-1">
-                    <StatusToggle
-                      label="Live"
-                      href={buildMarketsHref({ status: "live", game })}
-                      active={status === "live"}
-                    />
-                    <StatusToggle
-                      label="Resolved"
-                      href={buildMarketsHref({ status: "resolved", game })}
-                      active={status === "resolved"}
                     />
                   </div>
                 </div>
@@ -262,7 +358,12 @@ export async function MarketsPage(props: {
           </BentoGrid>
 
           {/* Market listings with watchlist filter */}
-          <MarketsPageClient markets={markets} game={game} status={status} />
+          <MarketsPageClient
+            markets={markets}
+            game={game}
+            status={status}
+            category={category}
+          />
         </div>
       </div>
 
@@ -282,6 +383,7 @@ export async function MarketsPage(props: {
 function buildMarketsHref(params: {
   status?: MarketStatus;
   game?: string;
+  category?: MarketCategory;
 }): string {
   const search = new URLSearchParams();
   if (params.status && params.status !== "live") {
@@ -289,6 +391,9 @@ function buildMarketsHref(params: {
   }
   if (params.game) {
     search.set("game", params.game);
+  }
+  if (params.category) {
+    search.set("category", params.category);
   }
   const query = search.toString();
   return query ? `/markets?${query}` : "/markets";

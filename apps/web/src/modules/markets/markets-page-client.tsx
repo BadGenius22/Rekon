@@ -18,6 +18,7 @@ interface MarketsPageClientProps {
   markets: Market[];
   game?: string;
   status: "live" | "resolved";
+  category?: "match" | "tournament" | "entertainment";
 }
 
 function categorizeByGame(markets: Market[]): {
@@ -56,11 +57,31 @@ function categorizeByGame(markets: Market[]): {
 function categorizeByType(markets: Market[]): {
   matches: Market[];
   tournaments: Market[];
+  other: Market[];
 } {
   return {
     // Use marketCategory if available, fallback to marketType for backwards compatibility
-    matches: markets.filter((m) => (m.marketCategory === "match") || (!m.marketCategory && m.marketType === "game")),
-    tournaments: markets.filter((m) => (m.marketCategory === "tournament") || (!m.marketCategory && m.marketType === "outright")),
+    matches: markets.filter(
+      (m) =>
+        m.marketCategory === "match" ||
+        (!m.marketCategory && m.marketType === "game")
+    ),
+    tournaments: markets.filter(
+      (m) =>
+        m.marketCategory === "tournament" ||
+        (!m.marketCategory && m.marketType === "outright")
+    ),
+    // Include all other markets (entertainment, uncategorized, etc.)
+    // This ensures all esports markets are shown, not just matches and tournaments
+    other: markets.filter((m) => {
+      const isMatch =
+        m.marketCategory === "match" ||
+        (!m.marketCategory && m.marketType === "game");
+      const isTournament =
+        m.marketCategory === "tournament" ||
+        (!m.marketCategory && m.marketType === "outright");
+      return !isMatch && !isTournament;
+    }),
   };
 }
 
@@ -129,6 +150,7 @@ function MarketsPageClientInner({
   markets,
   game,
   status,
+  category,
 }: MarketsPageClientProps) {
   const { watchlist, isInWatchlist } = useWatchlist();
   const [showWatchlistOnly, setShowWatchlistOnly] = useState(false);
@@ -179,7 +201,11 @@ function MarketsPageClientInner({
 
   // Fetch individual markets from watchlist that aren't in the current markets array
   useEffect(() => {
-    if (!showWatchlistOnly || !watchlistEntries || watchlistEntries.length === 0) {
+    if (
+      !showWatchlistOnly ||
+      !watchlistEntries ||
+      watchlistEntries.length === 0
+    ) {
       setWatchlistMarkets([]);
       setFetchError(null);
       return;
@@ -248,7 +274,10 @@ function MarketsPageClientInner({
             return null;
           } catch (error) {
             if (signal.aborted) return null;
-            console.warn(`Failed to fetch watchlist market ${marketId}:`, error);
+            console.warn(
+              `Failed to fetch watchlist market ${marketId}:`,
+              error
+            );
             return null;
           }
         });
@@ -265,9 +294,15 @@ function MarketsPageClientInner({
         // Show toast if some markets couldn't be fetched
         const failedCount = missingMarketIds.length - validMarkets.length;
         if (failedCount > 0) {
-          toast.warning(`${failedCount} watchlist market${failedCount > 1 ? 's' : ''} couldn't be loaded`, {
-            description: "These markets may have been removed or are unavailable.",
-          });
+          toast.warning(
+            `${failedCount} watchlist market${
+              failedCount > 1 ? "s" : ""
+            } couldn't be loaded`,
+            {
+              description:
+                "These markets may have been removed or are unavailable.",
+            }
+          );
         }
       } catch (error) {
         if (signal.aborted) return;
@@ -333,7 +368,7 @@ function MarketsPageClientInner({
     return allMarkets;
   }, [markets, allMarkets, showWatchlistOnly]);
 
-  // Filter by game if specified
+  // Filter by game if specified (game filtering is done on server, but we keep this for watchlist filtering)
   const gameFilteredMarkets = useMemo(() => {
     if (!game) {
       return filteredMarkets;
@@ -342,12 +377,19 @@ function MarketsPageClientInner({
     return filteredMarkets.filter((market) => market.game === game);
   }, [filteredMarkets, game]);
 
-  // Categorize markets by type (matches vs tournaments)
-  const { matches, tournaments } = categorizeByType(gameFilteredMarkets);
+  // Note: Category filtering is done on the server side, so markets are already filtered
+  // We still categorize for display purposes (to show sections)
+  const categoryFilteredMarkets = gameFilteredMarkets;
+
+  // Categorize markets by type (matches vs tournaments vs other)
+  const { matches, tournaments, other } = categorizeByType(
+    categoryFilteredMarkets
+  );
 
   // Further categorize by game within each type
   const matchesByGame = categorizeByGame(matches);
   const tournamentsByGame = categorizeByGame(tournaments);
+  const otherByGame = categorizeByGame(other);
 
   const watchlistCount = watchlist?.entries.length ?? 0;
 
@@ -372,7 +414,7 @@ function MarketsPageClientInner({
           ? "Loading watchlist markets"
           : isTransitioning
           ? "Updating market filter"
-          : `Showing ${gameFilteredMarkets.length} markets`}
+          : `Showing ${categoryFilteredMarkets.length} markets`}
       </div>
 
       {/* Watchlist Filter - Add to filter bar */}
@@ -392,7 +434,8 @@ function MarketsPageClientInner({
             exit={{ opacity: 0, y: -10 }}
             className="text-xs text-white/50"
           >
-            Showing {gameFilteredMarkets.length} watchlist {gameFilteredMarkets.length === 1 ? "market" : "markets"}
+            Showing {categoryFilteredMarkets.length} watchlist{" "}
+            {categoryFilteredMarkets.length === 1 ? "market" : "markets"}
           </motion.span>
         )}
         {(loadingWatchlistMarkets || isTransitioning) && (
@@ -417,7 +460,7 @@ function MarketsPageClientInner({
           </div>
           <MarketCardSkeletonGrid count={8} compact />
         </section>
-      ) : gameFilteredMarkets.length === 0 && !loadingWatchlistMarkets ? (
+      ) : categoryFilteredMarkets.length === 0 && !loadingWatchlistMarkets ? (
         <div className="flex justify-center py-16">
           <div className="inline-flex max-w-md flex-col items-center gap-4 rounded-2xl border border-dashed border-white/15 bg-white/5 px-8 py-8 text-center">
             {/* Icon */}
@@ -484,22 +527,55 @@ function MarketsPageClientInner({
                     <span className="text-xl">🎮</span>
                   </div>
                   <div className="flex-1">
-                    <h2 className="text-xl font-bold text-white tracking-tight">Live Matches</h2>
-                    <p className="text-xs text-white/50 mt-0.5">Predict individual match outcomes</p>
+                    <h2 className="text-xl font-bold text-white tracking-tight">
+                      Live Matches
+                    </h2>
+                    <p className="text-xs text-white/50 mt-0.5">
+                      Predict individual match outcomes
+                    </p>
                   </div>
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/10 border border-emerald-400/30 px-3 py-1.5 text-xs font-semibold text-emerald-300">
-                    {matches.length} {matches.length === 1 ? "market" : "markets"}
+                    {matches.length}{" "}
+                    {matches.length === 1 ? "market" : "markets"}
                   </span>
                 </div>
 
                 {/* Match Markets by Game */}
-                <GameSection title="CS2 Matches" markets={matchesByGame.cs2} delay={0.05} />
-                <GameSection title="Call of Duty Matches" markets={matchesByGame.cod} delay={0.1} />
-                <GameSection title="League of Legends Matches" markets={matchesByGame.lol} delay={0.15} />
-                <GameSection title="Dota 2 Matches" markets={matchesByGame.dota2} delay={0.2} />
-                <GameSection title="Valorant Matches" markets={matchesByGame.valorant} delay={0.25} />
-                <GameSection title="Rainbow Six Siege Matches" markets={matchesByGame.r6} delay={0.3} />
-                <GameSection title="Honor of Kings Matches" markets={matchesByGame.hok} delay={0.35} />
+                <GameSection
+                  title="CS2 Matches"
+                  markets={matchesByGame.cs2}
+                  delay={0.05}
+                />
+                <GameSection
+                  title="Call of Duty Matches"
+                  markets={matchesByGame.cod}
+                  delay={0.1}
+                />
+                <GameSection
+                  title="League of Legends Matches"
+                  markets={matchesByGame.lol}
+                  delay={0.15}
+                />
+                <GameSection
+                  title="Dota 2 Matches"
+                  markets={matchesByGame.dota2}
+                  delay={0.2}
+                />
+                <GameSection
+                  title="Valorant Matches"
+                  markets={matchesByGame.valorant}
+                  delay={0.25}
+                />
+                <GameSection
+                  title="Rainbow Six Siege Matches"
+                  markets={matchesByGame.r6}
+                  delay={0.3}
+                />
+                <GameSection
+                  title="Honor of Kings Matches"
+                  markets={matchesByGame.hok}
+                  delay={0.35}
+                />
               </div>
             )}
 
@@ -512,31 +588,149 @@ function MarketsPageClientInner({
                     <span className="text-xl">🏆</span>
                   </div>
                   <div className="flex-1">
-                    <h2 className="text-xl font-bold text-white tracking-tight">Tournament Winners</h2>
-                    <p className="text-xs text-white/50 mt-0.5">Predict championship & league winners</p>
+                    <h2 className="text-xl font-bold text-white tracking-tight">
+                      Tournament Winners
+                    </h2>
+                    <p className="text-xs text-white/50 mt-0.5">
+                      Predict championship & league winners
+                    </p>
                   </div>
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/10 border border-amber-400/30 px-3 py-1.5 text-xs font-semibold text-amber-300">
-                    {tournaments.length} {tournaments.length === 1 ? "market" : "markets"}
+                    {tournaments.length}{" "}
+                    {tournaments.length === 1 ? "market" : "markets"}
                   </span>
                 </div>
 
                 {/* Tournament Markets by Game */}
-                <GameSection title="CS2 Tournaments" markets={tournamentsByGame.cs2} delay={0.4} />
-                <GameSection title="Call of Duty Tournaments" markets={tournamentsByGame.cod} delay={0.45} />
-                <GameSection title="League of Legends Tournaments" markets={tournamentsByGame.lol} delay={0.5} />
-                <GameSection title="Dota 2 Tournaments" markets={tournamentsByGame.dota2} delay={0.55} />
-                <GameSection title="Valorant Tournaments" markets={tournamentsByGame.valorant} delay={0.6} />
-                <GameSection title="Rainbow Six Siege Tournaments" markets={tournamentsByGame.r6} delay={0.65} />
-                <GameSection title="Honor of Kings Tournaments" markets={tournamentsByGame.hok} delay={0.7} />
+                <GameSection
+                  title="CS2 Tournaments"
+                  markets={tournamentsByGame.cs2}
+                  delay={0.4}
+                />
+                <GameSection
+                  title="Call of Duty Tournaments"
+                  markets={tournamentsByGame.cod}
+                  delay={0.45}
+                />
+                <GameSection
+                  title="League of Legends Tournaments"
+                  markets={tournamentsByGame.lol}
+                  delay={0.5}
+                />
+                <GameSection
+                  title="Dota 2 Tournaments"
+                  markets={tournamentsByGame.dota2}
+                  delay={0.55}
+                />
+                <GameSection
+                  title="Valorant Tournaments"
+                  markets={tournamentsByGame.valorant}
+                  delay={0.6}
+                />
+                <GameSection
+                  title="Rainbow Six Siege Tournaments"
+                  markets={tournamentsByGame.r6}
+                  delay={0.65}
+                />
+                <GameSection
+                  title="Honor of Kings Tournaments"
+                  markets={tournamentsByGame.hok}
+                  delay={0.7}
+                />
               </div>
             )}
 
-            {/*
-              Uncategorized markets (markets without detected games) are intentionally hidden.
-              Rekon is an esports trading terminal - we only show competitive match/tournament markets.
-              Markets like streamer bets, personality predictions, or misc entertainment markets
-              are filtered out to maintain focus on professional esports trading.
-            */}
+            {/* 📰 ENTERTAINMENT & UPDATES SECTION (Game updates, predictions, etc.) */}
+            {other.length > 0 && (
+              <div className="space-y-6">
+                {/* Section Header */}
+                <div className="flex items-center gap-3 pb-3 border-b border-white/10">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 flex items-center justify-center">
+                    <span className="text-xl">📰</span>
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-xl font-bold text-white tracking-tight">
+                      Entertainment & Updates
+                    </h2>
+                    <p className="text-xs text-white/50 mt-0.5">
+                      Game updates, predictions & entertainment markets
+                    </p>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-400/10 border border-purple-400/30 px-3 py-1.5 text-xs font-semibold text-purple-300">
+                    {other.length} {other.length === 1 ? "market" : "markets"}
+                  </span>
+                </div>
+
+                {/* Other Markets by Game */}
+                <GameSection
+                  title="CS2"
+                  markets={otherByGame.cs2}
+                  delay={0.75}
+                />
+                <GameSection
+                  title="Call of Duty"
+                  markets={otherByGame.cod}
+                  delay={0.8}
+                />
+                <GameSection
+                  title="League of Legends"
+                  markets={otherByGame.lol}
+                  delay={0.85}
+                />
+                <GameSection
+                  title="Dota 2"
+                  markets={otherByGame.dota2}
+                  delay={0.9}
+                />
+                <GameSection
+                  title="Valorant"
+                  markets={otherByGame.valorant}
+                  delay={0.95}
+                />
+                <GameSection
+                  title="Rainbow Six Siege"
+                  markets={otherByGame.r6}
+                  delay={1.0}
+                />
+                <GameSection
+                  title="Honor of Kings"
+                  markets={otherByGame.hok}
+                  delay={1.05}
+                />
+                {/* Show markets without detected games in a separate section */}
+                {other.filter(
+                  (m) =>
+                    !m.game ||
+                    ![
+                      "cs2",
+                      "lol",
+                      "dota2",
+                      "valorant",
+                      "cod",
+                      "r6",
+                      "hok",
+                    ].includes(m.game)
+                ).length > 0 && (
+                  <GameSection
+                    title="General"
+                    markets={other.filter(
+                      (m) =>
+                        !m.game ||
+                        ![
+                          "cs2",
+                          "lol",
+                          "dota2",
+                          "valorant",
+                          "cod",
+                          "r6",
+                          "hok",
+                        ].includes(m.game)
+                    )}
+                    delay={1.1}
+                  />
+                )}
+              </div>
+            )}
           </motion.div>
         </AnimatePresence>
       )}
