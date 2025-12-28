@@ -229,7 +229,7 @@ export function MarketCard({
     <Link
       href={`/markets/${market.slug || market.id}`}
       className={cn(
-        "group block border border-white/10 rounded-lg bg-[#121A30] hover:border-white/20 transition-all duration-200 hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)] relative",
+        "group block h-full flex flex-col border border-white/10 rounded-lg bg-[#121A30] hover:border-white/20 transition-all duration-200 hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)] relative",
         compact ? "p-4" : "p-5"
       )}
     >
@@ -313,7 +313,7 @@ export function MarketCard({
       </div>
 
       {/* Outcome chips - different display for multi-outcome markets */}
-      <div className="mb-4">
+      <div className="mb-4 flex-1">
         {market.outcomes.length <= 2 ? (
           // Binary market (0-2 outcomes): show outcome chips side-by-side
           <div className="flex items-center gap-2">
@@ -366,7 +366,7 @@ export function MarketCard({
       </div>
 
       {/* Footer: Stats in a single row */}
-      <div className="flex items-center justify-between gap-4 pt-3 border-t border-white/5">
+      <div className="flex items-center justify-between gap-4 pt-3 border-t border-white/5 mt-auto">
         <div className="flex items-center gap-3 text-[11px] text-white/60">
           <span className="inline-flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />

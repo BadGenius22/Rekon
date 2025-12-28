@@ -795,7 +795,7 @@ interface GridH2HSeries {
       id: string;
       name: string;
     };
-    scoreAdvantage: number;
+    scoreAdvantage?: number; // Optional - only set for finished matches
   }>;
 }
 
@@ -847,27 +847,73 @@ export async function fetchHeadToHeadHistory(
       `[GRID API] Fetching H2H history: ${team1Id} vs ${team2Id}`
     );
 
+    // GRID API doesn't support team filtering in allSeries query.
+    // Fetch finished series from the last 2 years and filter client-side.
+    const now = new Date();
+    const twoYearsAgo = new Date(now);
+    twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+
+    // Fetch more than needed (100) to increase chances of finding H2H matches
     const data = await executeQuery<GridH2HResponse>(
       centralDataClient,
       GET_HEAD_TO_HEAD_SERIES,
-      { team1Id, team2Id, first: limit },
+      {
+        gte: twoYearsAgo.toISOString(),
+        lte: now.toISOString(),
+        first: 100,
+      },
       GRID_CONFIG.centralDataUrl
     );
 
     if (!data?.allSeries?.edges) {
       console.log(
-        `[GRID API] No H2H history found for ${team1Id} vs ${team2Id}`
+        `[GRID API] No series found for H2H history: ${team1Id} vs ${team2Id}`
       );
       return [];
     }
 
-    const matches: H2HMatchResult[] = data.allSeries.edges
-      .filter((edge) => edge.node.teams && edge.node.teams.length === 2)
-      .map((edge): H2HMatchResult => {
-        const series = edge.node;
+    // Filter client-side for:
+    // 1. Series with exactly 2 teams
+    // 2. Series that include both team1Id and team2Id
+    // 3. Finished series (have scoreAdvantage set, meaning match is complete)
+    const h2hMatches = data.allSeries.edges
+      .map((edge) => edge.node)
+      .filter((series) => {
+        if (!series.teams || series.teams.length !== 2) {
+          return false;
+        }
+
+        const teamIds = series.teams.map((t) => t.baseInfo.id);
+        const hasBothTeams =
+          teamIds.includes(team1Id) && teamIds.includes(team2Id);
+
+        // Only include finished matches (scoreAdvantage is set for both teams)
+        const isFinished =
+          series.teams[0].scoreAdvantage != null &&
+          series.teams[1].scoreAdvantage != null;
+
+        return hasBothTeams && isFinished;
+      })
+      // Sort by date descending (most recent first)
+      .sort((a, b) => {
+        const dateA = new Date(a.startTimeScheduled).getTime();
+        const dateB = new Date(b.startTimeScheduled).getTime();
+        return dateB - dateA;
+      })
+      // Limit to requested number
+      .slice(0, limit)
+      .map((series): H2HMatchResult => {
         const [t1, t2] = series.teams!;
-        const t1Won = t1.scoreAdvantage > t2.scoreAdvantage;
-        const t2Won = t2.scoreAdvantage > t1.scoreAdvantage;
+        // Ensure team1 is the one matching team1Id
+        const team1Index = t1.baseInfo.id === team1Id ? 0 : 1;
+        const team1 = series.teams![team1Index];
+        const team2 = series.teams![team1Index === 0 ? 1 : 0];
+
+        // At this point, both scores are guaranteed to be defined (filtered above)
+        const score1 = team1.scoreAdvantage ?? 0;
+        const score2 = team2.scoreAdvantage ?? 0;
+        const t1Won = score1 > score2;
+        const t2Won = score2 > score1;
 
         return {
           matchId: series.id,
@@ -875,24 +921,24 @@ export async function fetchHeadToHeadHistory(
           tournament: series.tournament?.nameShortened,
           format: series.format?.nameShortened,
           team1: {
-            id: t1.baseInfo.id,
-            name: t1.baseInfo.name,
-            score: t1.scoreAdvantage,
+            id: team1.baseInfo.id,
+            name: team1.baseInfo.name,
+            score: score1,
             won: t1Won,
           },
           team2: {
-            id: t2.baseInfo.id,
-            name: t2.baseInfo.name,
-            score: t2.scoreAdvantage,
+            id: team2.baseInfo.id,
+            name: team2.baseInfo.name,
+            score: score2,
             won: t2Won,
           },
         };
       });
 
     console.log(
-      `[GRID API] Found ${matches.length} H2H match(es) for ${team1Id} vs ${team2Id}`
+      `[GRID API] Found ${h2hMatches.length} H2H match(es) for ${team1Id} vs ${team2Id}`
     );
 
-    return matches;
+    return h2hMatches;
   });
 }

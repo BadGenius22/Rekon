@@ -225,7 +225,7 @@ function PaymentRequired({
           className="flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 font-medium text-white hover:bg-purple-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Sparkles className="h-4 w-4" />
-          Pay ${pricing.priceUsdc} USDC
+          Pay ${pricing.priceUsdc} USDC for 24 hours
         </button>
       )}
       <p className="mt-2 text-[10px] text-white/40">
@@ -280,7 +280,7 @@ function StateRenderer({
                   >
                     {isPaying
                       ? "Processing..."
-                      : `Unlock for $${pricing.priceUsdc} USDC`}
+                      : `Unlock for 24 hours - $${pricing.priceUsdc} USDC`}
                   </button>
                 )}
               </div>

@@ -2,13 +2,13 @@
  * Premium Access Service
  *
  * Manages premium content access for recommendation features.
- * Access is granted per-market and expires when the market ends.
+ * Access is granted per-market and expires 24 hours after payment.
  *
  * Flow:
  * 1. User pays via x402 → recordPremiumAccess() called
  * 2. User refreshes page → checkPremiumAccess() returns true
  * 3. User gets premium content without repaying
- * 4. Market ends → access automatically expires
+ * 4. 24 hours after payment → access automatically expires
  */
 
 import type { Market } from "@rekon/types";
@@ -43,37 +43,29 @@ export interface RecordAccessInput {
 // Service Functions
 // ============================================================================
 
-/** Minimum access duration: 24 hours from payment */
-const MIN_ACCESS_DURATION_MS = 24 * 60 * 60 * 1000;
+/** Access duration: 24 hours from payment */
+const ACCESS_DURATION_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Records premium access after successful x402 payment.
- * Access expires when the market ends (or minimum 24 hours for demo/past markets).
+ * Access expires 24 hours after payment.
  *
  * @param input - Payment details
- * @returns The expiry time (market end time)
+ * @returns The expiry time (24 hours from payment)
  */
 export async function recordPremiumAccessForMarket(
   input: RecordAccessInput
 ): Promise<{ expiresAt: string }> {
-  // Get market to find end time
+  // Validate market exists
   const market = await getMarketById(input.marketId);
 
   if (!market) {
     throw new Error(`Market ${input.marketId} not found`);
   }
 
+  // Access expires 24 hours from payment
   const now = new Date();
-
-  // Use market end time as expiry + 1 hour buffer
-  const marketEndTime = new Date(market.endDate);
-  const marketBasedExpiry = new Date(marketEndTime.getTime() + 60 * 60 * 1000);
-
-  // Minimum expiry: 24 hours from now (handles demo mode with old snapshot data)
-  const minimumExpiry = new Date(now.getTime() + MIN_ACCESS_DURATION_MS);
-
-  // Use the later of the two dates
-  const expiryTime = marketBasedExpiry > minimumExpiry ? marketBasedExpiry : minimumExpiry;
+  const expiryTime = new Date(now.getTime() + ACCESS_DURATION_MS);
 
   await dbRecordAccess({
     walletAddress: input.walletAddress,

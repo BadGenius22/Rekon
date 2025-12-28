@@ -793,22 +793,29 @@ export const GET_LIVE_SERIES_STATE = gql`
 /**
  * Get head-to-head series between two teams
  *
- * Fetches historical matchups between two specific teams.
- * Results are ordered by most recent first.
+ * Note: GRID API doesn't support team filtering in allSeries query.
+ * This query fetches recent finished series, and client-side filtering
+ * is required to find matches between the two teams.
+ *
+ * We fetch a larger set (100) and filter client-side to find H2H matches.
+ *
+ * GRID API doesn't accept SeriesFilterInput/SeriesOrderByInput as variable types,
+ * so we use inline filter objects with scalar variables for the date values.
  */
 export const GET_HEAD_TO_HEAD_SERIES = gql`
   query GetHeadToHeadSeries(
-    $team1Id: ID!
-    $team2Id: ID!
-    $first: Int = 10
+    $gte: String!
+    $lte: String!
+    $first: Int = 100
   ) {
     allSeries(
       filter: {
-        teamIdFilter: { all: [$team1Id, $team2Id] }
-        finishedFilter: true
+        startTimeScheduled: {
+          gte: $gte
+          lte: $lte
+        }
       }
       orderBy: StartTimeScheduled
-      orderByDirection: Descending
       first: $first
     ) {
       edges {

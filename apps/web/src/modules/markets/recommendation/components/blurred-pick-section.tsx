@@ -98,7 +98,7 @@ export function BlurredPickSection({
     return (
       <>
         <Sparkles className="h-4 w-4" />
-        Unlock Premium for ${pricing?.priceUsdc || "0.05"} USDC
+        Unlock Premium for 24 hours - ${pricing?.priceUsdc || "0.05"} USDC
       </>
     );
   };

@@ -221,9 +221,11 @@ export function MarketDetailClient({
           className="mb-6"
         >
           <RecommendationCard
+            key={market.id}
             marketId={market.id}
             team1Name={team1Name}
             team2Name={team2Name}
+            league={league}
           />
         </motion.div>
       )}

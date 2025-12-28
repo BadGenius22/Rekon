@@ -269,17 +269,43 @@ async function searchInNeonDb(
     // Try trigram search first (requires pg_trgm extension)
     let results: NeonTeamSearchResult[];
     try {
-      results = await searchTeamsByName(polymarketName, 3);
+      results = await searchTeamsByName(polymarketName, 5); // Get more results to filter
     } catch {
       // Fallback to basic LIKE search if pg_trgm not available
-      results = await searchTeamsByNameBasic(polymarketName, 3);
+      results = await searchTeamsByNameBasic(polymarketName, 5);
     }
 
     if (results.length === 0) {
       return null;
     }
 
-    const bestMatch = results[0];
+    // Filter out poor substring matches
+    // Reject matches where the query is a substring of a much longer name
+    // (e.g., "omega" matching "omegal" - query is 5 chars, result is 6 chars, but "omega" is not the full word)
+    const queryLength = normalizedName.length;
+    const filteredResults = results.filter((result) => {
+      const resultNameLower = result.name.toLowerCase();
+      const resultLength = resultNameLower.length;
+
+      // If query is a substring of result, check if it's a reasonable match
+      if (resultNameLower.includes(normalizedName)) {
+        // Allow if lengths are similar (within 2 chars) or if similarity is very high
+        const lengthDiff = resultLength - queryLength;
+        if (lengthDiff > 2 && result.similarity < 0.8) {
+          // Reject: query is much shorter and similarity is not very high
+          // This prevents "omega" from matching "omegal" or "omega legion"
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    if (filteredResults.length === 0) {
+      return null;
+    }
+
+    const bestMatch = filteredResults[0];
 
     // Convert similarity score to confidence level
     const confidence = neonSimilarityToConfidence(bestMatch.similarity);

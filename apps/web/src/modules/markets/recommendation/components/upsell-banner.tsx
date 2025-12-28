@@ -60,7 +60,7 @@ export function UpsellBanner({
     return (
       <>
         <Sparkles className="h-4 w-4" />
-        Unlock {pricing ? `for $${pricing.priceUsdc}` : "Premium"}
+        Unlock for 24 hours {pricing ? `- $${pricing.priceUsdc}` : "Premium"}
       </>
     );
   };

@@ -15,16 +15,18 @@
  * normalizeTeamName("Natus Vincere") → "natus vincere"
  */
 export function normalizeTeamName(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    // Remove common esports org suffixes
-    .replace(/\s*(gaming|esports|esport|team|clan|org)\s*/gi, " ")
-    // Remove special characters except spaces
-    .replace(/[^a-z0-9\s]/g, "")
-    // Normalize multiple spaces to single space
-    .replace(/\s+/g, " ")
-    .trim();
+  return (
+    name
+      .toLowerCase()
+      .trim()
+      // Remove common esports org suffixes
+      .replace(/\s*(gaming|esports|esport|team|clan|org)\s*/gi, " ")
+      // Remove special characters except spaces
+      .replace(/[^a-z0-9\s]/g, "")
+      // Normalize multiple spaces to single space
+      .replace(/\s+/g, " ")
+      .trim()
+  );
 }
 
 /**
@@ -195,7 +197,7 @@ export const CS2_TEAM_ALIASES: Record<string, TeamAliasEntry> = {
     gridId: "",
     aliases: ["furia", "furia esports"],
   },
-  "monte": {
+  monte: {
     gridName: "Monte",
     gridId: "",
     aliases: ["monte esports"],
@@ -205,7 +207,7 @@ export const CS2_TEAM_ALIASES: Record<string, TeamAliasEntry> = {
     gridId: "",
     aliases: ["ninjas in pyjamas", "nip", "ninjas"],
   },
-  "pain": {
+  pain: {
     gridName: "paiN Gaming",
     gridId: "",
     aliases: ["pain gaming", "pain", "paingaming"],
@@ -230,7 +232,7 @@ export const CS2_TEAM_ALIASES: Record<string, TeamAliasEntry> = {
     gridId: "",
     aliases: ["betboom", "betboom team"],
   },
-  "big": {
+  big: {
     gridName: "BIG",
     gridId: "",
     aliases: ["big clan"],
@@ -270,6 +272,11 @@ export const CS2_TEAM_ALIASES: Record<string, TeamAliasEntry> = {
     gridId: "",
     aliases: ["wildcard", "wildcard gaming"],
   },
+  omega: {
+    gridName: "Omega", // TODO: Update with correct GRID team name if different
+    gridId: "",
+    aliases: ["omega"],
+  },
 };
 
 /**
@@ -289,7 +296,9 @@ export function findTeamByAlias(query: string): TeamAliasEntry | null {
   // Search through all entries' aliases
   for (const [key, entry] of Object.entries(CS2_TEAM_ALIASES)) {
     // Check if query matches any alias
-    if (entry.aliases.some((alias) => normalizeTeamName(alias) === normalized)) {
+    if (
+      entry.aliases.some((alias) => normalizeTeamName(alias) === normalized)
+    ) {
       return entry;
     }
 

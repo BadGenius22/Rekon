@@ -302,6 +302,161 @@ export async function findTeamByGridId(
 }
 
 /**
+ * Searches for teams by name and returns full team records with logo_url.
+ * Optionally filters by game.
+ */
+export async function searchTeamsByNameWithLogo(
+  query: string,
+  game?: string | null,
+  limit = 5
+): Promise<TeamRecord[]> {
+  const sql = getSql();
+  const queryLower = query.toLowerCase().trim();
+
+  // Build query with optional game filter
+  if (game) {
+    // Exact match with game filter
+    const exactMatch = (await sql`
+      SELECT
+        id,
+        grid_id as "gridId",
+        name,
+        name_lower as "nameLower",
+        color_primary as "colorPrimary",
+        color_secondary as "colorSecondary",
+        logo_url as "logoUrl",
+        aliases,
+        game,
+        created_at as "createdAt",
+        updated_at as "updatedAt"
+      FROM grid_teams
+      WHERE name_lower = ${queryLower}
+        AND (game = ${game} OR game IS NULL)
+      LIMIT 1
+    `) as TeamRecord[];
+
+    if (exactMatch.length > 0) {
+      return exactMatch;
+    }
+
+    // Starts with match with game filter
+    const startsWithMatch = (await sql`
+      SELECT
+        id,
+        grid_id as "gridId",
+        name,
+        name_lower as "nameLower",
+        color_primary as "colorPrimary",
+        color_secondary as "colorSecondary",
+        logo_url as "logoUrl",
+        aliases,
+        game,
+        created_at as "createdAt",
+        updated_at as "updatedAt"
+      FROM grid_teams
+      WHERE name_lower LIKE ${`${queryLower}%`}
+        AND (game = ${game} OR game IS NULL)
+      ORDER BY LENGTH(name), name
+      LIMIT ${limit}
+    `) as TeamRecord[];
+
+    if (startsWithMatch.length > 0) {
+      return startsWithMatch;
+    }
+
+    // Contains match with game filter
+    const containsMatch = (await sql`
+      SELECT
+        id,
+        grid_id as "gridId",
+        name,
+        name_lower as "nameLower",
+        color_primary as "colorPrimary",
+        color_secondary as "colorSecondary",
+        logo_url as "logoUrl",
+        aliases,
+        game,
+        created_at as "createdAt",
+        updated_at as "updatedAt"
+      FROM grid_teams
+      WHERE name_lower LIKE ${`%${queryLower}%`}
+        AND (game = ${game} OR game IS NULL)
+      ORDER BY LENGTH(name), name
+      LIMIT ${limit}
+    `) as TeamRecord[];
+
+    return containsMatch;
+  } else {
+    // No game filter - same logic but without game condition
+    const exactMatch = (await sql`
+      SELECT
+        id,
+        grid_id as "gridId",
+        name,
+        name_lower as "nameLower",
+        color_primary as "colorPrimary",
+        color_secondary as "colorSecondary",
+        logo_url as "logoUrl",
+        aliases,
+        game,
+        created_at as "createdAt",
+        updated_at as "updatedAt"
+      FROM grid_teams
+      WHERE name_lower = ${queryLower}
+      LIMIT 1
+    `) as TeamRecord[];
+
+    if (exactMatch.length > 0) {
+      return exactMatch;
+    }
+
+    const startsWithMatch = (await sql`
+      SELECT
+        id,
+        grid_id as "gridId",
+        name,
+        name_lower as "nameLower",
+        color_primary as "colorPrimary",
+        color_secondary as "colorSecondary",
+        logo_url as "logoUrl",
+        aliases,
+        game,
+        created_at as "createdAt",
+        updated_at as "updatedAt"
+      FROM grid_teams
+      WHERE name_lower LIKE ${`${queryLower}%`}
+      ORDER BY LENGTH(name), name
+      LIMIT ${limit}
+    `) as TeamRecord[];
+
+    if (startsWithMatch.length > 0) {
+      return startsWithMatch;
+    }
+
+    const containsMatch = (await sql`
+      SELECT
+        id,
+        grid_id as "gridId",
+        name,
+        name_lower as "nameLower",
+        color_primary as "colorPrimary",
+        color_secondary as "colorSecondary",
+        logo_url as "logoUrl",
+        aliases,
+        game,
+        created_at as "createdAt",
+        updated_at as "updatedAt"
+      FROM grid_teams
+      WHERE name_lower LIKE ${`%${queryLower}%`}
+      ORDER BY LENGTH(name), name
+      LIMIT ${limit}
+    `) as TeamRecord[];
+
+    return containsMatch;
+  }
+}
+
+/**
  * Gets the total count of teams in the registry.
  */
 export async function getTeamCount(): Promise<number> {
@@ -386,6 +541,8 @@ export async function ensureTeamTableExists(): Promise<void> {
       ON grid_teams USING gin (name_lower gin_trgm_ops)
     `;
   } catch {
-    console.warn("[Team Registry] Trigram index not created (pg_trgm not available)");
+    console.warn(
+      "[Team Registry] Trigram index not created (pg_trgm not available)"
+    );
   }
 }

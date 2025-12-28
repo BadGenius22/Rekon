@@ -2,6 +2,7 @@ import type { Market } from "@rekon/types";
 import { API_CONFIG } from "@rekon/config";
 import { MarketCountdown } from "./market-countdown";
 import { WatchlistButton } from "@/components/watchlist-button";
+import { AnimatedVS } from "./animated-vs";
 
 interface MarketHeaderProps {
   market: Market;
@@ -132,10 +133,8 @@ export async function MarketHeader({
                 </div>
               )}
 
-              {/* VS Separator */}
-              <span className="text-xs sm:text-sm font-semibold text-white/40">
-                vs
-              </span>
+              {/* VS Separator with Animation */}
+              <AnimatedVS size="sm" />
 
               {/* Team 2 Logo */}
               {team2Logo?.logo && (

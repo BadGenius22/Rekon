@@ -4,7 +4,7 @@ import type { Metadata } from "next";
  * Site configuration for SEO and metadata
  */
 export const SITE_CONFIG = {
-  name: "Rekon",
+  name: "RekonGG",
   title: "Professional Esports Trading Terminal",
   description:
     "Professional trading terminal for esports prediction markets. Real-time odds, instant settlements, and pro-grade analytics for CS2, LoL, Dota 2, Valorant, and more.",
@@ -88,7 +88,9 @@ export const DEFAULT_METADATA: Metadata = {
       { url: "/logo-white.svg", type: "image/svg+xml" },
       { url: "/logo-white.svg", type: "image/svg+xml", sizes: "any" },
     ],
-    apple: [{ url: "/logo-white.svg", sizes: "180x180", type: "image/svg+xml" }],
+    apple: [
+      { url: "/logo-white.svg", sizes: "180x180", type: "image/svg+xml" },
+    ],
     shortcut: [{ url: "/logo-white.svg", type: "image/svg+xml" }],
   },
   manifest: "/site.webmanifest",

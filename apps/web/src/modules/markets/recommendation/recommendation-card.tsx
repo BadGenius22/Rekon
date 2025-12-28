@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback, memo, useRef } from "react";
 import {
   Brain,
   Activity,
@@ -38,6 +38,9 @@ import { LiveMatchWidget } from "./components/live-match-widget";
 // Types and utilities
 import type { RecommendationCardProps } from "./types";
 import { mapTeamToDisplayData } from "./types";
+import { ensureTeamOrder, matchesTeamName } from "@/lib/team-order";
+import type { RecommendationResult } from "@rekon/types";
+import type { RecommendationPreviewResponse } from "../../../lib/api-client";
 
 // =============================================================================
 // STATE DISPLAYS
@@ -86,58 +89,49 @@ function ErrorState({
 }
 
 // =============================================================================
-// FREE TIER CONTENT
+// SHARED UTILITIES
 // =============================================================================
 
 /**
- * Free tier content layout
- * Shows data first to build trust, then blurred AI pick as hook
+ * Computes team display data with memoization support
+ * Shared between FreeTierContent and PremiumTierContent
  */
-function FreeTierContent({
-  state,
-  pricing,
-  onPay,
-  onConnect,
-  isPaying,
-  isWalletConnected,
-  isWalletReady,
-}: {
-  state: RecommendationState & { status: "preview" };
-  pricing: { priceUsdc: string } | null;
-  onPay: () => void;
-  onConnect: () => void;
-  isPaying: boolean;
-  isWalletConnected: boolean;
-  isWalletReady: boolean;
-}) {
-  const recommendation = state.data;
-
-  // Ensure we have recommendation data
-  if (!recommendation) {
-    return (
-      <div className="flex flex-col items-center justify-center py-8 text-center">
-        <AlertCircle className="h-6 w-6 text-amber-400 mb-2" />
-        <p className="text-sm text-white/70">
-          No recommendation data available
-        </p>
-      </div>
-    );
-  }
-
+function computeTeamDisplayData(
+  recommendation: RecommendationPreviewResponse | RecommendationResult,
+  team1Name?: string,
+  team2Name?: string
+) {
   const team1Stats = recommendation.teamStats?.recommended;
   const team2Stats = recommendation.teamStats?.opponent;
 
-  // Always create display data, even if stats are missing, to maintain consistent UI design
-  const team1Display = mapTeamToDisplayData(team1Stats) || {
-    name: recommendation.recommendedPick || "Team 1",
-    winRate: 50,
-    kdRatio: 1.0,
-    form: "neutral" as const,
-    streak: 0,
-    totalSeries: 0,
+  // Get team names from recommendation data
+  const recTeam1Name = recommendation.recommendedPick || "Team 1";
+  const recTeam2Name = recommendation.otherTeam || "Team 2";
+
+  // Ensure team order matches market order
+  const orderedTeamNames =
+    team1Name && team2Name
+      ? ensureTeamOrder(team1Name, team2Name, recTeam1Name, recTeam2Name)
+      : { team1: recTeam1Name, team2: recTeam2Name };
+
+  // Map stats to display data
+  const recTeam1Display = mapTeamToDisplayData(team1Stats);
+  const recTeam2Display = mapTeamToDisplayData(team2Stats);
+
+  // Helper to find display data for a team name
+  const findDisplayData = (targetName: string) => {
+    if (recTeam1Display && matchesTeamName(recTeam1Display.name, targetName)) {
+      return recTeam1Display;
+    }
+    if (recTeam2Display && matchesTeamName(recTeam2Display.name, targetName)) {
+      return recTeam2Display;
+    }
+    return null;
   };
-  const team2Display = mapTeamToDisplayData(team2Stats) || {
-    name: recommendation.otherTeam || "Team 2",
+
+  // Map display data to ordered team names from market
+  const team1Display = findDisplayData(orderedTeamNames.team1) || {
+    name: orderedTeamNames.team1,
     winRate: 50,
     kdRatio: 1.0,
     form: "neutral" as const,
@@ -145,19 +139,44 @@ function FreeTierContent({
     totalSeries: 0,
   };
 
-  // Check if stats are actually available (not just default placeholders)
-  const team1HasStats = !!team1Stats;
-  const team2HasStats = !!team2Stats;
-  const hasRealStats = team1Stats || team2Stats;
+  const team2Display = findDisplayData(orderedTeamNames.team2) || {
+    name: orderedTeamNames.team2,
+    winRate: 50,
+    kdRatio: 1.0,
+    form: "neutral" as const,
+    streak: 0,
+    totalSeries: 0,
+  };
 
-  // Build compact stat comparisons from team data
-  // Only show stats if we have real data (not just placeholders)
+  return {
+    team1Display,
+    team2Display,
+    team1Stats,
+    team2Stats,
+    team1HasStats: !!team1Stats,
+    team2HasStats: !!team2Stats,
+    hasRealStats: !!team1Stats || !!team2Stats,
+  };
+}
+
+/**
+ * Builds compact stats array from team data
+ */
+function buildCompactStats(
+  team1Display: ReturnType<typeof computeTeamDisplayData>["team1Display"],
+  team2Display: ReturnType<typeof computeTeamDisplayData>["team2Display"],
+  team1Stats: ReturnType<typeof computeTeamDisplayData>["team1Stats"],
+  team2Stats: ReturnType<typeof computeTeamDisplayData>["team2Stats"],
+  team1HasStats: boolean,
+  team2HasStats: boolean
+) {
   const compactStats: Array<{
     label: string;
     value1: number;
     value2: number;
     format?: (v: number) => string;
   }> = [];
+
   if (team1HasStats && team2HasStats) {
     compactStats.push(
       {
@@ -187,6 +206,91 @@ function FreeTierContent({
     }
   }
 
+  return compactStats;
+}
+
+// =============================================================================
+// FREE TIER CONTENT
+// =============================================================================
+
+/**
+ * Free tier content layout
+ * Shows data first to build trust, then blurred AI pick as hook
+ */
+const FreeTierContent = memo(function FreeTierContent({
+  state,
+  pricing,
+  onPay,
+  onConnect,
+  isPaying,
+  isWalletConnected,
+  isWalletReady,
+  team1Name,
+  team2Name,
+  league,
+}: {
+  state: RecommendationState & { status: "preview" };
+  pricing: { priceUsdc: string } | null;
+  onPay: () => void;
+  onConnect: () => void;
+  isPaying: boolean;
+  isWalletConnected: boolean;
+  isWalletReady: boolean;
+  team1Name?: string;
+  team2Name?: string;
+  league?: string;
+}) {
+  const recommendation = state.data;
+
+  // Ensure we have recommendation data
+  if (!recommendation) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8 text-center">
+        <AlertCircle className="h-6 w-6 text-amber-400 mb-2" />
+        <p className="text-sm text-white/70">
+          No recommendation data available
+        </p>
+      </div>
+    );
+  }
+
+  // Memoize expensive team display data computation
+  const teamData = useMemo(
+    () => computeTeamDisplayData(recommendation, team1Name, team2Name),
+    [recommendation, team1Name, team2Name]
+  );
+
+  const {
+    team1Display,
+    team2Display,
+    team1Stats,
+    team2Stats,
+    team1HasStats,
+    team2HasStats,
+    hasRealStats,
+  } = teamData;
+
+  // Memoize compact stats computation
+  const compactStats = useMemo(
+    () =>
+      buildCompactStats(
+        team1Display,
+        team2Display,
+        team1Stats,
+        team2Stats,
+        team1HasStats,
+        team2HasStats
+      ),
+    [
+      team1Display,
+      team2Display,
+      team1Stats,
+      team2Stats,
+      team1HasStats,
+      team2HasStats,
+    ]
+  );
+
   return (
     <div className="space-y-5">
       {/* Section 1: Team Face-Off Visual (Primary Focus) - Always show for consistent design */}
@@ -195,6 +299,7 @@ function FreeTierContent({
           team1={team1Display}
           team2={team2Display}
           recommendedTeamName={recommendation.recommendedPick}
+          league={league}
         />
         {/* Show "Stats unavailable" indicator if stats are missing */}
         {hasRealStats && (!team1HasStats || !team2HasStats) && (
@@ -227,7 +332,7 @@ function FreeTierContent({
       />
     </div>
   );
-}
+});
 
 // =============================================================================
 // PREMIUM TIER CONTENT
@@ -238,61 +343,57 @@ function FreeTierContent({
  * Full analysis with AI pick hero, insights, breakdown, H2H, and risk factors
  * Now includes TeamFaceOff and StatBars for visual context (previously only in free tier)
  */
-function PremiumTierContent({
+const PremiumTierContent = memo(function PremiumTierContent({
   state,
   team1Name,
   team2Name,
+  league,
 }: {
   state: RecommendationState & { status: "success" };
   team1Name?: string;
   team2Name?: string;
+  league?: string;
 }) {
   const recommendation = state.data;
 
   const resolvedTeam1Name = team1Name || recommendation.recommendedPick;
   const resolvedTeam2Name = team2Name || recommendation.otherTeam;
 
-  // Map team stats for visual display (same logic as FreeTierContent)
-  const team1Stats = recommendation.teamStats?.recommended;
-  const team2Stats = recommendation.teamStats?.opponent;
-  const team1Display = mapTeamToDisplayData(team1Stats);
-  const team2Display = mapTeamToDisplayData(team2Stats);
+  // Memoize expensive team display data computation
+  const teamData = useMemo(
+    () => computeTeamDisplayData(recommendation, team1Name, team2Name),
+    [recommendation, team1Name, team2Name]
+  );
 
-  // Build compact stat comparisons from team data
-  const compactStats: Array<{
-    label: string;
-    value1: number;
-    value2: number;
-    format?: (v: number) => string;
-  }> = [];
-  if (team1Display && team2Display) {
-    compactStats.push(
-      {
-        label: "Win Rate",
-        value1: team1Display.winRate,
-        value2: team2Display.winRate,
-        format: (v) => `${Math.round(v)}%`,
-      },
-      {
-        label: "K/D Ratio",
-        value1: team1Display.kdRatio,
-        value2: team2Display.kdRatio,
-        format: (v) => v.toFixed(2),
-      }
-    );
+  const {
+    team1Display,
+    team2Display,
+    team1Stats,
+    team2Stats,
+    team1HasStats,
+    team2HasStats,
+  } = teamData;
 
-    // Add recent form if available
-    const recForm = team1Stats?.recentForm ?? 50;
-    const oppForm = team2Stats?.recentForm ?? 50;
-    if (recForm !== 50 || oppForm !== 50) {
-      compactStats.push({
-        label: "Recent Form",
-        value1: recForm,
-        value2: oppForm,
-        format: (v) => `${Math.round(v)}%`,
-      });
-    }
-  }
+  // Memoize compact stats computation
+  const compactStats = useMemo(
+    () =>
+      buildCompactStats(
+        team1Display,
+        team2Display,
+        team1Stats,
+        team2Stats,
+        team1HasStats,
+        team2HasStats
+      ),
+    [
+      team1Display,
+      team2Display,
+      team1Stats,
+      team2Stats,
+      team1HasStats,
+      team2HasStats,
+    ]
+  );
 
   return (
     <div className="space-y-5">
@@ -302,6 +403,7 @@ function PremiumTierContent({
           team1={team1Display}
           team2={team2Display}
           recommendedTeamName={recommendation.recommendedPick}
+          league={league}
         />
       )}
 
@@ -359,7 +461,7 @@ function PremiumTierContent({
       </div>
     </div>
   );
-}
+});
 
 // =============================================================================
 // STATE RENDERER
@@ -368,7 +470,7 @@ function PremiumTierContent({
 /**
  * Renders different recommendation states
  */
-function StateRenderer({
+const StateRenderer = memo(function StateRenderer({
   state,
   pricing,
   onPay,
@@ -380,6 +482,7 @@ function StateRenderer({
   isWalletReady,
   team1Name,
   team2Name,
+  league,
 }: {
   state: RecommendationState;
   pricing: { priceUsdc: string } | null;
@@ -392,6 +495,7 @@ function StateRenderer({
   isWalletReady: boolean;
   team1Name?: string;
   team2Name?: string;
+  league?: string;
 }) {
   switch (state.status) {
     case "idle":
@@ -450,6 +554,9 @@ function StateRenderer({
           isPaying={isPaying}
           isWalletConnected={isWalletConnected}
           isWalletReady={isWalletReady}
+          team1Name={team1Name}
+          team2Name={team2Name}
+          league={league}
         />
       );
 
@@ -473,6 +580,7 @@ function StateRenderer({
           state={state}
           team1Name={team1Name}
           team2Name={team2Name}
+          league={league}
         />
       );
 
@@ -486,7 +594,7 @@ function StateRenderer({
         </div>
       );
   }
-}
+});
 
 // =============================================================================
 // MAIN COMPONENT
@@ -511,6 +619,7 @@ export function RecommendationCard({
   marketId,
   team1Name,
   team2Name,
+  league,
   className,
 }: RecommendationCardProps) {
   const {
@@ -543,12 +652,13 @@ export function RecommendationCard({
   const [hasFetchedPreview, setHasFetchedPreview] = useState(false);
 
   // Reset state when market changes (must run FIRST to clear stale state)
+  // reset is stable (useCallback in hook), so safe to include in dependencies
   useEffect(() => {
     reset(); // Reset hook state (clears availability, preview, etc.)
     setHasCheckedAccess(false);
     setHasCheckedAvailability(false);
     setHasFetchedPreview(false);
-  }, [marketId, reset]);
+  }, [marketId, reset]); // reset is stable from useCallback
 
   // Initial availability check when component mounts
   useEffect(() => {
@@ -567,15 +677,11 @@ export function RecommendationCard({
       hasCheckedAvailability &&
       !hasFetchedPreview
     ) {
-      console.log(
-        "[RecommendationCard] Availability confirmed, fetching preview for:",
-        marketId
-      );
       setHasFetchedPreview(true);
       fetchPreview(marketId);
     }
   }, [
-    availability,
+    availability?.available,
     state.status,
     hasCheckedAvailability,
     hasFetchedPreview,
@@ -611,32 +717,14 @@ export function RecommendationCard({
     fetchPremiumContent,
   ]);
 
-  const handlePay = () => {
+  const handlePay = useCallback(() => {
     if (!isWalletConnected || !isWalletReady) return;
     fetchRecommendation(marketId);
-  };
+  }, [isWalletConnected, isWalletReady, fetchRecommendation, marketId]);
 
-  const handleConnect = () => {
+  const handleConnect = useCallback(() => {
     connect();
-  };
-
-  // Debug: Log state changes
-  useEffect(() => {
-    console.log("[RecommendationCard] State changed:", {
-      status: state.status,
-      hasAvailability: !!availability,
-      availabilityValue: availability?.available,
-      hasCheckedAvailability,
-      hasFetchedPreview,
-      marketId,
-    });
-  }, [
-    state.status,
-    availability,
-    hasCheckedAvailability,
-    hasFetchedPreview,
-    marketId,
-  ]);
+  }, [connect]);
 
   return (
     <div
@@ -727,6 +815,7 @@ export function RecommendationCard({
           isWalletReady={isWalletReady}
           team1Name={team1Name}
           team2Name={team2Name}
+          league={league}
         />
       </div>
 

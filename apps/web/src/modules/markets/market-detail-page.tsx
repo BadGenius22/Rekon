@@ -5,6 +5,7 @@ import { AppHeader } from "@/components/app-header";
 import { WatchlistProviderWrapper } from "@/components/watchlist-provider-wrapper";
 import { MarketDetailClient } from "./market-detail-client";
 import { filterRelevantMarketTypes } from "@/lib/market-filters";
+import { extractTeamOrderFromQuestion } from "@/lib/team-order";
 
 /**
  * Helper to build API URL with demo mode query param for SSR/ISR requests
@@ -381,16 +382,27 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
   // Check if this is a totals/over-under market
   const isTotalsMarket = market.sportsMarketType?.toLowerCase() === "totals";
 
-  // Get outcome names and prices
-  // For totals markets, use "Over" and "Under" labels instead of team names
-  const team1Name = isTotalsMarket
-    ? "Over"
-    : market.outcomes[0]?.name || "Team 1";
-  const team2Name = isTotalsMarket
-    ? "Under"
-    : market.outcomes[1]?.name || "Team 2";
-  const team1Price = market.outcomes[0]?.price ?? 0.5;
-  const team2Price = market.outcomes[1]?.price ?? 0.5;
+  // Extract team names in the correct order from market question
+  // This ensures teams match the order shown in the question (e.g., "Team A vs Team B")
+  const teamOrder = isTotalsMarket
+    ? { team1Name: "Over", team2Name: "Under" }
+    : extractTeamOrderFromQuestion(market.question, market.outcomes) || {
+        team1Name: market.outcomes[0]?.name || "Team 1",
+        team2Name: market.outcomes[1]?.name || "Team 2",
+      };
+
+  // Find corresponding prices for the correctly ordered teams
+  const team1Outcome = market.outcomes.find(
+    (o) => o.name === teamOrder.team1Name
+  );
+  const team2Outcome = market.outcomes.find(
+    (o) => o.name === teamOrder.team2Name
+  );
+
+  const team1Name = teamOrder.team1Name;
+  const team2Name = teamOrder.team2Name;
+  const team1Price = team1Outcome?.price ?? market.outcomes[0]?.price ?? 0.5;
+  const team2Price = team2Outcome?.price ?? market.outcomes[1]?.price ?? 0.5;
   const team1PriceChange24h = metrics.priceChange24h;
   const team2PriceChange24h = -metrics.priceChange24h;
 
@@ -398,9 +410,9 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
   const team1Image = market.imageUrl; // Fallback, team logos fetched in hero component
   const team2Image = market.imageUrl; // Fallback, team logos fetched in hero component
 
-  // Get token IDs for price history chart
-  const team1TokenId = market.outcomes[0]?.tokenAddress;
-  const team2TokenId = market.outcomes[1]?.tokenAddress;
+  // Get token IDs for price history chart (match the correctly ordered teams)
+  const team1TokenId = team1Outcome?.tokenAddress;
+  const team2TokenId = team2Outcome?.tokenAddress;
 
   // Map game to league for team logo API
   const gameToLeague: Record<string, string> = {

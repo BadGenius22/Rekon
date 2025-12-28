@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@rekon/ui";
 import { API_CONFIG } from "@rekon/config";
+import { VSDivider } from "./recommendation/ui";
 
 interface MarketHeroProps {
   team1Name: string;
@@ -38,9 +39,7 @@ async function fetchTeamLogo(
       url.searchParams.set("league", league);
     }
 
-    const response = await fetch(url.toString(), {
-      next: { revalidate: 3600 }, // Cache for 1 hour
-    });
+    const response = await fetch(url.toString());
 
     if (!response.ok) {
       return null;
@@ -48,7 +47,7 @@ async function fetchTeamLogo(
 
     const data = await response.json();
     const teams = data.teams || [];
-    if (teams.length > 0) {
+    if (teams.length > 0 && teams[0].imageUrl) {
       return {
         name: teams[0].name,
         logo: teams[0].imageUrl,
@@ -105,6 +104,9 @@ export function MarketHero({
         fetchTeamLogo(team2Name, league),
       ]);
 
+      // Update logos if we got valid URLs (even if we already had one)
+      // Use the resolved team name from API response if available (ensures consistency)
+      // The API returns the canonical team name (e.g., "MEGOSHORT") which is the correct one
       if (logo1?.logo) {
         setTeam1Logo(logo1.logo);
       }
@@ -260,13 +262,13 @@ export function MarketHero({
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.3, ease: [0.25, 0.4, 0.25, 1] }}
-          className="flex-shrink-0 hidden sm:flex flex-col items-center gap-2"
+          className="flex-shrink-0 hidden sm:flex flex-col items-center gap-4 sm:gap-5 lg:gap-6"
         >
           {status === "LIVE" && (
             <motion.div
               animate={{ opacity: [1, 0.5, 1] }}
               transition={{ duration: 1.5, repeat: Infinity }}
-              className="px-3 py-1 rounded-full bg-red-500/20 border border-red-500/50"
+              className="relative z-30 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/50 mb-1"
             >
               <span className="text-xs font-bold text-red-400 flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
@@ -274,22 +276,8 @@ export function MarketHero({
               </span>
             </motion.div>
           )}
-          <div className="relative">
-            <motion.div
-              className="absolute inset-0 blur-xl bg-white/20"
-              animate={{
-                scale: [1, 1.5, 1],
-                opacity: [0.3, 0.6, 0.3],
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-            <span className="relative text-2xl sm:text-3xl lg:text-4xl font-black text-white/80 tracking-tighter">
-              VS
-            </span>
+          <div className="relative z-10">
+            <VSDivider className="scale-125 sm:scale-150 lg:scale-[1.75]" />
           </div>
         </motion.div>
 

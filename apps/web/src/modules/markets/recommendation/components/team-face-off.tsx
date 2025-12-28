@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@rekon/ui";
 import { API_CONFIG } from "@rekon/config";
 import { FormIndicator } from "../ui/form-indicator";
@@ -18,11 +18,12 @@ import type { TeamFaceOffProps, TeamDisplayData } from "../types";
 
 /**
  * Fetch team logo from the teams API
- * Same logic as market-hero.tsx for consistency
+ * Client-side version with abort signal support
  */
 async function fetchTeamLogo(
   teamName: string,
-  league?: string
+  league: string | undefined,
+  signal: AbortSignal
 ): Promise<string | null> {
   try {
     const url = new URL(`${API_CONFIG.baseUrl}/teams`);
@@ -31,9 +32,7 @@ async function fetchTeamLogo(
       url.searchParams.set("league", league);
     }
 
-    const response = await fetch(url.toString(), {
-      next: { revalidate: 3600 }, // Cache for 1 hour
-    });
+    const response = await fetch(url.toString(), { signal });
 
     if (!response.ok) {
       return null;
@@ -47,6 +46,10 @@ async function fetchTeamLogo(
 
     return null;
   } catch (error) {
+    // Ignore abort errors (expected when component unmounts)
+    if (error instanceof Error && error.name === "AbortError") {
+      return null;
+    }
     console.warn(`Failed to fetch team logo for ${teamName}:`, error);
     return null;
   }
@@ -63,28 +66,69 @@ export function TeamFaceOff({
   recommendedTeamName,
   league,
   className,
+  originalTeam1Name,
+  originalTeam2Name,
 }: TeamFaceOffProps & { league?: string }) {
   const [team1Logo, setTeam1Logo] = useState<string | undefined>(team1.imageUrl);
   const [team2Logo, setTeam2Logo] = useState<string | undefined>(team2.imageUrl);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Fetch team logos from API
+  // Reset and fetch team logos when team names change
   useEffect(() => {
+    // Reset to initial imageUrl when team changes (preserve if already set)
+    // Only reset if team name actually changed
+    if (team1.imageUrl) {
+      setTeam1Logo(team1.imageUrl);
+    }
+    if (team2.imageUrl) {
+      setTeam2Logo(team2.imageUrl);
+    }
+
+    // Abort previous request if still pending
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this request
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    const signal = abortController.signal;
+
     async function loadTeamLogos() {
+      // Use resolved team names from recommendation API (e.g., "MEGOSHORT")
+      // These are the canonical team names that the API expects
+      // The API will return the correct logo for these resolved names
+      if (!team1.name || !team2.name) {
+        return;
+      }
+
       const [logo1, logo2] = await Promise.all([
-        fetchTeamLogo(team1.name, league),
-        fetchTeamLogo(team2.name, league),
+        fetchTeamLogo(team1.name, league, signal),
+        fetchTeamLogo(team2.name, league, signal),
       ]);
 
-      if (logo1) {
-        setTeam1Logo(logo1);
-      }
-      if (logo2) {
-        setTeam2Logo(logo2);
+      // Only update state if request wasn't aborted (check ref to ensure we're still on the same effect run)
+      if (!signal.aborted && abortControllerRef.current === abortController) {
+        // Always update if we got a logo (even if we already had one, API might have a better one)
+        if (logo1) {
+          setTeam1Logo(logo1);
+        }
+        if (logo2) {
+          setTeam2Logo(logo2);
+        }
       }
     }
 
     loadTeamLogos();
-  }, [team1.name, team2.name, league]);
+
+    // Cleanup: abort request if component unmounts or dependencies change
+    return () => {
+      if (abortControllerRef.current === abortController) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, [team1.name, team2.name, team1.imageUrl, team2.imageUrl, league]);
 
   return (
     <div className={cn("relative", className)}>
@@ -122,11 +166,18 @@ function TeamCard({
   isRecommended: boolean;
   side: "left" | "right";
 }) {
+  const [imageError, setImageError] = useState(false);
   const kdColor = team.kdRatio >= 1.0 ? "text-emerald-400" : "text-red-400";
   const rankTier = getWinRateTier(team.winRate);
 
   // Use fetched logo, fall back to team.imageUrl, then to initials
   const displayLogo = logoUrl || team.imageUrl;
+  const showImage = displayLogo && !imageError;
+
+  // Reset error state when logo changes
+  useEffect(() => {
+    setImageError(false);
+  }, [displayLogo]);
 
   return (
     <div
@@ -163,11 +214,15 @@ function TeamCard({
               isRecommended && "border-emerald-500/30"
             )}
           >
-            {displayLogo ? (
+            {showImage ? (
               <img
                 src={displayLogo}
                 alt={team.name}
                 className="h-9 w-9 rounded-lg object-contain"
+                onError={() => {
+                  // Use state instead of DOM manipulation
+                  setImageError(true);
+                }}
               />
             ) : (
               <span className="text-sm font-bold text-white/60">

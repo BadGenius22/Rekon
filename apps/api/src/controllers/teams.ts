@@ -1,6 +1,6 @@
 import type { Context } from "hono";
-import { z } from "zod";
-import { fetchGammaTeams, fetchGammaTeamByName } from "../adapters/polymarket/index.js";
+import { searchTeamsByNameWithLogo } from "../db/teams.js";
+import { fetchGammaTeamByName } from "../adapters/polymarket/index.js";
 
 interface NormalizedTeam {
   name: string;
@@ -11,62 +11,101 @@ interface NormalizedTeam {
 }
 
 /**
+ * Maps league parameter to game field in database.
+ * League can be: csgo, cs2, lol, dota2, valorant
+ */
+function mapLeagueToGame(league?: string): string | null {
+  if (!league) return null;
+
+  const leagueLower = league.toLowerCase();
+
+  // Map common league names to game values
+  if (
+    leagueLower === "csgo" ||
+    leagueLower === "cs2" ||
+    leagueLower === "counter-strike"
+  ) {
+    return "cs2";
+  }
+  if (leagueLower === "lol" || leagueLower === "league of legends") {
+    return "lol";
+  }
+  if (
+    leagueLower === "dota2" ||
+    leagueLower === "dota 2" ||
+    leagueLower === "dota"
+  ) {
+    return "dota2";
+  }
+  if (leagueLower === "valorant" || leagueLower === "vct") {
+    return "valorant";
+  }
+
+  // Return as-is if it's already a valid game value
+  if (["cs2", "lol", "dota2", "valorant"].includes(leagueLower)) {
+    return leagueLower;
+  }
+
+  return null;
+}
+
+/**
  * GET /teams
- * Returns aggregated esports team metadata (name + logo URL) for CS2, LoL, Dota 2, Valorant.
+ * Returns aggregated esports team metadata (name + logo URL) from grid_teams database.
  *
  * Query params:
  * - name: Optional team name to search for
- * - league: Optional league filter (csgo, lol, dota2, valorant)
+ * - league: Optional league filter (csgo, cs2, lol, dota2, valorant)
  */
 export async function getTeamsController(c: Context) {
   const name = c.req.query("name");
   const league = c.req.query("league");
+  const game = mapLeagueToGame(league);
 
   // If name is provided, search for specific team
   if (name) {
-    const rawTeam = await fetchGammaTeamByName(name, league || undefined);
+    // Check both sources in parallel for better performance
+    const [gridTeams, polymarketTeam] = await Promise.all([
+      searchTeamsByNameWithLogo(name, game, 1),
+      fetchGammaTeamByName(name, league || undefined),
+    ]);
 
-    if (!rawTeam) {
-      return c.json({ teams: [] });
+    const gridTeam = gridTeams.length > 0 ? gridTeams[0] : null;
+    const polymarketLogo =
+      polymarketTeam?.imageUrl || polymarketTeam?.logo || null;
+
+    // Strategy: Prefer Polymarket logo when available (more accurate for some teams)
+    // Fall back to GRID logo if Polymarket doesn't have one
+    const preferredLogo = polymarketLogo || gridTeam?.logoUrl || null;
+
+    if (gridTeam) {
+      // GRID team exists - use GRID name (more canonical), but prefer Polymarket logo
+      const normalizedTeam: NormalizedTeam = {
+        name: gridTeam.name,
+        imageUrl: preferredLogo || undefined,
+        league: gridTeam.game || league || undefined,
+        color: gridTeam.colorPrimary || polymarketTeam?.color || undefined,
+      };
+      return c.json({ teams: [normalizedTeam] });
     }
 
-    const team: NormalizedTeam = {
-      name: rawTeam.name || rawTeam.abbreviation || "",
-      shortName: rawTeam.abbreviation,
-      imageUrl: rawTeam.imageUrl || rawTeam.logo,
-      league: rawTeam.league,
-      color: rawTeam.color,
-    };
+    // GRID doesn't have the team - use Polymarket data
+    if (polymarketTeam) {
+      const normalizedTeam: NormalizedTeam = {
+        name: polymarketTeam.name || polymarketTeam.abbreviation || name,
+        shortName: polymarketTeam.abbreviation,
+        imageUrl: polymarketLogo || undefined,
+        league: polymarketTeam.league || league || undefined,
+        color: polymarketTeam.color,
+      };
+      return c.json({ teams: [normalizedTeam] });
+    }
 
-    return c.json({ teams: [team] });
+    // No team found in either source
+    return c.json({ teams: [] });
   }
 
-  // Otherwise, return all teams
-  const rawTeams = await fetchGammaTeams();
-
-  const teams: NormalizedTeam[] = rawTeams
-    .map<NormalizedTeam | null>((team) => {
-      const name =
-        team.name?.trim() ||
-        team.abbreviation?.trim() ||
-        team.alias?.toString().trim() ||
-        "";
-      if (!name) {
-        return null;
-      }
-
-      const imageUrl = team.imageUrl || team.logo || undefined;
-      const shortName = team.abbreviation || undefined;
-
-      return {
-        name,
-        shortName,
-        imageUrl,
-        league: team.league,
-        color: team.color,
-      };
-    })
-    .filter((t): t is NormalizedTeam => t !== null);
-
-  return c.json({ teams });
+  // If no name provided, return empty (we don't want to return all teams)
+  // This matches the previous behavior when name was required
+  return c.json({ teams: [] });
 }

@@ -4,7 +4,7 @@ import type { Metadata } from "next";
  * Site configuration for SEO and metadata - Landing Page (rekon.gg)
  */
 export const SITE_CONFIG = {
-  name: "Rekon",
+  name: "RekonGG",
   title: "Professional Esports Trading Terminal",
   tagline: "Trade Esports Markets Like a Pro",
   description:

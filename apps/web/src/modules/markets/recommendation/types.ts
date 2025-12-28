@@ -16,6 +16,7 @@ export interface RecommendationCardProps {
   marketId: string;
   team1Name?: string;
   team2Name?: string;
+  league?: string;
   className?: string;
 }
 
