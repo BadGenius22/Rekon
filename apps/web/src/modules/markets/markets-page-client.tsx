@@ -13,6 +13,7 @@ import { WatchlistProvider } from "@/providers/watchlist-provider";
 import { API_CONFIG } from "@rekon/config";
 import { cn } from "@rekon/ui";
 import { Button } from "@/components/ui/button";
+import { saveMarketFilters } from "@/lib/market-filters-storage";
 
 interface MarketsPageClientProps {
   markets: Market[];
@@ -154,6 +155,16 @@ function MarketsPageClientInner({
 }: MarketsPageClientProps) {
   const { watchlist, isInWatchlist } = useWatchlist();
   const [showWatchlistOnly, setShowWatchlistOnly] = useState(false);
+
+  // Save current filters to sessionStorage whenever they change
+  // This preserves filter state when navigating to market detail page
+  useEffect(() => {
+    saveMarketFilters({
+      status,
+      game,
+      category,
+    });
+  }, [status, game, category]);
   const [watchlistMarkets, setWatchlistMarkets] = useState<Market[]>([]);
   const [loadingWatchlistMarkets, setLoadingWatchlistMarkets] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);

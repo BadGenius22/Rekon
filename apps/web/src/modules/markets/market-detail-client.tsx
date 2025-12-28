@@ -11,20 +11,20 @@ import { MarketSubevents } from "./market-subevents";
 import { MarketInfo } from "./market-info";
 import { WatchlistButton } from "@/components/watchlist-button";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { getMarketsUrlWithFiltersClient } from "@/lib/market-filters-storage";
 
 // Lazy load heavy components for code splitting
 // Convert named exports to default for React.lazy compatibility
-const PriceChart = lazy(
-  () => import("./price-chart").then((mod) => ({ default: mod.PriceChart }))
+const PriceChart = lazy(() =>
+  import("./price-chart").then((mod) => ({ default: mod.PriceChart }))
 );
-const RecentTrades = lazy(
-  () => import("./recent-trades").then((mod) => ({ default: mod.RecentTrades }))
+const RecentTrades = lazy(() =>
+  import("./recent-trades").then((mod) => ({ default: mod.RecentTrades }))
 );
-const RecommendationCard = lazy(
-  () =>
-    import("./recommendation-card").then((mod) => ({
-      default: mod.RecommendationCard,
-    }))
+const RecommendationCard = lazy(() =>
+  import("./recommendation-card").then((mod) => ({
+    default: mod.RecommendationCard,
+  }))
 );
 
 interface MarketDetailClientProps {
@@ -117,7 +117,7 @@ export function MarketDetailClient({
         className="flex items-center justify-between mb-6"
       >
         <Link
-          href="/markets"
+          href={getMarketsUrlWithFiltersClient()}
           className="inline-flex items-center gap-2 text-sm font-medium text-white/50 transition-colors hover:text-white group"
         >
           <svg
@@ -222,7 +222,9 @@ export function MarketDetailClient({
         />
         <StatCard
           label="24h Change"
-          value={`${team1PriceChange24h >= 0 ? "+" : ""}${team1PriceChange24h.toFixed(2)}%`}
+          value={`${
+            team1PriceChange24h >= 0 ? "+" : ""
+          }${team1PriceChange24h.toFixed(2)}%`}
           icon="trending"
           color={team1PriceChange24h >= 0 ? "emerald" : "red"}
         />
@@ -280,10 +282,7 @@ export function MarketDetailClient({
           transition={{ duration: 0.4, delay: 0.25 }}
           className="mb-6"
         >
-          <MarketSubevents
-            markets={allMarkets}
-            currentMarketId={market.id}
-          />
+          <MarketSubevents markets={allMarkets} currentMarketId={market.id} />
         </motion.div>
       )}
 
@@ -342,7 +341,9 @@ export function MarketDetailClient({
             fallback={
               <div className="rounded-xl border border-white/10 bg-[#0a1220]/80 backdrop-blur-sm overflow-hidden">
                 <div className="border-b border-white/5 px-4 py-3">
-                  <h2 className="text-sm font-semibold text-white/80">Recent Trades</h2>
+                  <h2 className="text-sm font-semibold text-white/80">
+                    Recent Trades
+                  </h2>
                 </div>
                 <div className="p-4">
                   <p className="text-sm text-white/50 text-center py-8">
@@ -356,7 +357,9 @@ export function MarketDetailClient({
               fallback={
                 <div className="rounded-xl border border-white/10 bg-[#0a1220]/80 backdrop-blur-sm overflow-hidden">
                   <div className="border-b border-white/5 px-4 py-3">
-                    <h2 className="text-sm font-semibold text-white/80">Recent Trades</h2>
+                    <h2 className="text-sm font-semibold text-white/80">
+                      Recent Trades
+                    </h2>
                   </div>
                   <div className="p-4">
                     <div className="flex items-center justify-center py-8">
@@ -413,15 +416,27 @@ function BetModal({
   marketFee: number;
 }) {
   // Memoize calculations to avoid recalculation on every render
-  const { amount, price, shares, feeAmount, maxPayout, potentialProfit, roi, breakEven } = useMemo(() => {
+  const {
+    amount,
+    price,
+    shares,
+    feeAmount,
+    maxPayout,
+    potentialProfit,
+    roi,
+    breakEven,
+  } = useMemo(() => {
     const amt = parseFloat(betAmount) || 0;
-    const prc = selectedBetData.side === "yes" ? selectedBetData.price : (1 - selectedBetData.price);
+    const prc =
+      selectedBetData.side === "yes"
+        ? selectedBetData.price
+        : 1 - selectedBetData.price;
     const shrs = amt > 0 ? amt / prc : 0;
     const fee = marketFee;
     const feeAmt = amt * fee;
     const maxP = shrs;
     const profit = maxP - amt;
-    const roiVal = amt > 0 ? ((profit / amt) * 100) : 0;
+    const roiVal = amt > 0 ? (profit / amt) * 100 : 0;
     const be = prc;
 
     return {
@@ -456,7 +471,8 @@ function BetModal({
           <div>
             <h2 className="text-xl font-bold text-white">Place Order</h2>
             <p className="text-sm text-white/50 mt-0.5">
-              {selectedBetData.side === "yes" ? "Buy" : "Sell"} {selectedBetData.teamName}
+              {selectedBetData.side === "yes" ? "Buy" : "Sell"}{" "}
+              {selectedBetData.teamName}
             </p>
           </div>
           <button
@@ -516,7 +532,9 @@ function BetModal({
           </div>
 
           <div className="flex items-center justify-between text-sm">
-            <span className="text-white/60">Trading Fee ({(marketFee * 100).toFixed(1)}%)</span>
+            <span className="text-white/60">
+              Trading Fee ({(marketFee * 100).toFixed(1)}%)
+            </span>
             <span className="font-mono font-semibold text-white/80">
               ${feeAmount.toFixed(2)}
             </span>
@@ -553,7 +571,8 @@ function BetModal({
             <div className="flex items-center justify-between text-sm">
               <span className="text-white/70">Potential Profit</span>
               <span className="font-mono font-bold text-emerald-400">
-                +${potentialProfit.toFixed(2)} ({roi > 0 ? "+" : ""}{roi.toFixed(1)}%)
+                +${potentialProfit.toFixed(2)} ({roi > 0 ? "+" : ""}
+                {roi.toFixed(1)}%)
               </span>
             </div>
 
@@ -605,32 +624,75 @@ const StatCard = memo(function StatCard({
   color: "emerald" | "sky" | "purple" | "red" | "amber";
 }) {
   const colorClasses = {
-    emerald: "from-emerald-500/20 to-emerald-500/5 border-emerald-500/30 text-emerald-400",
+    emerald:
+      "from-emerald-500/20 to-emerald-500/5 border-emerald-500/30 text-emerald-400",
     sky: "from-sky-500/20 to-sky-500/5 border-sky-500/30 text-sky-400",
-    purple: "from-purple-500/20 to-purple-500/5 border-purple-500/30 text-purple-400",
+    purple:
+      "from-purple-500/20 to-purple-500/5 border-purple-500/30 text-purple-400",
     red: "from-red-500/20 to-red-500/5 border-red-500/30 text-red-400",
-    amber: "from-amber-500/20 to-amber-500/5 border-amber-500/30 text-amber-400",
+    amber:
+      "from-amber-500/20 to-amber-500/5 border-amber-500/30 text-amber-400",
   };
 
   const icons = {
     chart: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+      <svg
+        className="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
+        />
       </svg>
     ),
     droplet: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+      <svg
+        className="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
+        />
       </svg>
     ),
     trending: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+      <svg
+        className="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+        />
       </svg>
     ),
     split: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+      <svg
+        className="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+        />
       </svg>
     ),
   };
@@ -652,4 +714,3 @@ const StatCard = memo(function StatCard({
     </div>
   );
 });
-

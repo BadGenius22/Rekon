@@ -6,6 +6,7 @@ import { WatchlistProviderWrapper } from "@/components/watchlist-provider-wrappe
 import { MarketDetailClient } from "./market-detail-client";
 import { filterRelevantMarketTypes } from "@/lib/market-filters";
 import { extractTeamOrderFromQuestion } from "@/lib/team-order";
+import { getMarketsUrlWithFilters } from "@/lib/market-filters-storage";
 
 /**
  * Memoized esports market validation
@@ -142,7 +143,9 @@ function checkIsEsportsMarket(market: Market): boolean {
   // - An eventSlug (part of multi-market esports event), OR
   // - Esports category, OR
   // - Esports keywords in question
-  return hasDetectedGame || hasEventSlug || hasEsportsCategory || hasEsportsKeywords;
+  return (
+    hasDetectedGame || hasEventSlug || hasEsportsCategory || hasEsportsKeywords
+  );
 }
 
 /**
@@ -280,12 +283,12 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
             <p className="text-xs text-white/30">
               Check server logs for detailed error information.
             </p>
-            <a
-              href="/markets"
+            <Link
+              href={getMarketsUrlWithFilters()}
               className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:border-white/40 transition-colors"
             >
               Back to Markets
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -349,7 +352,7 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
             {/* CTA */}
             <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
               <Link
-                href="/markets"
+                href={getMarketsUrlWithFilters()}
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-500 px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors"
               >
                 Browse Esports Markets
@@ -373,10 +376,11 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
   // Parallelize with market data fetch when possible
   const shouldShowSubevents = !!market.eventSlug;
   const relatedMarketsPromise = shouldShowSubevents
-    ? fetch(
-        buildApiUrlWithDemoMode(`/markets/event/${market.eventSlug}`),
-        { next: { revalidate: 60 } }
-      ).then((res) => (res.ok ? res.json() : [])).catch(() => [])
+    ? fetch(buildApiUrlWithDemoMode(`/markets/event/${market.eventSlug}`), {
+        next: { revalidate: 60 },
+      })
+        .then((res) => (res.ok ? res.json() : []))
+        .catch(() => [])
     : Promise.resolve([]);
 
   const relatedMarkets: Market[] = await relatedMarketsPromise;
