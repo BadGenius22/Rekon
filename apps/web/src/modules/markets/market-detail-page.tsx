@@ -8,6 +8,144 @@ import { filterRelevantMarketTypes } from "@/lib/market-filters";
 import { extractTeamOrderFromQuestion } from "@/lib/team-order";
 
 /**
+ * Memoized esports market validation
+ * Extracted to avoid recreating arrays on every render
+ */
+function checkIsEsportsMarket(market: Market): boolean {
+  const supportedGames = [
+    "cs2",
+    "lol",
+    "dota2",
+    "valorant",
+    "cod",
+    "r6",
+    "hok",
+  ];
+  const hasDetectedGame = market.game && supportedGames.includes(market.game);
+
+  // If market has eventSlug, it's part of a multi-market event (subevents)
+  // These are always esports-related (Moneyline, Game 1, O/U, etc.)
+  const hasEventSlug = !!market.eventSlug;
+
+  // Also check category/tags for esports markets that may not have game detected
+  // This handles tournament/outright markets that might not have a specific game
+  const esportsCategories = [
+    "esports",
+    "gaming",
+    "counter-strike",
+    "league of legends",
+    "dota",
+    "valorant",
+    "call of duty",
+    "rainbow six",
+    "honor of kings",
+  ];
+  const categoryLower = (market.category ?? "").toLowerCase();
+  const subcategoryLower = (market.subcategory ?? "").toLowerCase();
+  const questionLower = (market.question ?? "").toLowerCase();
+
+  // Check if category/subcategory indicates esports
+  const hasEsportsCategory = esportsCategories.some(
+    (cat) => categoryLower.includes(cat) || subcategoryLower.includes(cat)
+  );
+
+  // Check if question contains esports team/tournament/player keywords
+  const esportsKeywords = [
+    // CS2 teams & tournaments
+    "faze",
+    "navi",
+    "g2",
+    "vitality",
+    "spirit",
+    "heroic",
+    "mouz",
+    "ence",
+    "cloud9",
+    "liquid",
+    "fnatic",
+    "astralis",
+    "pgl major",
+    "blast premier",
+    "esl pro league",
+    "iem",
+    "starladder",
+    "mongolz",
+    "mongol",
+    // CS2 players (for award/personality markets)
+    "s1mple",
+    "m0nesy",
+    "monesy",
+    "zywoo",
+    "device",
+    "niko",
+    "donk",
+    "b1t",
+    // CS2 awards/media
+    "hltv",
+    "player of the year",
+    "team of the year",
+    // LoL teams & tournaments
+    "t1",
+    "gen.g",
+    "dk",
+    "drx",
+    "fnatic",
+    "mad lions",
+    "g2 esports",
+    "worlds",
+    "lpl",
+    "lec",
+    "lcs",
+    "msi",
+    "faker",
+    // Dota 2 teams & tournaments
+    "og",
+    "team spirit",
+    "tundra",
+    "gaimin gladiators",
+    "team liquid",
+    "the international",
+    "ti1",
+    "ti2",
+    "ti3",
+    // Valorant teams & tournaments
+    "sentinels",
+    "loud",
+    "fnatic",
+    "drx",
+    "paper rex",
+    "vct",
+    "valorant champions",
+    // CoD teams & tournaments
+    "optic",
+    "faze",
+    "atlanta faze",
+    "la thieves",
+    "seattle surge",
+    "cdl",
+    "call of duty league",
+    // R6 teams & tournaments
+    "six invitational",
+    "six major",
+    // General esports terms
+    "esport",
+    "retire",
+    "roster",
+  ];
+
+  const hasEsportsKeywords = esportsKeywords.some((keyword) =>
+    questionLower.includes(keyword.toLowerCase())
+  );
+
+  // Market is esports if it has:
+  // - A detected game, OR
+  // - An eventSlug (part of multi-market esports event), OR
+  // - Esports category, OR
+  // - Esports keywords in question
+  return hasDetectedGame || hasEventSlug || hasEsportsCategory || hasEsportsKeywords;
+}
+
+/**
  * Helper to build API URL with demo mode query param for SSR/ISR requests
  */
 function buildApiUrlWithDemoMode(path: string): string {
@@ -159,138 +297,8 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
 
   // Validate that this is an esports market
   // Rekon is an esports terminal - only show competitive esports markets
-  const supportedGames = [
-    "cs2",
-    "lol",
-    "dota2",
-    "valorant",
-    "cod",
-    "r6",
-    "hok",
-  ];
-  const hasDetectedGame = market.game && supportedGames.includes(market.game);
-
-  // If market has eventSlug, it's part of a multi-market event (subevents)
-  // These are always esports-related (Moneyline, Game 1, O/U, etc.)
-  const hasEventSlug = !!market.eventSlug;
-
-  // Also check category/tags for esports markets that may not have game detected
-  // This handles tournament/outright markets that might not have a specific game
-  const esportsCategories = [
-    "esports",
-    "gaming",
-    "counter-strike",
-    "league of legends",
-    "dota",
-    "valorant",
-    "call of duty",
-    "rainbow six",
-    "honor of kings",
-  ];
-  const categoryLower = (market.category ?? "").toLowerCase();
-  const subcategoryLower = (market.subcategory ?? "").toLowerCase();
-  const questionLower = (market.question ?? "").toLowerCase();
-
-  // Check if category/subcategory indicates esports
-  const hasEsportsCategory = esportsCategories.some(
-    (cat) => categoryLower.includes(cat) || subcategoryLower.includes(cat)
-  );
-
-  // Check if question contains esports team/tournament/player keywords
-  const esportsKeywords = [
-    // CS2 teams & tournaments
-    "faze",
-    "navi",
-    "g2",
-    "vitality",
-    "spirit",
-    "heroic",
-    "mouz",
-    "ence",
-    "cloud9",
-    "liquid",
-    "fnatic",
-    "astralis",
-    "pgl major",
-    "blast premier",
-    "esl pro league",
-    "iem",
-    "starladder",
-    "mongolz",
-    "mongol",
-    // CS2 players (for award/personality markets)
-    "s1mple",
-    "m0nesy",
-    "monesy",
-    "zywoo",
-    "device",
-    "niko",
-    "donk",
-    "b1t",
-    // CS2 awards/media
-    "hltv",
-    "player of the year",
-    "team of the year",
-    // LoL teams & tournaments
-    "t1",
-    "gen.g",
-    "dk",
-    "drx",
-    "fnatic",
-    "mad lions",
-    "g2 esports",
-    "worlds",
-    "lpl",
-    "lec",
-    "lcs",
-    "msi",
-    "faker",
-    // Dota 2 teams & tournaments
-    "og",
-    "team spirit",
-    "tundra",
-    "gaimin gladiators",
-    "team liquid",
-    "the international",
-    "ti1",
-    "ti2",
-    "ti3",
-    // Valorant teams & tournaments
-    "sentinels",
-    "loud",
-    "fnatic",
-    "drx",
-    "paper rex",
-    "vct",
-    "valorant champions",
-    // CoD teams & tournaments
-    "optic",
-    "faze",
-    "atlanta faze",
-    "la thieves",
-    "seattle surge",
-    "cdl",
-    "call of duty league",
-    // R6 teams & tournaments
-    "six invitational",
-    "six major",
-    // General esports terms
-    "esport",
-    "retire",
-    "roster",
-  ];
-
-  const hasEsportsKeywords = esportsKeywords.some((keyword) =>
-    questionLower.includes(keyword.toLowerCase())
-  );
-
-  // Market is esports if it has:
-  // - A detected game, OR
-  // - An eventSlug (part of multi-market esports event), OR
-  // - Esports category, OR
-  // - Esports keywords in question
-  const isEsportsMarket =
-    hasDetectedGame || hasEventSlug || hasEsportsCategory || hasEsportsKeywords;
+  // Memoize validation logic to avoid recomputation
+  const isEsportsMarket = checkIsEsportsMarket(market);
 
   if (!isEsportsMarket) {
     return (
@@ -362,22 +370,16 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
   }
 
   // Fetch related markets (subevents) if eventSlug is available
-  let relatedMarkets: Market[] = [];
+  // Parallelize with market data fetch when possible
   const shouldShowSubevents = !!market.eventSlug;
-
-  if (shouldShowSubevents) {
-    try {
-      const relatedMarketsResponse = await fetch(
+  const relatedMarketsPromise = shouldShowSubevents
+    ? fetch(
         buildApiUrlWithDemoMode(`/markets/event/${market.eventSlug}`),
         { next: { revalidate: 60 } }
-      );
-      if (relatedMarketsResponse.ok) {
-        relatedMarkets = await relatedMarketsResponse.json();
-      }
-    } catch (error) {
-      // Failed to fetch related markets, continue without them
-    }
-  }
+      ).then((res) => (res.ok ? res.json() : [])).catch(() => [])
+    : Promise.resolve([]);
+
+  const relatedMarkets: Market[] = await relatedMarketsPromise;
 
   // Check if this is a totals/over-under market
   const isTotalsMarket = market.sportsMarketType?.toLowerCase() === "totals";
@@ -477,17 +479,23 @@ export async function MarketDetailPage({ identifier }: { identifier: string }) {
 }
 
 // Helper function to prepare subevents
+// Optimized to avoid unnecessary array operations
 function prepareSubevents(market: Market, relatedMarkets: Market[]): Market[] {
+  // Early return if no related markets
+  if (relatedMarkets.length === 0) {
+    return [market];
+  }
+
   const marketMap = new Map<string, Market>();
   marketMap.set(market.id, market);
   relatedMarkets.forEach((m) => marketMap.set(m.id, m));
-  let allMarkets = Array.from(marketMap.values());
+  const allMarkets = Array.from(marketMap.values());
 
   // Filter to show only relevant market types (matches Polymarket UI)
-  allMarkets = filterRelevantMarketTypes(allMarkets);
+  const filteredMarkets = filterRelevantMarketTypes(allMarkets);
 
   // Sort markets consistently
-  allMarkets.sort((a, b) => {
+  filteredMarkets.sort((a, b) => {
     if (a.marketGroup !== undefined && b.marketGroup !== undefined) {
       if (a.marketGroup !== b.marketGroup) {
         return a.marketGroup - b.marketGroup;
@@ -555,5 +563,5 @@ function prepareSubevents(market: Market, relatedMarkets: Market[]): Market[] {
     return a.id.localeCompare(b.id);
   });
 
-  return allMarkets;
+  return filteredMarkets;
 }

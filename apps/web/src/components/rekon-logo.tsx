@@ -13,7 +13,11 @@ export function RekonLogo({
 }: RekonLogoProps) {
   const sizes = {
     sm: { icon: "h-5 w-5", text: "text-xs", subtext: "text-[8px]" },
-    md: { icon: "h-6 w-6 sm:h-7 sm:w-7", text: "text-xs sm:text-sm", subtext: "text-[9px] sm:text-[10px]" },
+    md: {
+      icon: "h-6 w-6 sm:h-7 sm:w-7",
+      text: "text-xs sm:text-sm",
+      subtext: "text-[9px] sm:text-[10px]",
+    },
     lg: { icon: "h-8 w-8", text: "text-base", subtext: "text-[10px]" },
   };
 
@@ -23,10 +27,7 @@ export function RekonLogo({
     <div className={cn("flex items-center gap-1.5 sm:gap-2.5", className)}>
       {/* Logo Icon - Stylized R with glitch effect */}
       <div
-        className={cn(
-          "relative flex-shrink-0",
-          sizeConfig.icon
-        )}
+        className={cn("relative flex-shrink-0", sizeConfig.icon)}
         aria-hidden="true"
       >
         <svg
@@ -68,7 +69,7 @@ export function RekonLogo({
               sizeConfig.text
             )}
           >
-            Rekon
+            RekonGG
           </span>
           <span
             className={cn(

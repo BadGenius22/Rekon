@@ -1,18 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useMemo, memo, Suspense, lazy } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import type { Market, MarketSpread } from "@rekon/types";
 import { formatVolume } from "@rekon/utils";
 import { cn } from "@rekon/ui";
 import { MarketHero } from "./market-hero";
-import { PriceChart } from "./price-chart";
 import { MarketSubevents } from "./market-subevents";
-import { RecentTrades } from "./recent-trades";
 import { MarketInfo } from "./market-info";
 import { WatchlistButton } from "@/components/watchlist-button";
-import { RecommendationCard } from "./recommendation-card";
+import { ErrorBoundary } from "@/components/error-boundary";
+
+// Lazy load heavy components for code splitting
+// Convert named exports to default for React.lazy compatibility
+const PriceChart = lazy(
+  () => import("./price-chart").then((mod) => ({ default: mod.PriceChart }))
+);
+const RecentTrades = lazy(
+  () => import("./recent-trades").then((mod) => ({ default: mod.RecentTrades }))
+);
+const RecommendationCard = lazy(
+  () =>
+    import("./recommendation-card").then((mod) => ({
+      default: mod.RecommendationCard,
+    }))
+);
 
 interface MarketDetailClientProps {
   market: Market;
@@ -74,16 +87,25 @@ export function MarketDetailClient({
   const [betAmount, setBetAmount] = useState("");
 
   // Calculate volumes per team (mock data - in production, this would come from API)
-  const totalVolume = metrics.volume24h || market.volume || 0;
-  const team1Volume = totalVolume * team1Price;
-  const team2Volume = totalVolume * team2Price;
+  // Memoize to avoid recalculation on every render
+  const { team1Volume, team2Volume } = useMemo(() => {
+    const totalVolume = metrics.volume24h || market.volume || 0;
+    return {
+      team1Volume: totalVolume * team1Price,
+      team2Volume: totalVolume * team2Price,
+    };
+  }, [metrics.volume24h, market.volume, team1Price, team2Price]);
 
-  const handleHeroBet = (side: "yes" | "no", teamSide: "team1" | "team2") => {
-    const teamName = teamSide === "team1" ? team1Name : team2Name;
-    const price = teamSide === "team1" ? team1Price : team2Price;
-    setSelectedBetData({ side, teamSide, teamName, price });
-    setShowBetModal(true);
-  };
+  // Memoize callback to prevent child re-renders
+  const handleHeroBet = useCallback(
+    (side: "yes" | "no", teamSide: "team1" | "team2") => {
+      const teamName = teamSide === "team1" ? team1Name : team2Name;
+      const price = teamSide === "team1" ? team1Price : team2Price;
+      setSelectedBetData({ side, teamSide, teamName, price });
+      setShowBetModal(true);
+    },
+    [team1Name, team2Name, team1Price, team2Price]
+  );
 
   return (
     <div className="mx-auto w-full max-w-screen-2xl px-4 py-4 sm:px-6 sm:py-6 md:px-6 xl:px-10">
@@ -220,13 +242,33 @@ export function MarketDetailClient({
           transition={{ duration: 0.4, delay: 0.22 }}
           className="mb-6"
         >
-          <RecommendationCard
-            key={market.id}
-            marketId={market.id}
-            team1Name={team1Name}
-            team2Name={team2Name}
-            league={league}
-          />
+          <ErrorBoundary
+            fallback={
+              <div className="rounded-xl border border-white/10 bg-[#0a1220]/80 backdrop-blur-sm p-6">
+                <p className="text-sm text-white/50 text-center">
+                  Unable to load recommendation
+                </p>
+              </div>
+            }
+          >
+            <Suspense
+              fallback={
+                <div className="rounded-xl border border-white/10 bg-[#0a1220]/80 backdrop-blur-sm p-8">
+                  <div className="flex items-center justify-center py-8">
+                    <div className="w-6 h-6 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+                  </div>
+                </div>
+              }
+            >
+              <RecommendationCard
+                key={market.id}
+                marketId={market.id}
+                team1Name={team1Name}
+                team2Name={team2Name}
+                league={league}
+              />
+            </Suspense>
+          </ErrorBoundary>
         </motion.div>
       )}
 
@@ -252,15 +294,31 @@ export function MarketDetailClient({
         transition={{ duration: 0.5, delay: 0.3 }}
         className="mb-6"
       >
-        <PriceChart
-          conditionId={market.conditionId}
-          team1Name={team1Name}
-          team2Name={team2Name}
-          team1Price={team1Price}
-          team2Price={team2Price}
-          team1TokenId={team1TokenId}
-          team2TokenId={team2TokenId}
-        />
+        <ErrorBoundary
+          fallback={
+            <div className="rounded-2xl border border-white/10 bg-[#0a1220]/80 backdrop-blur-sm overflow-hidden h-[320px] flex items-center justify-center">
+              <p className="text-sm text-white/50">Unable to load chart</p>
+            </div>
+          }
+        >
+          <Suspense
+            fallback={
+              <div className="rounded-2xl border border-white/10 bg-[#0a1220]/80 backdrop-blur-sm overflow-hidden h-[320px] flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+              </div>
+            }
+          >
+            <PriceChart
+              conditionId={market.conditionId}
+              team1Name={team1Name}
+              team2Name={team2Name}
+              team1Price={team1Price}
+              team2Price={team2Price}
+              team1TokenId={team1TokenId}
+              team2TokenId={team2TokenId}
+            />
+          </Suspense>
+        </ErrorBoundary>
       </motion.div>
 
       {/* Main Content Grid - Full width */}
@@ -280,193 +338,262 @@ export function MarketDetailClient({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.4 }}
         >
-          <RecentTrades
-            conditionId={market.conditionId}
-            team1Name={team1Name}
-            team2Name={team2Name}
-          />
+          <ErrorBoundary
+            fallback={
+              <div className="rounded-xl border border-white/10 bg-[#0a1220]/80 backdrop-blur-sm overflow-hidden">
+                <div className="border-b border-white/5 px-4 py-3">
+                  <h2 className="text-sm font-semibold text-white/80">Recent Trades</h2>
+                </div>
+                <div className="p-4">
+                  <p className="text-sm text-white/50 text-center py-8">
+                    Unable to load recent trades
+                  </p>
+                </div>
+              </div>
+            }
+          >
+            <Suspense
+              fallback={
+                <div className="rounded-xl border border-white/10 bg-[#0a1220]/80 backdrop-blur-sm overflow-hidden">
+                  <div className="border-b border-white/5 px-4 py-3">
+                    <h2 className="text-sm font-semibold text-white/80">Recent Trades</h2>
+                  </div>
+                  <div className="p-4">
+                    <div className="flex items-center justify-center py-8">
+                      <div className="w-6 h-6 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+                    </div>
+                  </div>
+                </div>
+              }
+            >
+              <RecentTrades
+                conditionId={market.conditionId}
+                team1Name={team1Name}
+                team2Name={team2Name}
+              />
+            </Suspense>
+          </ErrorBoundary>
         </motion.div>
       </div>
 
       {/* Bet Modal */}
-      {showBetModal && selectedBetData && (() => {
-        const amount = parseFloat(betAmount) || 0;
-        const price = selectedBetData.side === "yes" ? selectedBetData.price : (1 - selectedBetData.price);
-        const shares = amount > 0 ? amount / price : 0;
-        const fee = market.fee || 0.02; // Default 2% fee
-        const feeAmount = amount * fee;
-        const maxPayout = shares;
-        const potentialProfit = maxPayout - amount;
-        const roi = amount > 0 ? ((potentialProfit / amount) * 100) : 0;
-        const breakEven = price;
-
-        return (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => {
-              setShowBetModal(false);
-              setBetAmount("");
-            }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-gradient-to-br from-[#0a1220] to-[#0d1525] border border-white/20 rounded-2xl p-6 max-w-lg w-full space-y-5 shadow-2xl"
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-white">Place Order</h2>
-                  <p className="text-sm text-white/50 mt-0.5">
-                    {selectedBetData.side === "yes" ? "Buy" : "Sell"} {selectedBetData.teamName}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowBetModal(false);
-                    setBetAmount("");
-                  }}
-                  className="text-white/40 hover:text-white/80 transition-colors text-xl"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Amount Input */}
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">
-                  Amount (USDC)
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    placeholder="0.00"
-                    value={betAmount}
-                    onChange={(e) => setBetAmount(e.target.value)}
-                    min="1"
-                    step="0.01"
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-lg font-mono placeholder:text-white/30 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                  />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 text-sm font-medium">
-                    USDC
-                  </div>
-                </div>
-              </div>
-
-              {/* Order Details */}
-              <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-2.5">
-                <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
-                  Order Details
-                </h3>
-
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-white/60">Order Type</span>
-                  <span className="font-semibold text-white">
-                    {selectedBetData.side === "yes" ? "Buy" : "Sell"}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-white/60">Price per Share</span>
-                  <span className="font-mono font-semibold text-white">
-                    {(price * 100).toFixed(2)}¢
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-white/60">Shares</span>
-                  <span className="font-mono font-semibold text-white">
-                    {shares.toFixed(2)}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-white/60">Trading Fee ({(fee * 100).toFixed(1)}%)</span>
-                  <span className="font-mono font-semibold text-white/80">
-                    ${feeAmount.toFixed(2)}
-                  </span>
-                </div>
-
-                <div className="border-t border-white/10 pt-2.5 mt-2.5">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-white/60">Total Cost</span>
-                    <span className="font-mono font-bold text-white text-base">
-                      ${(amount + feeAmount).toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Potential Returns */}
-              {amount > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="rounded-xl bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border border-emerald-500/20 p-4 space-y-2.5"
-                >
-                  <h3 className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-3">
-                    Potential Returns
-                  </h3>
-
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-white/70">Max Payout</span>
-                    <span className="font-mono font-bold text-emerald-400">
-                      ${maxPayout.toFixed(2)}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-white/70">Potential Profit</span>
-                    <span className="font-mono font-bold text-emerald-400">
-                      +${potentialProfit.toFixed(2)} ({roi > 0 ? "+" : ""}{roi.toFixed(1)}%)
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-white/70">Break-even Price</span>
-                    <span className="font-mono font-semibold text-white/90">
-                      {(breakEven * 100).toFixed(2)}¢
-                    </span>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Action Button */}
-              <button
-                disabled={!amount || amount < 1}
-                className={cn(
-                  "w-full py-3.5 rounded-xl font-bold text-base transition-all duration-200",
-                  amount >= 1
-                    ? selectedBetData.side === "yes"
-                      ? "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40"
-                      : "bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-white shadow-lg shadow-rose-500/25 hover:shadow-rose-500/40"
-                    : "bg-white/10 text-white/40 cursor-not-allowed"
-                )}
-              >
-                {amount >= 1
-                  ? `Place ${selectedBetData.side === "yes" ? "Buy" : "Sell"} Order`
-                  : "Enter Amount"}
-              </button>
-
-              {/* Risk Warning */}
-              <p className="text-xs text-white/40 text-center">
-                Outcome markets carry risk. Only invest what you can afford to lose.
-              </p>
-            </motion.div>
-          </motion.div>
-        );
-      })()}
+      {showBetModal && selectedBetData && (
+        <BetModal
+          selectedBetData={selectedBetData}
+          betAmount={betAmount}
+          setBetAmount={setBetAmount}
+          onClose={() => {
+            setShowBetModal(false);
+            setBetAmount("");
+          }}
+          marketFee={market.fee || 0.02}
+        />
+      )}
     </div>
   );
 }
 
-// Stat Card Component
-function StatCard({
+// Extracted Bet Modal component to avoid recalculating on every render
+function BetModal({
+  selectedBetData,
+  betAmount,
+  setBetAmount,
+  onClose,
+  marketFee,
+}: {
+  selectedBetData: {
+    side: "yes" | "no";
+    teamSide: "team1" | "team2";
+    teamName: string;
+    price: number;
+  };
+  betAmount: string;
+  setBetAmount: (value: string) => void;
+  onClose: () => void;
+  marketFee: number;
+}) {
+  // Memoize calculations to avoid recalculation on every render
+  const { amount, price, shares, feeAmount, maxPayout, potentialProfit, roi, breakEven } = useMemo(() => {
+    const amt = parseFloat(betAmount) || 0;
+    const prc = selectedBetData.side === "yes" ? selectedBetData.price : (1 - selectedBetData.price);
+    const shrs = amt > 0 ? amt / prc : 0;
+    const fee = marketFee;
+    const feeAmt = amt * fee;
+    const maxP = shrs;
+    const profit = maxP - amt;
+    const roiVal = amt > 0 ? ((profit / amt) * 100) : 0;
+    const be = prc;
+
+    return {
+      amount: amt,
+      price: prc,
+      shares: shrs,
+      feeAmount: feeAmt,
+      maxPayout: maxP,
+      potentialProfit: profit,
+      roi: roiVal,
+      breakEven: be,
+    };
+  }, [betAmount, selectedBetData.side, selectedBetData.price, marketFee]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-gradient-to-br from-[#0a1220] to-[#0d1525] border border-white/20 rounded-2xl p-6 max-w-lg w-full space-y-5 shadow-2xl"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-white">Place Order</h2>
+            <p className="text-sm text-white/50 mt-0.5">
+              {selectedBetData.side === "yes" ? "Buy" : "Sell"} {selectedBetData.teamName}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-white/40 hover:text-white/80 transition-colors text-xl"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Amount Input */}
+        <div>
+          <label className="block text-sm font-medium text-white/70 mb-2">
+            Amount (USDC)
+          </label>
+          <div className="relative">
+            <input
+              type="number"
+              placeholder="0.00"
+              value={betAmount}
+              onChange={(e) => setBetAmount(e.target.value)}
+              min="1"
+              step="0.01"
+              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-lg font-mono placeholder:text-white/30 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 text-sm font-medium">
+              USDC
+            </div>
+          </div>
+        </div>
+
+        {/* Order Details */}
+        <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-2.5">
+          <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
+            Order Details
+          </h3>
+
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white/60">Order Type</span>
+            <span className="font-semibold text-white">
+              {selectedBetData.side === "yes" ? "Buy" : "Sell"}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white/60">Price per Share</span>
+            <span className="font-mono font-semibold text-white">
+              {(price * 100).toFixed(2)}¢
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white/60">Shares</span>
+            <span className="font-mono font-semibold text-white">
+              {shares.toFixed(2)}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white/60">Trading Fee ({(marketFee * 100).toFixed(1)}%)</span>
+            <span className="font-mono font-semibold text-white/80">
+              ${feeAmount.toFixed(2)}
+            </span>
+          </div>
+
+          <div className="border-t border-white/10 pt-2.5 mt-2.5">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-white/60">Total Cost</span>
+              <span className="font-mono font-bold text-white text-base">
+                ${(amount + feeAmount).toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Potential Returns */}
+        {amount > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-xl bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border border-emerald-500/20 p-4 space-y-2.5"
+          >
+            <h3 className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-3">
+              Potential Returns
+            </h3>
+
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-white/70">Max Payout</span>
+              <span className="font-mono font-bold text-emerald-400">
+                ${maxPayout.toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-white/70">Potential Profit</span>
+              <span className="font-mono font-bold text-emerald-400">
+                +${potentialProfit.toFixed(2)} ({roi > 0 ? "+" : ""}{roi.toFixed(1)}%)
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-white/70">Break-even Price</span>
+              <span className="font-mono font-semibold text-white/90">
+                {(breakEven * 100).toFixed(2)}¢
+              </span>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Action Button */}
+        <button
+          disabled={!amount || amount < 1}
+          className={cn(
+            "w-full py-3.5 rounded-xl font-bold text-base transition-all duration-200",
+            amount >= 1
+              ? selectedBetData.side === "yes"
+                ? "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40"
+                : "bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-white shadow-lg shadow-rose-500/25 hover:shadow-rose-500/40"
+              : "bg-white/10 text-white/40 cursor-not-allowed"
+          )}
+        >
+          {amount >= 1
+            ? `Place ${selectedBetData.side === "yes" ? "Buy" : "Sell"} Order`
+            : "Enter Amount"}
+        </button>
+
+        {/* Risk Warning */}
+        <p className="text-xs text-white/40 text-center">
+          Outcome markets carry risk. Only invest what you can afford to lose.
+        </p>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// Stat Card Component - Memoized to prevent unnecessary re-renders
+const StatCard = memo(function StatCard({
   label,
   value,
   icon,
@@ -524,5 +651,5 @@ function StatCard({
       <div className="text-lg sm:text-xl font-bold font-mono">{value}</div>
     </div>
   );
-}
+});
 

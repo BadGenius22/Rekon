@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatVolume } from "@rekon/utils";
 import { cn } from "@rekon/ui";
@@ -56,7 +56,8 @@ async function fetchRecentTrades(
   }
 }
 
-function formatTimeAgo(timestamp: number, now: number = Date.now()): string {
+// Memoized formatter to avoid recreating on every render
+const formatTimeAgo = (timestamp: number, now: number = Date.now()): string => {
   const diffMs = now - timestamp * 1000; // Convert Unix timestamp to milliseconds
   const diffMins = Math.floor(diffMs / (1000 * 60));
 
@@ -70,7 +71,7 @@ function formatTimeAgo(timestamp: number, now: number = Date.now()): string {
 
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays}d ago`;
-}
+};
 
 interface Trade {
   id: string;
@@ -92,38 +93,42 @@ export function RecentTrades({
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(Date.now());
 
+  // Memoize trade mapping to avoid recalculation
+  const mapTrades = useCallback(
+    (rawTrades: PolymarketDataTrade[]): Trade[] => {
+      return rawTrades.map((trade) => {
+        // Determine side: outcomeIndex 0 (team1) BUY = "yes", SELL = "no"
+        // outcomeIndex 1 (team2) BUY = "no", SELL = "yes"
+        const isTeam1 = trade.outcomeIndex === 0;
+        const side: "yes" | "no" =
+          (isTeam1 && trade.side === "BUY") || (!isTeam1 && trade.side === "SELL")
+            ? "yes"
+            : "no";
+
+        // Map BUY/SELL to bought/sold
+        const action = trade.side === "BUY" ? "bought" : "sold";
+
+        return {
+          id: trade.transactionHash,
+          price: trade.price,
+          amount: trade.size,
+          timestamp: trade.timestamp,
+          side,
+          teamName: isTeam1 ? team1Name : team2Name,
+          traderName: trade.name || "Anonymous",
+          action,
+        };
+      });
+    },
+    [team1Name, team2Name]
+  );
+
   useEffect(() => {
     async function loadTrades() {
       try {
         setLoading(true);
         const rawTrades = await fetchRecentTrades(conditionId);
-
-        // Map Polymarket Data API trades to display format
-        const mappedTrades = rawTrades.map((trade) => {
-          // Determine side: outcomeIndex 0 (team1) BUY = "yes", SELL = "no"
-          // outcomeIndex 1 (team2) BUY = "no", SELL = "yes"
-          const isTeam1 = trade.outcomeIndex === 0;
-          const side: "yes" | "no" =
-            (isTeam1 && trade.side === "BUY") ||
-            (!isTeam1 && trade.side === "SELL")
-              ? "yes"
-              : "no";
-
-          // Map BUY/SELL to bought/sold
-          const action = trade.side === "BUY" ? "bought" : "sold";
-
-          return {
-            id: trade.transactionHash,
-            price: trade.price,
-            amount: trade.size,
-            timestamp: trade.timestamp,
-            side,
-            teamName: isTeam1 ? team1Name : team2Name,
-            traderName: trade.name || "Anonymous",
-            action,
-          };
-        });
-
+        const mappedTrades = mapTrades(rawTrades);
         setTrades(mappedTrades);
       } catch (error) {
         console.error("Failed to load trades:", error);
@@ -137,12 +142,13 @@ export function RecentTrades({
     loadTrades();
 
     // Update time every minute for "time ago" display
+    // Only set interval if component is mounted and visible
     const interval = setInterval(() => {
       setCurrentTime(Date.now());
     }, 60000); // Update every minute
 
     return () => clearInterval(interval);
-  }, [conditionId, team1Name, team2Name]);
+  }, [conditionId, mapTrades]);
 
   if (loading) {
     return (

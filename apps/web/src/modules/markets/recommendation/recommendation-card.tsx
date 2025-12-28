@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, memo, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import {
   Brain,
   Activity,
@@ -96,6 +96,23 @@ function ErrorState({
  * Computes team display data with memoization support
  * Shared between FreeTierContent and PremiumTierContent
  */
+/**
+ * Checks if stats actually have meaningful data (not just if they exist)
+ * A team can have a stats object but with 0 series, which means no meaningful stats
+ */
+function hasMeaningfulStats(
+  stats: import("@rekon/types").EsportsTeamStats | null | undefined
+): boolean {
+  if (!stats) return false;
+  // Check if there are actual series/games played
+  // seriesStats.count = number of series
+  // totalMatches or gameStats.count = number of games
+  const seriesCount = stats.seriesStats?.count ?? 0;
+  const gameCount = stats.totalMatches ?? stats.gameStats?.count ?? 0;
+  // Consider stats meaningful if there's at least 1 series or game
+  return seriesCount > 0 || gameCount > 0;
+}
+
 function computeTeamDisplayData(
   recommendation: RecommendationPreviewResponse | RecommendationResult,
   team1Name?: string,
@@ -104,59 +121,175 @@ function computeTeamDisplayData(
   const team1Stats = recommendation.teamStats?.recommended;
   const team2Stats = recommendation.teamStats?.opponent;
 
-  // Get team names from recommendation data
+  // Get team names from recommendation data (API source)
   const recTeam1Name = recommendation.recommendedPick || "Team 1";
   const recTeam2Name = recommendation.otherTeam || "Team 2";
 
-  // Ensure team order matches market order
-  const orderedTeamNames =
-    team1Name && team2Name
-      ? ensureTeamOrder(team1Name, team2Name, recTeam1Name, recTeam2Name)
-      : { team1: recTeam1Name, team2: recTeam2Name };
-
-  // Map stats to display data
+  // Map stats to display data (these contain API team names)
   const recTeam1Display = mapTeamToDisplayData(team1Stats);
   const recTeam2Display = mapTeamToDisplayData(team2Stats);
 
-  // Helper to find display data for a team name
-  const findDisplayData = (targetName: string) => {
-    if (recTeam1Display && matchesTeamName(recTeam1Display.name, targetName)) {
-      return recTeam1Display;
+  // Helper to find which API team matches a market team name
+  // Returns the display data and which API team index (1 or 2) it came from
+  const findMatchingApiTeam = (marketTeamName: string): {
+    display: ReturnType<typeof mapTeamToDisplayData>;
+    apiIndex: 1 | 2;
+  } | null => {
+    // Check if API team1 matches market team
+    if (recTeam1Display && matchesTeamName(recTeam1Display.name, marketTeamName)) {
+      return { display: recTeam1Display, apiIndex: 1 };
     }
-    if (recTeam2Display && matchesTeamName(recTeam2Display.name, targetName)) {
-      return recTeam2Display;
+    // Check if API team2 matches market team
+    if (recTeam2Display && matchesTeamName(recTeam2Display.name, marketTeamName)) {
+      return { display: recTeam2Display, apiIndex: 2 };
     }
     return null;
   };
 
-  // Map display data to ordered team names from market
-  const team1Display = findDisplayData(orderedTeamNames.team1) || {
-    name: orderedTeamNames.team1,
-    winRate: 50,
-    kdRatio: 1.0,
-    form: "neutral" as const,
-    streak: 0,
-    totalSeries: 0,
-  };
+  // When market team names are provided, ALWAYS use them as display names (source of truth)
+  // API team names are only used for matching stats, not for display
+  if (team1Name && team2Name) {
+    // Industry Standard: Simple, predictable matching hierarchy
+    // 1. Try direct match via display names from stats
+    // 2. Try match via API recommendation team names
+    // 3. Fallback to order-based assignment (assume API order matches market order)
+    
+    const team1Match = findMatchingApiTeam(team1Name);
+    const team2Match = findMatchingApiTeam(team2Name);
+    
+    // Also check API recommendation team names as fallback
+    const team1MatchesRecommended = matchesTeamName(team1Name, recTeam1Name);
+    const team1MatchesOther = matchesTeamName(team1Name, recTeam2Name);
+    const team2MatchesRecommended = matchesTeamName(team2Name, recTeam1Name);
+    const team2MatchesOther = matchesTeamName(team2Name, recTeam2Name);
 
-  const team2Display = findDisplayData(orderedTeamNames.team2) || {
-    name: orderedTeamNames.team2,
-    winRate: 50,
-    kdRatio: 1.0,
-    form: "neutral" as const,
-    streak: 0,
-    totalSeries: 0,
-  };
+    // Assign stats using clear priority order (industry standard: simple, predictable)
+    const team1StatsData: typeof team1Stats | typeof team2Stats = 
+      team1Match
+        ? team1Match.apiIndex === 1 ? team1Stats : team2Stats
+        : team1MatchesRecommended
+        ? team1Stats // Market team1 = API recommended
+        : team1MatchesOther
+        ? team2Stats // Market team1 = API opponent
+        : team1Stats; // Fallback: order-based (industry standard)
 
-  return {
-    team1Display,
-    team2Display,
-    team1Stats,
-    team2Stats,
-    team1HasStats: !!team1Stats,
-    team2HasStats: !!team2Stats,
-    hasRealStats: !!team1Stats || !!team2Stats,
-  };
+    const team2StatsData: typeof team1Stats | typeof team2Stats = 
+      team2Match
+        ? team2Match.apiIndex === 2 ? team2Stats : team1Stats
+        : team2MatchesRecommended
+        ? team1Stats // Market team2 = API recommended
+        : team2MatchesOther
+        ? team2Stats // Market team2 = API opponent
+        : team2Stats; // Fallback: order-based (industry standard)
+
+    // Optional: Log when fallback is used (for debugging in development)
+    if (process.env.NODE_ENV === "development") {
+      if (!team1Match && !team1MatchesRecommended && !team1MatchesOther) {
+        console.debug(
+          `[Recommendation] Team name matching failed for "${team1Name}", using order-based fallback`
+        );
+      }
+      if (!team2Match && !team2MatchesRecommended && !team2MatchesOther) {
+        console.debug(
+          `[Recommendation] Team name matching failed for "${team2Name}", using order-based fallback`
+        );
+      }
+    }
+
+    // Check if assigned stats have meaningful data
+    const team1HasStatsData = hasMeaningfulStats(team1StatsData);
+    const team2HasStatsData = hasMeaningfulStats(team2StatsData);
+
+    // Map stats to display data (only if stats have meaningful data)
+    const team1MappedDisplay = team1HasStatsData && team1StatsData 
+      ? mapTeamToDisplayData(team1StatsData) 
+      : null;
+    const team2MappedDisplay = team2HasStatsData && team2StatsData 
+      ? mapTeamToDisplayData(team2StatsData) 
+      : null;
+
+    // Build display data - always use market team names (source of truth)
+    const team1Display = team1Match
+      ? {
+          ...team1Match.display,
+          name: team1Name, // Override with market name
+        }
+      : team1MappedDisplay
+      ? {
+          ...team1MappedDisplay,
+          name: team1Name, // Override with market name
+        }
+      : {
+          name: team1Name,
+          winRate: 50,
+          kdRatio: 1.0,
+          form: "neutral" as const,
+          streak: 0,
+          totalSeries: 0,
+        };
+
+    const team2Display = team2Match
+      ? {
+          ...team2Match.display,
+          name: team2Name, // Override with market name
+        }
+      : team2MappedDisplay
+      ? {
+          ...team2MappedDisplay,
+          name: team2Name, // Override with market name
+        }
+      : {
+          name: team2Name,
+          winRate: 50,
+          kdRatio: 1.0,
+          form: "neutral" as const,
+          streak: 0,
+          totalSeries: 0,
+        };
+
+    return {
+      team1Display,
+      team2Display,
+      team1Stats: team1StatsData,
+      team2Stats: team2StatsData,
+      team1HasStats: team1HasStatsData,
+      team2HasStats: team2HasStatsData,
+      hasRealStats: team1HasStatsData || team2HasStatsData,
+    };
+  } else {
+    // No market team names - fallback to API team names
+    const team1Display = recTeam1Display || {
+      name: recTeam1Name,
+      winRate: 50,
+      kdRatio: 1.0,
+      form: "neutral" as const,
+      streak: 0,
+      totalSeries: 0,
+    };
+
+    const team2Display = recTeam2Display || {
+      name: recTeam2Name,
+      winRate: 50,
+      kdRatio: 1.0,
+      form: "neutral" as const,
+      streak: 0,
+      totalSeries: 0,
+    };
+
+    // Check if stats actually have meaningful data
+    const team1HasStatsData = hasMeaningfulStats(team1Stats);
+    const team2HasStatsData = hasMeaningfulStats(team2Stats);
+
+    return {
+      team1Display,
+      team2Display,
+      team1Stats,
+      team2Stats,
+      team1HasStats: team1HasStatsData,
+      team2HasStats: team2HasStatsData,
+      hasRealStats: team1HasStatsData || team2HasStatsData,
+    };
+  }
 }
 
 /**
@@ -174,34 +307,54 @@ function buildCompactStats(
     label: string;
     value1: number;
     value2: number;
-    format?: (v: number) => string;
+    format?: (v: number, hasData?: boolean) => string;
+    team1HasData?: boolean;
+    team2HasData?: boolean;
   }> = [];
 
-  if (team1HasStats && team2HasStats) {
+  // Show stats if at least one team has stats
+  // Industry Standard: Use neutral defaults (50%, 1.0) for bar calculations
+  // But mark values as "missing" so we can display "N/A" in UI
+  if (team1HasStats || team2HasStats) {
     compactStats.push(
       {
         label: "Win Rate",
-        value1: team1Display.winRate,
-        value2: team2Display.winRate,
-        format: (v) => `${Math.round(v)}%`,
+        value1: team1HasStats ? team1Display.winRate : 50,
+        value2: team2HasStats ? team2Display.winRate : 50,
+        format: (v, hasData = true) => hasData ? `${Math.round(v)}%` : "N/A",
+        team1HasData: team1HasStats,
+        team2HasData: team2HasStats,
       },
       {
         label: "K/D Ratio",
-        value1: team1Display.kdRatio,
-        value2: team2Display.kdRatio,
-        format: (v) => v.toFixed(2),
+        value1: team1HasStats ? team1Display.kdRatio : 1.0,
+        value2: team2HasStats ? team2Display.kdRatio : 1.0,
+        format: (v, hasData = true) => hasData ? v.toFixed(2) : "N/A",
+        team1HasData: team1HasStats,
+        team2HasData: team2HasStats,
       }
     );
 
-    // Add recent form if available
-    const recForm = team1Stats?.recentForm ?? 50;
-    const oppForm = team2Stats?.recentForm ?? 50;
-    if (recForm !== 50 || oppForm !== 50) {
+    // Add recent form if available (from stats, not display)
+    // Industry Standard: Use neutral 50% for missing form data
+    const recForm = team1HasStats && team1Stats?.recentForm !== undefined 
+      ? team1Stats.recentForm 
+      : 50;
+    const oppForm = team2HasStats && team2Stats?.recentForm !== undefined 
+      ? team2Stats.recentForm 
+      : 50;
+    const recFormHasData = team1HasStats && team1Stats?.recentForm !== undefined;
+    const oppFormHasData = team2HasStats && team2Stats?.recentForm !== undefined;
+    
+    // Show recent form if at least one team has real form data (not default 50)
+    if (recForm !== 50 || oppForm !== 50 || recFormHasData || oppFormHasData) {
       compactStats.push({
         label: "Recent Form",
         value1: recForm,
         value2: oppForm,
-        format: (v) => `${Math.round(v)}%`,
+        format: (v, hasData = true) => hasData ? `${Math.round(v)}%` : "N/A",
+        team1HasData: recFormHasData,
+        team2HasData: oppFormHasData,
       });
     }
   }
@@ -372,6 +525,7 @@ const PremiumTierContent = memo(function PremiumTierContent({
     team2Stats,
     team1HasStats,
     team2HasStats,
+    hasRealStats,
   } = teamData;
 
   // Memoize compact stats computation
@@ -399,12 +553,27 @@ const PremiumTierContent = memo(function PremiumTierContent({
     <div className="space-y-5">
       {/* Section 1: Team Face-Off Visual (Context from free tier) */}
       {team1Display && team2Display && (
-        <TeamFaceOff
-          team1={team1Display}
-          team2={team2Display}
-          recommendedTeamName={recommendation.recommendedPick}
-          league={league}
-        />
+        <div className="relative">
+          <TeamFaceOff
+            team1={team1Display}
+            team2={team2Display}
+            recommendedTeamName={recommendation.recommendedPick}
+            league={league}
+          />
+          {/* Show "Stats unavailable" indicator if stats are missing */}
+          {hasRealStats && (!team1HasStats || !team2HasStats) && (
+            <div className="absolute top-4 right-4 flex items-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-1.5">
+              <AlertCircle className="h-3.5 w-3.5 text-amber-400" />
+              <span className="text-xs text-amber-400/90 font-medium">
+                {!team1HasStats && !team2HasStats
+                  ? "Stats unavailable for both teams"
+                  : !team1HasStats
+                  ? `Stats unavailable for ${team1Display.name}`
+                  : `Stats unavailable for ${team2Display.name}`}
+              </span>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Section 2: Stat Comparison Bars (Context from free tier) */}

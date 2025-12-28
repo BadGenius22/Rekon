@@ -12,6 +12,12 @@ function normalizeTeamName(name: string): string {
 /**
  * Checks if two team names match (case-insensitive, fuzzy matching)
  * Handles abbreviations, partial matches, and word-based matching
+ * 
+ * Matching rules (in order of priority):
+ * 1. Exact match (case-insensitive)
+ * 2. One name is a clear abbreviation of the other (e.g., "TL" in "Team Liquid")
+ * 3. All significant words match (words >= 4 chars)
+ * 4. Majority of significant words match
  */
 export function matchesTeamName(
   name1: string | undefined,
@@ -22,20 +28,84 @@ export function matchesTeamName(
   const norm1 = normalizeTeamName(name1);
   const norm2 = normalizeTeamName(name2);
   
-  // Exact match
+  // 1. Exact match
   if (norm1 === norm2) return true;
   
-  // Substring match (handles abbreviations)
-  if (norm1.includes(norm2) || norm2.includes(norm1)) return true;
+  // 2. One name is clearly contained in the other (for abbreviations)
+  // Only match if the shorter name is at least 2 chars and the longer name
+  // starts with or contains the shorter as a complete word
+  const shorter = norm1.length <= norm2.length ? norm1 : norm2;
+  const longer = norm1.length > norm2.length ? norm1 : norm2;
   
-  // Word-based match (handles "Team Liquid" vs "Liquid")
-  const words1 = norm1.split(/\s+/);
-  const words2 = norm2.split(/\s+/);
+  if (shorter.length >= 2) {
+    // Check if shorter is a word boundary match in longer
+    const wordBoundaryRegex = new RegExp(`\\b${shorter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+    if (wordBoundaryRegex.test(longer)) {
+      return true;
+    }
+    // Check if shorter appears at the start of longer (for abbreviations like "TL" -> "Team Liquid")
+    if (longer.startsWith(shorter) && longer.length - shorter.length >= 2) {
+      return true;
+    }
+  }
   
-  return (
-    words1.some((word) => norm2.includes(word)) ||
-    words2.some((word) => norm1.includes(word))
-  );
+  // 3. Word-based matching (only for significant words >= 4 characters)
+  const words1 = norm1.split(/\s+/).filter(w => w.length >= 4);
+  const words2 = norm2.split(/\s+/).filter(w => w.length >= 4);
+  
+  // If no significant words, fall back to exact match only
+  if (words1.length === 0 || words2.length === 0) {
+    return false;
+  }
+  
+  // Check if all significant words from one name appear in the other
+  const allWords1Match = words1.every(word => {
+    const wordRegex = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+    return wordRegex.test(norm2);
+  });
+  
+  const allWords2Match = words2.every(word => {
+    const wordRegex = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+    return wordRegex.test(norm1);
+  });
+  
+  if (allWords1Match || allWords2Match) {
+    return true;
+  }
+  
+  // 4. Majority match: require strong word overlap
+  // This prevents false matches like "morning star" vs "morning light" (only 1/2 words match)
+  const matchingWords1 = words1.filter(word => {
+    const wordRegex = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+    return wordRegex.test(norm2);
+  });
+  
+  const matchingWords2 = words2.filter(word => {
+    const wordRegex = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+    return wordRegex.test(norm1);
+  });
+  
+  // For single-word names, require exact or near-exact match (handled by abbreviation check above)
+  // For multi-word names, require that:
+  // - All words from the shorter name match, OR
+  // - At least 2/3 of words match from both sides AND at least 2 words match
+  if (words1.length === 1 || words2.length === 1) {
+    // Single word case: if one name has only one significant word, it must match exactly
+    // (abbreviation cases are already handled above)
+    return false;
+  }
+  
+  const matchRatio1 = words1.length > 0 ? matchingWords1.length / words1.length : 0;
+  const matchRatio2 = words2.length > 0 ? matchingWords2.length / words2.length : 0;
+  
+  // Require at least 2/3 (66.7%) match from both perspectives
+  // AND at least 2 matching words to avoid false positives like "morning star" vs "morning light"
+  const minMatchingWords = Math.min(2, Math.min(words1.length, words2.length));
+  const hasEnoughMatches = 
+    matchingWords1.length >= minMatchingWords && 
+    matchingWords2.length >= minMatchingWords;
+  
+  return hasEnoughMatches && matchRatio1 >= 0.67 && matchRatio2 >= 0.67;
 }
 
 /**

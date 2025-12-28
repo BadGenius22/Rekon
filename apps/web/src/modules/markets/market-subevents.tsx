@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
+import { useMemo } from "react";
 import { cn } from "@rekon/ui";
 import type { Market } from "@rekon/types";
 
@@ -13,8 +14,9 @@ interface MarketSubeventsProps {
 
 /**
  * Formats market title for display in filter buttons
+ * Memoized to avoid recreating on every render
  */
-function formatMarketTitle(market: Market): string {
+const formatMarketTitle = (market: Market): string => {
   // Prefer groupItemTitle if available
   if (market.groupItemTitle) {
     return market.groupItemTitle;
@@ -54,13 +56,22 @@ function formatMarketTitle(market: Market): string {
   }
 
   return "Match";
-}
+};
 
 export function MarketSubevents({
   markets,
   currentMarketId,
 }: MarketSubeventsProps) {
   const pathname = usePathname();
+
+  // Memoize formatted markets to avoid recalculation
+  const formattedMarkets = useMemo(() => {
+    return markets.map((market) => ({
+      ...market,
+      title: formatMarketTitle(market),
+      href: `/markets/${market.slug || market.id}`,
+    }));
+  }, [markets]);
 
   if (markets.length === 0) {
     return null;
@@ -72,10 +83,8 @@ export function MarketSubevents({
         Market Type
       </div>
       <div className="flex flex-wrap gap-2">
-        {markets.map((market, index) => {
-          const title = formatMarketTitle(market);
-          const href = `/markets/${market.slug || market.id}`;
-          const isActive = market.id === currentMarketId || pathname === href;
+        {formattedMarkets.map((market, index) => {
+          const isActive = market.id === currentMarketId || pathname === market.href;
 
           return (
             <motion.div
@@ -85,7 +94,7 @@ export function MarketSubevents({
               transition={{ duration: 0.2, delay: index * 0.05 }}
             >
               <Link
-                href={href}
+                href={market.href}
                 className={cn(
                   "inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium transition-all duration-200",
                   "focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-[#030711]",
@@ -94,7 +103,7 @@ export function MarketSubevents({
                     : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/10 hover:text-white"
                 )}
               >
-                {title}
+                {market.title}
               </Link>
             </motion.div>
           );

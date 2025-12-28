@@ -3,6 +3,12 @@
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@rekon/ui";
 import { API_CONFIG } from "@rekon/config";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { FormIndicator } from "../ui/form-indicator";
 import {
   VSDivider,
@@ -257,10 +263,31 @@ function TeamCard({
       <div className="relative space-y-3">
         {/* Win Rate - Large display */}
         <div>
-          <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/40 mb-1">
-            <CrownIcon className="h-3 w-3" />
-            Win Rate
-          </div>
+          <TooltipProvider delayDuration={300} skipDelayDuration={100}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/40 mb-1 cursor-help">
+                  <CrownIcon className="h-3 w-3" />
+                  Win Rate
+                </div>
+              </TooltipTrigger>
+              <TooltipContent
+                side="top"
+                className="max-w-xs bg-[#0d0d1a] border-white/20 text-white shadow-xl"
+                sideOffset={8}
+              >
+                <div className="space-y-1.5">
+                  <div className="font-semibold text-sm">Win Rate</div>
+                  <p className="text-xs text-white/70 leading-relaxed">
+                    Percentage of matches/series the team has won. Higher win rate indicates better overall performance.
+                  </p>
+                  <p className="text-[10px] text-white/50 italic mt-1.5 pt-1.5 border-t border-white/10">
+                    Data from GRID API (series win percentage)
+                  </p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-black font-mono text-white tabular-nums">
               {Math.round(team.winRate)}%
@@ -282,10 +309,31 @@ function TeamCard({
 
         {/* K/D Ratio with skull icon */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/40">
-            <SkullIcon className="h-3 w-3" />
-            K/D Ratio
-          </div>
+          <TooltipProvider delayDuration={300} skipDelayDuration={100}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/40 cursor-help">
+                  <SkullIcon className="h-3 w-3" />
+                  K/D Ratio
+                </div>
+              </TooltipTrigger>
+              <TooltipContent
+                side="top"
+                className="max-w-xs bg-[#0d0d1a] border-white/20 text-white shadow-xl"
+                sideOffset={8}
+              >
+                <div className="space-y-1.5">
+                  <div className="font-semibold text-sm">Kill/Death Ratio</div>
+                  <p className="text-xs text-white/70 leading-relaxed">
+                    Average kills divided by average deaths. Ratio &gt;1.0 means team gets more kills than deaths (better combat performance).
+                  </p>
+                  <p className="text-[10px] text-white/50 italic mt-1.5 pt-1.5 border-t border-white/10">
+                    Data from GRID API (combat statistics)
+                  </p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <span className={cn("font-mono font-bold text-sm tabular-nums", kdColor)}>
             {team.kdRatio.toFixed(2)}
           </span>
@@ -298,9 +346,30 @@ function TeamCard({
           {team.streak > 0 ? (
             <StreakFire streak={team.streak} />
           ) : team.streak < 0 ? (
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/30 text-[10px] text-red-400">
-              <span className="font-bold">{Math.abs(team.streak)}L</span>
-            </div>
+            <TooltipProvider delayDuration={300} skipDelayDuration={100}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/30 text-[10px] text-red-400 cursor-help">
+                    <span className="font-bold">{Math.abs(team.streak)}L</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="top"
+                  className="max-w-xs bg-[#0d0d1a] border-white/20 text-white shadow-xl"
+                  sideOffset={8}
+                >
+                  <div className="space-y-1.5">
+                    <div className="font-semibold text-sm">Losing Streak</div>
+                    <p className="text-xs text-white/70 leading-relaxed">
+                      Team has lost {Math.abs(team.streak)} consecutive {Math.abs(team.streak) === 1 ? "match" : "matches"}. Indicates current struggles and poor form.
+                    </p>
+                    <p className="text-[10px] text-white/50 italic mt-1.5 pt-1.5 border-t border-white/10">
+                      Data from GRID API (current loss streak)
+                    </p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           ) : null}
         </div>
 

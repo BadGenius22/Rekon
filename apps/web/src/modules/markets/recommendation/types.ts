@@ -177,13 +177,28 @@ export function mapTeamToDisplayData(stats: EsportsTeamStats | null | undefined)
   const streak = stats.seriesStats?.winRate.winStreak?.current ?? 0;
   const totalSeries = stats.seriesStats?.count ?? 0;
 
+  // Determine form: Account for active win streaks
+  // If team has 2+ win streak, they should show "hot" even if recentForm is borderline
+  // This provides better UX - a team on a win streak should appear "hot"
+  let form: "hot" | "neutral" | "cold";
+  if (streak >= 2) {
+    // Active win streak of 2+ → hot (momentum matters)
+    form = "hot";
+  } else if (streak <= -2) {
+    // Active losing streak of 2+ → cold (struggling)
+    form = "cold";
+  } else {
+    // No significant streak → use recentForm percentage
+    form = recentForm > 60 ? "hot" : recentForm < 40 ? "cold" : "neutral";
+  }
+
   return {
     name: stats.teamName ?? "Unknown",
     acronym: stats.acronym,
     imageUrl: stats.imageUrl,
     winRate,
     kdRatio,
-    form: recentForm > 60 ? "hot" : recentForm < 40 ? "cold" : "neutral",
+    form,
     streak,
     totalSeries,
     roster: stats.roster,

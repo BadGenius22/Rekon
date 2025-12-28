@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { cn } from "@rekon/ui";
 import { API_CONFIG } from "@rekon/config";
 import { VSDivider } from "./recommendation/ui";
@@ -62,7 +63,8 @@ async function fetchTeamLogo(
   }
 }
 
-function formatMarketCap(value: number): string {
+// Memoized formatters to avoid recreating on every render
+const formatMarketCap = (value: number): string => {
   if (value >= 1_000_000) {
     return `$${(value / 1_000_000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")} MC`;
   }
@@ -70,11 +72,11 @@ function formatMarketCap(value: number): string {
     return `$${value.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")} MC`;
   }
   return `$${value.toFixed(0)} MC`;
-}
+};
 
-function formatPrice(price: number): string {
+const formatPrice = (price: number): string => {
   return `${(price * 100).toFixed(2)}`;
-}
+};
 
 export function MarketHero({
   team1Name,
@@ -95,28 +97,37 @@ export function MarketHero({
   const [team2Logo, setTeam2Logo] = useState<string | undefined>(team2Image);
 
   // Fetch team logos from API (skip for totals markets)
-  useEffect(() => {
+  // Memoize the load function to avoid recreating on every render
+  const loadTeamLogos = useCallback(async () => {
     if (isTotalsMarket) return; // Don't fetch logos for Over/Under markets
 
-    async function loadTeamLogos() {
-      const [logo1, logo2] = await Promise.all([
-        fetchTeamLogo(team1Name, league),
-        fetchTeamLogo(team2Name, league),
-      ]);
+    const [logo1, logo2] = await Promise.all([
+      fetchTeamLogo(team1Name, league),
+      fetchTeamLogo(team2Name, league),
+    ]);
 
-      // Update logos if we got valid URLs (even if we already had one)
-      // Use the resolved team name from API response if available (ensures consistency)
-      // The API returns the canonical team name (e.g., "MEGOSHORT") which is the correct one
-      if (logo1?.logo) {
-        setTeam1Logo(logo1.logo);
-      }
-      if (logo2?.logo) {
-        setTeam2Logo(logo2.logo);
-      }
+    // Update logos if we got valid URLs (even if we already had one)
+    // Use the resolved team name from API response if available (ensures consistency)
+    // The API returns the canonical team name (e.g., "MEGOSHORT") which is the correct one
+    if (logo1?.logo) {
+      setTeam1Logo(logo1.logo);
     }
-
-    loadTeamLogos();
+    if (logo2?.logo) {
+      setTeam2Logo(logo2.logo);
+    }
   }, [team1Name, team2Name, league, isTotalsMarket]);
+
+  useEffect(() => {
+    loadTeamLogos();
+  }, [loadTeamLogos]);
+
+  // Memoize formatted values to avoid recalculation
+  const team1MarketCap = useMemo(() => formatMarketCap(team1Volume), [team1Volume]);
+  const team2MarketCap = useMemo(() => formatMarketCap(team2Volume), [team2Volume]);
+  const team1PriceFormatted = useMemo(() => formatPrice(team1Price), [team1Price]);
+  const team2PriceFormatted = useMemo(() => formatPrice(team2Price), [team2Price]);
+  const team1SellPriceFormatted = useMemo(() => formatPrice(1 - team1Price), [team1Price]);
+  const team2SellPriceFormatted = useMemo(() => formatPrice(1 - team2Price), [team2Price]);
 
   return (
     <div className="relative w-full overflow-hidden rounded-2xl">
@@ -203,11 +214,14 @@ export function MarketHero({
                     </svg>
                   </div>
                 ) : team1Logo ? (
-                  <div className="w-full h-full bg-gradient-to-br from-blue-600/30 to-blue-900/50 flex items-center justify-center p-8">
-                    <img
+                  <div className="w-full h-full bg-gradient-to-br from-blue-600/30 to-blue-900/50 flex items-center justify-center p-8 relative">
+                    <Image
                       src={team1Logo}
                       alt={team1Name}
-                      className="w-full h-full object-contain drop-shadow-2xl"
+                      fill
+                      className="object-contain drop-shadow-2xl"
+                      sizes="(max-width: 768px) 100vw, 320px"
+                      unoptimized={team1Logo.startsWith("http") && !team1Logo.includes("polymarket")}
                     />
                   </div>
                 ) : (
@@ -234,7 +248,7 @@ export function MarketHero({
               {/* Market cap */}
               <div className="absolute bottom-16 left-3 z-20">
                 <span className="font-mono text-xs sm:text-sm font-semibold text-white/80">
-                  {formatMarketCap(team1Volume)}
+                  {team1MarketCap}
                 </span>
               </div>
 
@@ -244,13 +258,13 @@ export function MarketHero({
                   onClick={() => onBet?.("yes", "team1")}
                   className="py-2.5 sm:py-3 text-center font-semibold text-xs sm:text-sm bg-emerald-600/90 hover:bg-emerald-500 text-white transition-colors"
                 >
-                  Buy {formatPrice(team1Price)}¢
+                  Buy {team1PriceFormatted}¢
                 </button>
                 <button
                   onClick={() => onBet?.("no", "team1")}
                   className="py-2.5 sm:py-3 text-center font-semibold text-xs sm:text-sm bg-rose-600/90 hover:bg-rose-500 text-white transition-colors"
                 >
-                  Sell {formatPrice(1 - team1Price)}¢
+                  Sell {team1SellPriceFormatted}¢
                 </button>
               </div>
             </div>
@@ -331,11 +345,14 @@ export function MarketHero({
                     </svg>
                   </div>
                 ) : team2Logo ? (
-                  <div className="w-full h-full bg-gradient-to-br from-red-600/30 to-red-900/50 flex items-center justify-center p-8">
-                    <img
+                  <div className="w-full h-full bg-gradient-to-br from-red-600/30 to-red-900/50 flex items-center justify-center p-8 relative">
+                    <Image
                       src={team2Logo}
                       alt={team2Name}
-                      className="w-full h-full object-contain drop-shadow-2xl"
+                      fill
+                      className="object-contain drop-shadow-2xl"
+                      sizes="(max-width: 768px) 100vw, 320px"
+                      unoptimized={team2Logo.startsWith("http") && !team2Logo.includes("polymarket")}
                     />
                   </div>
                 ) : (
@@ -362,7 +379,7 @@ export function MarketHero({
               {/* Market cap */}
               <div className="absolute bottom-16 right-3 z-20">
                 <span className="font-mono text-xs sm:text-sm font-semibold text-white/80">
-                  {formatMarketCap(team2Volume)}
+                  {team2MarketCap}
                 </span>
               </div>
 
@@ -372,13 +389,13 @@ export function MarketHero({
                   onClick={() => onBet?.("yes", "team2")}
                   className="py-2.5 sm:py-3 text-center font-semibold text-xs sm:text-sm bg-emerald-600/90 hover:bg-emerald-500 text-white transition-colors"
                 >
-                  Buy {formatPrice(team2Price)}¢
+                  Buy {team2PriceFormatted}¢
                 </button>
                 <button
                   onClick={() => onBet?.("no", "team2")}
                   className="py-2.5 sm:py-3 text-center font-semibold text-xs sm:text-sm bg-rose-600/90 hover:bg-rose-500 text-white transition-colors"
                 >
-                  Sell {formatPrice(1 - team2Price)}¢
+                  Sell {team2SellPriceFormatted}¢
                 </button>
               </div>
             </div>

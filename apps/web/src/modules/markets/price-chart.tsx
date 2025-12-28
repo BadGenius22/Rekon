@@ -233,7 +233,8 @@ export function PriceChart({
   const [useMockData, setUseMockData] = useState(false);
 
   // Fetch price history from API
-  const fetchPriceHistory = useCallback(async () => {
+  // Memoize to prevent unnecessary recreations
+  const fetchPriceHistory = useCallback(async (): Promise<ApiPricePoint[] | null> => {
     // If no token IDs provided, fall back to mock data
     if (!team1TokenId || !team2TokenId) {
       setUseMockData(true);
@@ -270,6 +271,12 @@ export function PriceChart({
     }
   }, [team1TokenId, team2TokenId, selectedRange]);
 
+  // Memoize mock data generation to avoid recalculation
+  const generateMockDataMemo = useCallback(
+    (range: TimeRange) => generateMockData(range, team1Price, team2Price),
+    [team1Price, team2Price]
+  );
+
   useEffect(() => {
     setIsLoading(true);
 
@@ -280,7 +287,7 @@ export function PriceChart({
         setPriceHistory(apiData);
       } else {
         // Fall back to mock data
-        const mockData = generateMockData(selectedRange, team1Price, team2Price);
+        const mockData = generateMockDataMemo(selectedRange);
         setPriceHistory(mockData);
       }
 
@@ -288,7 +295,7 @@ export function PriceChart({
     };
 
     loadData();
-  }, [selectedRange, team1Price, team2Price, fetchPriceHistory]);
+  }, [selectedRange, fetchPriceHistory, generateMockDataMemo]);
 
   const chartData = useMemo(() => {
     return priceHistory.map((point) => ({

@@ -1,31 +1,39 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useMemo } from "react";
 import type { Market } from "@rekon/types";
 
 interface MarketInfoProps {
   market: Market;
 }
 
-export function MarketInfo({ market }: MarketInfoProps) {
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  };
+// Memoized formatter to avoid recreating on every render
+const formatDate = (dateString?: string): string => {
+  if (!dateString) return "N/A";
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+};
 
-  // Format category path (e.g., "esports -> league of legends -> match winner")
-  const categoryPath = market.category
-    ? market.subcategory
-      ? `${market.category} / ${market.subcategory}`
-      : market.category
-    : null;
+export function MarketInfo({ market }: MarketInfoProps) {
+  // Memoize category path to avoid recalculation
+  const categoryPath = useMemo(() => {
+    return market.category
+      ? market.subcategory
+        ? `${market.category} / ${market.subcategory}`
+        : market.category
+      : null;
+  }, [market.category, market.subcategory]);
+
+  // Memoize formatted dates
+  const createdAtFormatted = useMemo(() => formatDate(market.createdAt), [market.createdAt]);
+  const endDateFormatted = useMemo(() => formatDate(market.endDate), [market.endDate]);
 
   return (
     <motion.div
@@ -58,13 +66,13 @@ export function MarketInfo({ market }: MarketInfoProps) {
           {/* Created At */}
           <InfoItem
             label="Created"
-            value={formatDate(market.createdAt)}
+            value={createdAtFormatted}
           />
 
           {/* End Date */}
           <InfoItem
             label="End Date"
-            value={formatDate(market.endDate)}
+            value={endDateFormatted}
           />
 
           {/* Liquidity Source */}

@@ -1,6 +1,12 @@
 "use client";
 
 import { cn } from "@rekon/ui";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 /**
  * Gaming-themed SVG icons and visual elements
@@ -513,6 +519,7 @@ export function getWinRateTier(winRate: number): RankTier {
 
 /**
  * Streak fire indicator with animation
+ * Industry Standard: Includes tooltip explaining meaning and data source
  */
 export function StreakFire({
   streak,
@@ -525,33 +532,55 @@ export function StreakFire({
 
   const intensity = Math.min(streak, 5);
 
+
   return (
-    <div
-      className={cn(
-        "flex items-center gap-1 px-2 py-0.5 rounded-full",
-        "bg-gradient-to-r from-orange-500/20 to-red-500/20",
-        "border border-orange-500/30",
-        className
-      )}
-    >
-      <div className="relative">
-        <FlameIcon
-          size={14}
-          className={cn(
-            "text-orange-400",
-            intensity >= 3 && "animate-pulse"
-          )}
-        />
-        {intensity >= 4 && (
-          <FlameIcon
-            size={10}
-            className="absolute -top-1 -right-1 text-red-400 animate-bounce"
-          />
-        )}
-      </div>
-      <span className="text-[10px] font-bold text-orange-300">
-        {streak}W
-      </span>
-    </div>
+    <TooltipProvider delayDuration={300} skipDelayDuration={100}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div
+            className={cn(
+              "flex items-center gap-1 px-2 py-0.5 rounded-full cursor-help",
+              "bg-gradient-to-r from-orange-500/20 to-red-500/20",
+              "border border-orange-500/30",
+              className
+            )}
+          >
+            <div className="relative">
+              <FlameIcon
+                size={14}
+                className={cn(
+                  "text-orange-400",
+                  intensity >= 3 && "animate-pulse"
+                )}
+              />
+              {intensity >= 4 && (
+                <FlameIcon
+                  size={10}
+                  className="absolute -top-1 -right-1 text-red-400 animate-bounce"
+                />
+              )}
+            </div>
+            <span className="text-[10px] font-bold text-orange-300">
+              {streak}W
+            </span>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent
+          side="top"
+          className="max-w-xs bg-[#0d0d1a] border-white/20 text-white shadow-xl"
+          sideOffset={8}
+        >
+          <div className="space-y-1.5">
+            <div className="font-semibold text-sm">Win Streak</div>
+            <p className="text-xs text-white/70 leading-relaxed">
+              Team has won {streak} consecutive {streak === 1 ? "match" : "matches"}. Shows current momentum and winning form.
+            </p>
+            <p className="text-[10px] text-white/50 italic mt-1.5 pt-1.5 border-t border-white/10">
+              Data from GRID API (current win streak)
+            </p>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
