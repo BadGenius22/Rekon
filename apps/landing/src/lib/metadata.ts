@@ -31,8 +31,6 @@ export const SITE_CONFIG = {
   ],
   social: {
     twitter: "@rekongg",
-    discord: "https://discord.gg/rekon",
-    github: "https://github.com/BadGenius22/Rekon",
   },
   creator: "Rekon Team",
   games: [
@@ -122,15 +120,11 @@ export function generateOrganizationSchema() {
     url: SITE_CONFIG.url,
     logo: `${SITE_CONFIG.url}/logo.svg`,
     description: SITE_CONFIG.description,
-    sameAs: [
-      `https://x.com/${SITE_CONFIG.social.twitter.replace("@", "")}`,
-      SITE_CONFIG.social.discord,
-      SITE_CONFIG.social.github,
-    ],
+    sameAs: [`https://x.com/${SITE_CONFIG.social.twitter.replace("@", "")}`],
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "customer support",
-      url: SITE_CONFIG.social.discord,
+      url: `https://x.com/${SITE_CONFIG.social.twitter.replace("@", "")}`,
     },
   };
 }
