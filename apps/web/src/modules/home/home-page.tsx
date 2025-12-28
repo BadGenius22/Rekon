@@ -12,6 +12,9 @@ import { AppFooter } from "./app-footer";
 import { BentoGrid, BentoGridItem } from "@/components/bento-grid";
 
 async function getHighlightedMarkets(): Promise<Market[]> {
+  // Fetch markets - errors are handled gracefully by returning empty array
+  // During build, if API is unavailable, page renders with empty state
+  // ISR will revalidate at runtime when API is available
   try {
     const url = new URL(`${API_CONFIG.baseUrl}/markets`);
     // Fetch all live esports markets (matches AND tournaments)
@@ -32,7 +35,7 @@ async function getHighlightedMarkets(): Promise<Market[]> {
     }
 
     const response = await fetch(url.toString(), {
-      next: { revalidate: 10 },
+      next: { revalidate: 10 }, // ISR: Cache for 10 seconds, then revalidate
     });
 
     if (!response.ok) {
@@ -43,7 +46,11 @@ async function getHighlightedMarkets(): Promise<Market[]> {
     const markets = (await response.json()) as Market[];
     return markets;
   } catch (error) {
-    console.warn("Failed to fetch highlighted markets:", error);
+    // Only log warnings in development - during build, API may not be available
+    // This is expected and handled gracefully by returning empty data
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Failed to fetch highlighted markets:", error);
+    }
     return [];
   }
 }
@@ -53,6 +60,9 @@ async function getHighlightedMarkets(): Promise<Market[]> {
  * Backend fetches from Polymarket's /sports endpoint.
  */
 async function getGameIcons(): Promise<Record<string, string>> {
+  // Fetch game icons - errors are handled gracefully by returning empty object
+  // During build, if API is unavailable, page renders with empty state
+  // ISR will revalidate at runtime when API is available
   try {
     const url = `${API_CONFIG.baseUrl}/games/icons`;
     const response = await fetch(url, {
@@ -66,7 +76,11 @@ async function getGameIcons(): Promise<Record<string, string>> {
 
     return (await response.json()) as Record<string, string>;
   } catch (error) {
-    console.warn("Failed to fetch game icons:", error);
+    // Only log warnings in development - during build, API may not be available
+    // This is expected and handled gracefully by returning empty data
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Failed to fetch game icons:", error);
+    }
     return {};
   }
 }

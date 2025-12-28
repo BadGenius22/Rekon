@@ -1,18 +1,57 @@
-// API Configuration
+// API Configuration (Frontend Only)
 // Strict validation: shared packages must not have localhost fallbacks
 // This prevents accidental prod → localhost bugs in monorepo + Vercel deployments
-if (!process.env.NEXT_PUBLIC_API_URL) {
-  throw new Error("NEXT_PUBLIC_API_URL is not defined");
+//
+// NOTE: This config is ONLY for the Next.js frontend (apps/web).
+// The backend API (apps/api) does NOT use this config and can safely import
+// this package for other configs (POLYMARKET_CONFIG, GRID_CONFIG, etc.).
+//
+// Uses lazy validation with Object.defineProperty to validate only when
+// properties are accessed, allowing backend to import without errors.
+let _apiConfig: {
+  baseUrl: string;
+  wsUrl: string;
+  timeout: number;
+} | null = null;
+
+function getApiConfig() {
+  if (_apiConfig) return _apiConfig;
+
+  // Validate when first accessed (lazy validation)
+  if (!process.env.NEXT_PUBLIC_API_URL) {
+    throw new Error(
+      "NEXT_PUBLIC_API_URL is not defined. This config is for the Next.js frontend only."
+    );
+  }
+
+  if (!process.env.NEXT_PUBLIC_WS_URL) {
+    throw new Error(
+      "NEXT_PUBLIC_WS_URL is not defined. This config is for the Next.js frontend only."
+    );
+  }
+
+  _apiConfig = {
+    baseUrl: process.env.NEXT_PUBLIC_API_URL,
+    wsUrl: process.env.NEXT_PUBLIC_WS_URL,
+    timeout: 30000,
+  };
+
+  return _apiConfig;
 }
 
-if (!process.env.NEXT_PUBLIC_WS_URL) {
-  throw new Error("NEXT_PUBLIC_WS_URL is not defined");
-}
-
+// Export as object with getters for lazy validation
+// This allows backend to import the package without errors
+// Validation only happens when frontend actually accesses properties
 export const API_CONFIG = {
-  baseUrl: process.env.NEXT_PUBLIC_API_URL,
-  wsUrl: process.env.NEXT_PUBLIC_WS_URL,
-  timeout: 30000,
+  get baseUrl() {
+    return getApiConfig().baseUrl;
+  },
+  get wsUrl() {
+    return getApiConfig().wsUrl;
+  },
+  get timeout() {
+    return getApiConfig().timeout;
+  },
 } as const;
 
 // Polymarket Configuration

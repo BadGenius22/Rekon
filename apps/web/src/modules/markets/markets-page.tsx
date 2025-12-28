@@ -13,6 +13,9 @@ async function getMarkets(
   includeResolved: boolean,
   game?: string
 ): Promise<Market[]> {
+  // Fetch markets - errors are handled gracefully by returning empty array
+  // During build, if API is unavailable, page renders with empty state
+  // ISR will revalidate at runtime when API is available
   try {
     const url = new URL(`${API_CONFIG.baseUrl}/markets`);
     if (includeResolved) {
@@ -50,8 +53,11 @@ async function getMarkets(
 
     return response.json();
   } catch (error) {
-    // Handle connection errors gracefully (e.g., during build or API down)
-    console.warn("Failed to fetch markets:", error);
+    // Only log warnings in development - during build, API may not be available
+    // This is expected and handled gracefully by returning empty data
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Failed to fetch markets:", error);
+    }
     return [];
   }
 }

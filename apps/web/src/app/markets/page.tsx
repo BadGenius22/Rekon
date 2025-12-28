@@ -2,7 +2,7 @@ import { MarketsPage } from "@/modules/markets/markets-page";
 
 // Use ISR (Incremental Static Regeneration) for better performance
 // Revalidates every 10 seconds - good balance between freshness and performance
-// For real-time updates, use WebSocket or client-side polling (future enhancement)
-export const revalidate = 10; // Revalidate every 10 seconds
+// Fetch functions handle build-time errors gracefully by returning empty data
+export const revalidate = 10;
 
 export default MarketsPage;

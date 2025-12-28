@@ -97,12 +97,13 @@ export const DEFAULT_METADATA: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/favicon.ico" },
-      { url: "/icon.png", type: "image/png", sizes: "32x32" },
+      { url: "/logo-white.svg", type: "image/svg+xml" },
+      { url: "/logo-white.svg", type: "image/svg+xml", sizes: "any" },
     ],
     apple: [
-      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      { url: "/logo-white.svg", sizes: "180x180", type: "image/svg+xml" },
     ],
+    shortcut: [{ url: "/logo-white.svg", type: "image/svg+xml" }],
   },
   manifest: "/site.webmanifest",
   alternates: {
