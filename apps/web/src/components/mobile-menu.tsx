@@ -14,6 +14,7 @@ export function MobileMenu() {
     { href: "/", label: "Home" },
     { href: "/markets", label: "Markets" },
     { href: "/dashboard", label: "Dashboard" },
+    { href: "/leaderboard", label: "Leaderboard" },
   ];
 
   const toggleMenu = () => setIsOpen(!isOpen);
@@ -82,4 +83,3 @@ export function MobileMenu() {
     </>
   );
 }
-

@@ -11,6 +11,30 @@ const nextConfig = {
     formats: ["image/webp", "image/avif"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "polymarket-upload.s3.us-east-2.amazonaws.com",
+        pathname: "/**",
+      },
+      // Allow API domain if icons are proxied through API
+      ...(process.env.NEXT_PUBLIC_API_URL
+        ? (() => {
+            try {
+              const url = new URL(process.env.NEXT_PUBLIC_API_URL);
+              return [
+                {
+                  protocol: "https",
+                  hostname: url.hostname,
+                  pathname: "/**",
+                },
+              ];
+            } catch {
+              return [];
+            }
+          })()
+        : []),
+    ],
   },
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion"],
