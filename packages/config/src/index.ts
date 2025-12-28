@@ -1,7 +1,17 @@
 // API Configuration
+// Strict validation: shared packages must not have localhost fallbacks
+// This prevents accidental prod → localhost bugs in monorepo + Vercel deployments
+if (!process.env.NEXT_PUBLIC_API_URL) {
+  throw new Error("NEXT_PUBLIC_API_URL is not defined");
+}
+
+if (!process.env.NEXT_PUBLIC_WS_URL) {
+  throw new Error("NEXT_PUBLIC_WS_URL is not defined");
+}
+
 export const API_CONFIG = {
-  baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001",
-  wsUrl: process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3001",
+  baseUrl: process.env.NEXT_PUBLIC_API_URL,
+  wsUrl: process.env.NEXT_PUBLIC_WS_URL,
   timeout: 30000,
 } as const;
 
@@ -272,9 +282,9 @@ export const RECOMMENDATION_CONFIG = {
   // Non-live total: 0.20 + 0.10 + 0.10 + 0.15 + 0.05 + 0.15 = 0.75 (normalized)
   // With live: + 0.25 = 1.0
   weights: {
-    recentForm: 0.20, // Win rate + streak (GRID Statistics)
-    headToHead: 0.10, // Historical matchup (GRID Central Data)
-    mapAdvantage: 0.10, // Map-specific stats (GRID Statistics)
+    recentForm: 0.2, // Win rate + streak (GRID Statistics)
+    headToHead: 0.1, // Historical matchup (GRID Central Data)
+    mapAdvantage: 0.1, // Map-specific stats (GRID Statistics)
     kdRatio: 0.15, // K/D ratio from combat (GRID Statistics) - NEW
     rosterStability: 0.05, // Roster completeness (GRID Central Data) - REAL DATA
     marketOdds: 0.15, // Implied probability (Polymarket)
