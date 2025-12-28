@@ -104,7 +104,7 @@ export function CTASection() {
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
             </a>
             <a
-              href={SITE_CONFIG.social.discord}
+              href={`https://x.com/${SITE_CONFIG.social.twitter.replace("@", "")}`}
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
@@ -115,7 +115,7 @@ export function CTASection() {
                 "hover:bg-white/10 hover:border-white/20"
               )}
             >
-              Join Discord
+              Follow X
             </a>
           </div>
 
