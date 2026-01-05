@@ -218,6 +218,7 @@ import { priceHistoryRoutes } from "./routes/price-history.js";
 import { signalRoutes } from "./routes/signal.js";
 import { recommendationRoutes } from "./routes/recommendation.js";
 import { premiumLeaderboardRoutes } from "./routes/premium-leaderboard.js";
+import { cronRoutes } from "./routes/cron.js";
 
 // Apply rate limiting to all API routes that call Polymarket
 // Rate limiter is applied to each route group
@@ -267,6 +268,7 @@ app.route("/price-history", priceHistoryRoutes);
 app.route("/signal", signalRoutes);
 app.route("/recommendation", recommendationRoutes);
 app.route("/premium", premiumLeaderboardRoutes);
+app.route("/cron", cronRoutes); // Cron jobs (protected by cron-auth middleware)
 
 const port = Number(process.env.PORT) || 3001;
 

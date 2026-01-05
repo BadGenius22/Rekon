@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { AlertCircle } from "lucide-react";
 
@@ -9,8 +9,22 @@ import { AlertCircle } from "lucide-react";
  *
  * Displays a prominent banner when demo mode is active.
  * Best Practice: Clear visual indication to prevent user confusion.
+ * Uses mounted state to avoid SSR hydration issues with context.
  */
 export function DemoModeBanner() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Don't render during SSR to avoid context not available errors
+  if (!mounted) return null;
+
+  return <DemoModeBannerContent />;
+}
+
+function DemoModeBannerContent() {
   const { isDemoMode } = useDemoMode();
 
   if (!isDemoMode) return null;

@@ -1,5 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "cd ../.. && pnpm build:api && node apps/api/scripts/create-vercel-output.mjs",
-  "outputDirectory": ".vercel/output"
+  "outputDirectory": ".vercel/output",
+  "crons": [
+    {
+      "path": "/cron/demo-refresh",
+      "schedule": "0 2 * * 0,3"
+    }
+  ]
 }
